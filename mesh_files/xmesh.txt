@@ -1,0 +1,5 @@
+# Meshfile
+Node ID, Value
+0, 2.000e+00
+1, 6.000e+00
+2, 1.000e+01
