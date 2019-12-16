@@ -1,4 +1,4 @@
-filetype: .txt
+filetype: .csv
 include_endpoints: true
 nx: 12
 x0: 0.0
