@@ -1,0 +1,13 @@
+name: virteng
+channels:
+  - defaults
+dependencies:
+  - pyyaml
+  - jupyter
+  - python=3.7
+  - matplotlib
+  - scipy
+  - xlrd
+  - numpy
+prefix: /anaconda2/envs/virteng
+
