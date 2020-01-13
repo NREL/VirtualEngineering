@@ -24,8 +24,8 @@ from scipy import optimize as opt
 from matplotlib.pyplot import *
 import matplotlib as mpl
 
-import yaml
 import sys
+import yaml
 yaml_filename = sys.argv[1]
 with open(yaml_filename) as fp:
     model_dict = yaml.load(fp, Loader = yaml.FullLoader)
@@ -66,7 +66,6 @@ KI = 1e-2 # best fit (constrained)
 
 # reactor starting conditions
 #mT0 = 10. # kg -- not used
-print(model_dict)
 
 lmbde = 0.03 # kg/kg; *1000 to get mg/g
 lmbde = model_dict.get('lambda_e', lmbde)
@@ -206,7 +205,6 @@ f0 = np.array([fGF0, fGR0, fg0])
 tfin = 100. # h
 tfin = model_dict.get('t_final', tfin)
 
-fis0
 N = 200
 t = np.linspace(0, tfin, N)
 f = igt.odeint(rhs, f0, t, args=(rhoT, fET, kF, kR, KdF, KdR, KI))
