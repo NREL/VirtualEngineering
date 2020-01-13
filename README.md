@@ -12,8 +12,7 @@ The first step is to create a Conda environment using one of the following two m
   
     To create a Conda environment from the environment.yaml file, simply open a terminal and run
     
-    `conda env create -f environment.yaml`
-    
+    `conda env create -f environment.yaml`    
 
     which creates a Conda environment named `virteng` from the complete list of all the necessary virtual engineering packages enumerated in the yaml file.
     
