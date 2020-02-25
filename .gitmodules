@@ -1,0 +1,6 @@
+[submodule "submodules/OpenFOAM-dev"]
+	path = submodules/OpenFOAM-dev
+	url = https://github.com/hsitaram/OpenFOAM-dev
+[submodule "submodules/ThirdParty-dev"]
+	path = submodules/ThirdParty-dev
+	url = https://github.com/OpenFOAM/ThirdParty-dev
