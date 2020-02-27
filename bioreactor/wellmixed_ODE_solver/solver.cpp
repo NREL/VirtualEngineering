@@ -1,6 +1,7 @@
 #include<iostream>
 #include<vector>
 #include<fstream>
+#include <boost/math/special_functions/gamma.hpp>
 
 const int X=0;
 const int O2=1;
@@ -43,18 +44,18 @@ void get_rhs(std::vector<double>& rhs,std::vector<double> solnvec,double t,int n
   // is usually expressed as g(a, x), where a and x are obligate positive. Therefore, we need
   // to restrict x to be no lower than 0. Additionally, we need to make sure we don't hit a
   // divide by zero error, so we add a very small value to the denominator.
-  double chi_s = gammainc(alpha_s, beta_s*max(solnvec[2]/(solnvec[3]+1e-8),0));
-  double chi_e = gammainc(alpha_e, beta_e*max(solnvec[1]/(solnvec[4]+1e-8),0));
+  double chi_s = boost::math::gamma_p(alpha_s, beta_s*std::max(solnvec[2]/(solnvec[3]+1e-8),0.0));
+  double chi_e = boost::math::gamma_p(alpha_e, beta_e*std::max(solnvec[1]/(solnvec[4]+1e-8),0.0));
   double chi_p = 0.3;
 
   // calculate q_s
   double F_s = (solnvec[2] + solnvec[3])/(solnvec[2] + solnvec[3] + K_s);
-  double F_e = (solnvec[1] + beta_E*solnvec[4])/(solnvec[1] + beta_E*solnvec[4] + K_e);
+  double F_e = (solnvec[1] + beta_e*solnvec[4])/(solnvec[1] + beta_e*solnvec[4] + K_e);
   double q_s = qs_max*F_s*F_e;
 
   // calculate intermediate rates
   double rar = chi_p*y_as*q_s*X;
-  double rbr = (1-chi_p)*y_bs*qx*X;
+  double rbr = (1-chi_p)*y_bs*q_s*X;
 
   double our = -chi_e*y_os*q_s*X;
   double otr = kLa *(o2_max - solnvec[1]);
