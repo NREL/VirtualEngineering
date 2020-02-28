@@ -23,43 +23,49 @@ void get_rhs(std::vector<double>& rhs,std::vector<double> solnvec,double t,int n
   double qs_max = 17;
   double o2_max = 0.214;
 
-  double K_e = 0.214;
+  double K_e = 0.0214;
   double K_s = 31;
 
   double alpha_s = 3;
   double beta_s = 12;
-  double alpha_e = 3;
-  double beta_e = 12;
+  double alpha_e = 1;
+  double beta_e = 1e3;
 
   double kLa = 5;
 
   // calculate chi_i
-  // FIXME: we need a library for calculating the gamma incomplete function.
-  // Using general "gammainc" for now. In my python code I'm using scipy.special.gammainc
-  // (https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.gammainc.html)
-  // There are a couple libraries that I'm seeing on google, but I don't feel comfortable
-  // making that decision.
-  //
-  // Also, a word of explanation about the form of the gamma incomplete call. This function
+  // A word of explanation about the form of the gamma incomplete call. This function
   // is usually expressed as g(a, x), where a and x are obligate positive. Therefore, we need
   // to restrict x to be no lower than 0. Additionally, we need to make sure we don't hit a
-  // divide by zero error, so we add a very small value to the denominator.
-  double chi_s = boost::math::gamma_p(alpha_s, beta_s*std::max(solnvec[2]/(solnvec[3]+1e-8),0.0));
-  double chi_e = boost::math::gamma_p(alpha_e, beta_e*std::max(solnvec[1]/(solnvec[4]+1e-8),0.0));
+  // divide by zero error, so we condition use of the gamma function on the denominator being
+  // non-zero.
+  double chi_s = 1;
+  double chi_e = 1;
+
+  if (solnvec[3]>1e-8) {
+    double sRatio = std::max(solnvec[2]/(solnvec[3]), 0.0);
+    chi_s = boost::math::gamma_p(alpha_s, beta_s*sRatio);
+  }
+  
+  if (solnvec[4]>1e-8) {
+    double eRatio = std::max(solnvec[1]/(solnvec[4]), 0.0);
+    chi_e = boost::math::gamma_p(alpha_e, beta_e*eRatio);
+  }
+  
   double chi_p = 0.3;
 
   // calculate q_s
   double F_s = (solnvec[2] + solnvec[3])/(solnvec[2] + solnvec[3] + K_s);
-  double F_e = (solnvec[1] + beta_e*solnvec[4])/(solnvec[1] + beta_e*solnvec[4] + K_e);
+  double F_e = (solnvec[1] + solnvec[4]/beta_e)/(solnvec[1] + solnvec[4]/beta_e + K_e);
   double q_s = qs_max*F_s*F_e;
 
   // calculate intermediate rates
-  double rar = chi_p*y_as*q_s*X;
-  double rbr = (1-chi_p)*y_bs*q_s*X;
+  double rar = chi_p*y_as*q_s*solnvec[0];
+  double rbr = (1-chi_p)*y_bs*q_s*solnvec[0];
 
-  double our = -chi_e*y_os*q_s*X;
+  double our = -chi_e*y_os*q_s*solnvec[0];
   double otr = kLa *(o2_max - solnvec[1]);
-  double rae = -(1-chi_e)*y_os*q_s*X;
+  double rae = -(1-chi_e)*y_as*q_s*solnvec[0];
   double rbe = -rae;
 
 
@@ -115,7 +121,7 @@ int main()
     double final_time=24.0;
     double advance_time=0.5;
     double current_time=0.0;
-    double dt=advance_time/10.0;
+    double dt=advance_time/50.0;
 
     std::ofstream outfile("timehist.dat");
 
