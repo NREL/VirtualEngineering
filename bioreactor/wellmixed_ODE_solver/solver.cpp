@@ -70,12 +70,12 @@ void get_rhs(std::vector<double>& rhs,std::vector<double> solnvec,double t,int n
 
 
   // calculate final rates
-  rhs[0] = y_xs*q_s*solnvec[X]*(1 - solnvec[X]/x_max);
-  rhs[1] = our+otr;
-  rhs[2] = -chi_s     *q_s*solnvec[X];
-  rhs[3] = -(1-chi_s) *q_s*solnvec[X];
-  rhs[4] = rar+rae;
-  rhs[5] = rbr+rbe;
+  rhs[X] = y_xs*q_s*solnvec[X]*(1 - solnvec[X]/x_max);
+  rhs[O2] = our+otr;
+  rhs[G] = -chi_s     *q_s*solnvec[X];
+  rhs[Xy] = -(1-chi_s) *q_s*solnvec[X];
+  rhs[A] = rar+rae;
+  rhs[B] = rbr+rbe;
 
 }
 
