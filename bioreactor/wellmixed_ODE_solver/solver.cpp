@@ -42,38 +42,38 @@ void get_rhs(std::vector<double>& rhs,std::vector<double> solnvec,double t,int n
   double chi_s = 1;
   double chi_e = 1;
 
-  if (solnvec[3]>1e-8) {
-    double sRatio = std::max(solnvec[2]/(solnvec[3]), 0.0);
+  if (solnvec[Xy]>1e-8) {
+    double sRatio = std::max(solnvec[G]/(solnvec[Xy]), 0.0);
     chi_s = boost::math::gamma_p(alpha_s, beta_s*sRatio);
   }
   
-  if (solnvec[4]>1e-8) {
-    double eRatio = std::max(solnvec[1]/(solnvec[4]), 0.0);
+  if (solnvec[A]>1e-8) {
+    double eRatio = std::max(solnvec[O2]/(solnvec[A]), 0.0);
     chi_e = boost::math::gamma_p(alpha_e, beta_e*eRatio);
   }
   
   double chi_p = 0.3;
 
   // calculate q_s
-  double F_s = (solnvec[2] + solnvec[3])/(solnvec[2] + solnvec[3] + K_s);
-  double F_e = (solnvec[1] + solnvec[4]/beta_e)/(solnvec[1] + solnvec[4]/beta_e + K_e);
+  double F_s = (solnvec[G] + solnvec[Xy])/(solnvec[G] + solnvec[Xy] + K_s);
+  double F_e = (solnvec[O2] + solnvec[A]/beta_e)/(solnvec[O2] + solnvec[A]/beta_e + K_e);
   double q_s = qs_max*F_s*F_e;
 
   // calculate intermediate rates
-  double rar = chi_p*y_as*q_s*solnvec[0];
-  double rbr = (1-chi_p)*y_bs*q_s*solnvec[0];
+  double rar = chi_p*y_as*q_s*solnvec[X];
+  double rbr = (1-chi_p)*y_bs*q_s*solnvec[X];
 
-  double our = -chi_e*y_os*q_s*solnvec[0];
-  double otr = kLa *(o2_max - solnvec[1]);
-  double rae = -(1-chi_e)*y_as*q_s*solnvec[0];
+  double our = -chi_e*y_os*q_s*solnvec[X];
+  double otr = kLa *(o2_max - solnvec[O2]);
+  double rae = -(1-chi_e)*y_as*q_s*solnvec[X];
   double rbe = -rae;
 
 
   // calculate final rates
-  rhs[0] = y_xs*q_s*solnvec[0]*(1 - solnvec[0]/x_max);
+  rhs[0] = y_xs*q_s*solnvec[X]*(1 - solnvec[X]/x_max);
   rhs[1] = our+otr;
-  rhs[2] = -chi_s     *q_s*solnvec[0];
-  rhs[3] = -(1-chi_s) *q_s*solnvec[0];
+  rhs[2] = -chi_s     *q_s*solnvec[X];
+  rhs[3] = -(1-chi_s) *q_s*solnvec[X];
   rhs[4] = rar+rae;
   rhs[5] = rbr+rbe;
 
