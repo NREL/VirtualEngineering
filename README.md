@@ -78,7 +78,7 @@ somehow openfoam needs the complete path to the directory, if ever you are insta
 do change folder to cd /lustre/eaglefs/projects/vebio/VirtualEngineering/submodules/OpenFOAM-dev and 
 NOT /projects/vebio/VirtualEngineering/submodules/OpenFOAM-dev
 
-step 3: set number of compilation procs, lets say I want to use 6 processors, then do, export WM_NUMCOMPPROCS=6
+step 3: set number of compilation procs, lets say I want to use 6 processors, then do, export WM_NCOMPPROCS=6
 
 step 4: invoke allwmake as $./Allwmake - this will build thirdparty and all of openfoam
 
