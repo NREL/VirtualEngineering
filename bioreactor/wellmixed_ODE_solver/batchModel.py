@@ -72,50 +72,52 @@ def dfdt(f, kLa, mc):
     return np.array([ro, rbio, rg, rxy, ra, rb])
 
 
-f0 = np.array([0.214, 0.5, 500, 250, 0,0])
-kLa = 5
 
-#print(dfdt(f0, 50, modelConstants))
+if __name__=="__main__":
+    f0 = np.array([0.214, 0.5, 500, 250, 0,0])
+    kLa = 5
 
-dt = 0.01
-t0 = 0.
-tf = 24
+    #print(dfdt(f0, 50, modelConstants))
 
-t = [t0]
-fmat = f0
-fold = f0
-while t[-1]<tf:
-    fnew = fold + dt*dfdt(fold, kLa, modelConstants)
+    dt = 0.01
+    t0 = 0.
+    tf = 24
 
-    fmat = np.append(fmat, fnew)
-    fold = fnew
-    t.append(t[-1]+dt)
+    t = [t0]
+    fmat = f0
+    fold = f0
+    while t[-1]<tf:
+        fnew = fold + dt*dfdt(fold, kLa, modelConstants)
 
-fmat = np.reshape(fmat, (-1,6))
-t = np.asarray(t)
+        fmat = np.append(fmat, fnew)
+        fold = fnew
+        t.append(t[-1]+dt)
 
-plt.figure(1)
-plt.clf()
-plt.plot(t, fmat[:,0])
-plt.xlabel('time (h)')
-plt.ylabel('oxygen (mM)')
-plt.show()
+    fmat = np.reshape(fmat, (-1,6))
+    t = np.asarray(t)
 
-plt.figure(2)
-plt.clf()
-plt.plot(t, fmat[:,1])
-plt.xlabel('time (h)')
-plt.ylabel('biomass (kg/$m^3$)')
-plt.show()
+    plt.figure(1)
+    plt.clf()
+    plt.plot(t, fmat[:,0])
+    plt.xlabel('time (h)')
+    plt.ylabel('oxygen (mM)')
+    plt.show()
+
+    plt.figure(2)
+    plt.clf()
+    plt.plot(t, fmat[:,1])
+    plt.xlabel('time (h)')
+    plt.ylabel('biomass (kg/$m^3$)')
+    plt.show()
 
 
-plt.figure(3)
-plt.clf()
-plt.plot(t, fmat[:,2], label='glu')
-plt.plot(t, fmat[:,3], label='xyl')
-plt.plot(t, fmat[:,4], label='ace')
-plt.plot(t, fmat[:,5], label='bdo')
-plt.legend(loc='best')
-plt.xlabel('time (h)')
-plt.ylabel('substrates (mM)')
-plt.show()
+    plt.figure(3)
+    plt.clf()
+    plt.plot(t, fmat[:,2], label='glu')
+    plt.plot(t, fmat[:,3], label='xyl')
+    plt.plot(t, fmat[:,4], label='ace')
+    plt.plot(t, fmat[:,5], label='bdo')
+    plt.legend(loc='best')
+    plt.xlabel('time (h)')
+    plt.ylabel('substrates (mM)')
+    plt.show()
