@@ -78,7 +78,6 @@ print(M_xylose,M_furf,M_xylog)
 
 filenames = sorted(glob.glob(argv[1]), key=lambda f: int(f.split(".")[0].split("_")[1]))
 numfiles=len(filenames)
-print(filenames)
 
 expfilename=argv[2]
 (texp,xyexp,xoexp,fexp,liqexp,xylexp,FISexp)=readtimehist(expfilename)
