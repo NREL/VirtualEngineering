@@ -29,7 +29,7 @@ import time
 # we do C = C_mx * X, where X~beta(a,b)
 #
 # we also have to center our concentrations.
-X_mean = 0.1
+X_mean = 0.2
 betaN = 10
 alphaN = X_mean * betaN/ (1-X_mean)
 xspace = np.linspace(0,1, num=20)
