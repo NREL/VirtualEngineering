@@ -1,0 +1,206 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margin=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+% \usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+\title{Simplified BDO Kinetics for Product Selectivity}
+\author{James Lischeske}
+%\date{} % Activate to display a given date or no date (if empty),
+         % otherwise the current date is printed 
+
+\begin{document}
+\maketitle
+
+\section{Motivation}
+
+Your text goes here.
+
+\section{Equations}
+
+The overall reaction is limited by an expression for the uptake of substrate per biomass concentration:
+\begin{equation}
+	q_s = q_{s,mx} F_s F_e
+\end{equation}
+These depend on two Michaelis-Menten-like expressions for the availability of substrates ($F_s$), which provide energy, and oxygen and acetoin, which provide electrons ($F_e$) for the deconstruction of substrates:
+\begin{equation}
+	F_s = \frac{[G] + [Xy]}{[G] + [Xy] + K_s}
+\end{equation}
+\begin{equation}
+	F_e = \frac{[O_2] +  [A]/\beta_e}{[O_2] +  [A]/\beta_e + K_e}
+\end{equation}
+the scaling constant $\beta_e$ is required because the organism vastly prefers to use oxygen as the electron source relative to acetoin, but the absolute concentration of acetoin is several orders of magnitude higher than oxygen. Note also the convention wherein concentrations of solutes are denoted by the identifier in square brackets ($[i] = C_i$) for readability. 
+
+We use a limited-growth model for biomass (biomass here refers to mass-concentration of active bacteria $X$, in $\mathrm{kg/m^3}$):
+\begin{equation}
+	\frac{d X}{d t} = Y_{X/s} q_s X (1 - \frac{X}{X_{max}})
+\end{equation}
+where $Y_{X/s}$ is the specific aerobic yield for substrate, in $\mathrm{\frac{kg-biomass/m^3}{mol-S/m^3}}$. All constants will be identified and quantified in the next section.
+
+Our substrates are glucose and xylose, and the organism prefers to consume glucose rather than xylose. This is accomplished by phenomenologically rather than mechanistically, using a partitioning function, as follows:
+\begin{equation}
+	-r_{G} = \chi_s q_s X
+\end{equation}
+\begin{equation}
+	-r_{Xy} = (1-\chi_s) q_s X
+\end{equation}
+where $\chi_s$ is the partitioning function $\chi_s = P(\alpha_s, \beta_s \frac{[G]}{[Xy]})$, where $P$ is the regularized lower incomplete gamma function, which is the CDF of the gamma distribution. This allows us to transform the ratio of concentrations of the substrates, which is in the domain $(0, \infty)$, to the domain $(0,1)$. 
+
+Products (acetoin and 2,3-bdo) are modeled as being generated in a simple ratio from substrates:
+\begin{equation}
+	r_{A, r} = \chi_p Y_{A/s} q_s X
+\end{equation}
+\begin{equation}
+	r_{B, r} = (1-\chi_p) Y_{B/s} q_s X
+\end{equation}
+where $\chi_p$ is a constant.
+
+Electrons are supplied by oxygen and, in low-oxygen environments, by acetoin. Thus, we need our partitioning function again for electron supply:
+\begin{equation}
+	-r_{O_2,e} = \chi_e Y_{O/s} q_s X
+\end{equation}
+\begin{equation}
+	-r_{A, e} = (1-\chi_e) Y_{A/s} q_s X
+\end{equation}
+\begin{equation}
+	r_{B,e} = - r_{A,e}
+\end{equation}
+where $\chi_e = P(\alpha_e, \beta_e \frac{[O_2]}{[A]})$ is again given by the incomplete gamma function, using the ratio of oxygen to acetoin concentration. Note that this $\beta_e$ is the same as what's used in the Monod equation for electron availability in equation \ref{}. Also, the acetoin consumption rate is scaled by the specific \emph{oxygen} yield to substrate ($Y_{O/s}$), because here acetoin is serving same function as oxygen in this context, where one mole is consumed to produce one mole of NAD+. 
+And thus, the total rates for acetoin and bdo are given by:
+\begin{equation}
+	r_{A} = r_{A,r} + r_{A,e}
+\end{equation}
+\begin{equation}
+	r_{B} = r_{B,r} + r_{B,e}
+\end{equation}
+And finally, we recognize that oxygen is also supplied by aeration, and therefore the total oxygen rate is given by:
+\begin{equation}
+	r_{O_2} = r_{O_2,e} + k_L a ([O_2]_{sat} - [O_2](x,t))
+\end{equation}
+
+This is a semi-mechanistic model only, and makes several simplifying assumptions. Here, product formation is simply a function of the present concentration of biomass, whereas it may be more accurately modeled as both biomass-associated and growth associated (in growth-associated formation, it is both a function of $X$ and $dX/dt$). 
+
+Additionally, in the real metabolic system, acetoin is produced first, and bdo is produced from acetoin, yielding one mol of NAD+ per mol acetoin consumed. Our present assumptions allow us to avoid modeling redox balances (that is, the balance of NADH and NAD+), which are exceedingly complicated, and counter-balanced by many other pathways within the organism. Rather, we recognized phenomenologically that acetoin and bdo are co-produced under typical conditions, and acetoin is consumed at low oxygen concentrations.
+%
+%Finally, in the context of our reactor, where an instantaneous oxygen consumption rate is required at each location, this may be given by:
+%\begin{equation}
+%\begin{array}{ll}
+%	r_{O_2, \mathrm{reactor}} = & - P(\alpha_e, \beta_e [O_2]/[A]_{\mathrm{reactor}}) Y_{O/s}  X q_{s,mx} F_{s,reactor} \frac{[O_2] + \beta_e [A]}{[O_2] + \beta_e [A] + K_e} \\
+%	& + k_L a ([O_2]_{sat} - [O_2](x,t))
+%\end{array}		
+%\end{equation}
+
+Note that, in the first term, $Y_{O/s}$,  $X$,  $q_{s,mx}$, and  $F_{s,reactor}$ are all constant across the entire reactor, while $P(\cdot)$, $F_e$, and $[O_2]$ must be calculated at each cell within the reactor. 
+
+In summary, we have ODEs for the following 
+ 
+
+\subsection{Constants and Data Set}
+
+Coefficients are presented in Table \ref{}, then systematically explored and estimated below, referencing experimental data where possible.
+
+\begin{table}[h!]
+\caption{Representative parameters}
+\begin{tabular}{l l l l } 
+	Variable & Value & dimensions & description \\
+	$Y_{X/s}$ & 0.009 & $\mathrm{\frac{kg-biomass/m^3}{mol-S/m^3}}$ & specific aerobic yield of substrate, or the amount of biomass produced per amount of substrate consumed \\
+	$Y_{A/s}$ & 1.01 & $\mathrm{mol-A/mol-S}$ & specific acetoin yield of substrate \\
+	$Y_{B/s}$ & 0.88  & $\mathrm{mol-A/mol-S}$ & specific bdo yield of substrate \\
+	$Y_{O/s}$ & 0.0467 & $\mathrm{mol-O_2/mol-S}$ & specific oxygen yield of substrate \\
+	$X_{max}$ & 11 & $\mathrm{kg/m^3}$ & maximum biomass concentration \\
+	$q_{s, max}$ & 17 & $\mathrm{\frac{mol-S/m^3}{h-kg-biomass/m^3}}$ & maximum solute consumption rate \\
+	$O_{2,max}$ & 0.214 & $\mathrm{mol/m^3}$ & solubility limit of oxygen \\
+	$K_e$ & 0.0214 & $\mathrm{mol-e/m^3}$ & Michaelis-Menten coefficient for oxygen consumption/electron production \\
+	$K_s$ & 31 & $\mathrm{mol-S/m^3}$ & Michaelis-Menten coefficient for substrate uptake\\
+	$\alpha_s$ & 3 & (--) & \\
+	$\beta_s$ & 12 & (--) & \\
+	$\alpha_e$ & 1 & (--) & \\
+	$\beta_e$ & $10^3$ & (--) &
+	
+\end{tabular}
+\end{table}
+
+Addtionally, we have a representative set of initial and process conditions
+
+\begin{table}[h!]
+\caption{Initial conditions}
+\begin{tabular}{l l l l }
+	Variable & Value & Units \\
+	X & 0.5 & $\mathrm{kg/m^3}$ \\
+	$[O_2]$ & 0.214 & $\mathrm{mol/m^3}$ \\
+	$[G]$ & 500 & $\mathrm{mol/m^3}$ \\
+	$[Xy]$ & 250 & $\mathrm{mol/m^3}$ \\
+	$[A]$ & 0 & $\mathrm{mol/m^3}$ \\
+	$[B]$ & 0 & $\mathrm{mol/m^3}$ \\
+	Aeration Rate & 0.18 & Volume-per-volume-per minute
+\end{tabular}
+\end{table}
+	
+
+
+[Relation of constants to data to come in a future draft....]
+
+\section{Reactor Model}
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
