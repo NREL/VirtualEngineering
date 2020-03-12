@@ -3,3 +3,9 @@ scratch/
 !/.gitignore
 *~
 *.pyc
+
+# fortran/f2py compiler output
+*.o
+*.so
+*.mod
+*.exe
