@@ -9,3 +9,6 @@ scratch/
 *.so
 *.mod
 *.exe
+
+# use jupytext to save a paired text file (markdown for now)
+*.ipynb
