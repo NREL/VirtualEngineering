@@ -139,8 +139,8 @@ pt_options.xylan_solid_fraction = widgets.BoundedFloatText(
     value = 0.263,
     max = 1,
     min = 0,
-    description = r'Initial FIS$_0$',
-    description_tooltip = 'The initial fraction of insoluble solids (kg/kg).'
+    description = r'Initial $X_x$',
+    description_tooltip = 'The initial fraction of solids that is xylan (g/g).'
 )
 
 pt_options.final_time = widgets.BoundedFloatText(
