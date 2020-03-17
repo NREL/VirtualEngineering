@@ -22,7 +22,7 @@ The first step is to create a Conda environment using one of the following two m
 
     For a more customizable option, the Conda environment can be created by specifying the desired packages directly from the command line
 
-    `conda create -n virteng python=3.7 jupyter pyyaml numpy matplotlib scipy xlrd`
+    `conda create -n virteng -c conda-forge python=3.7 jupyter pyyaml numpy matplotlib scipy xlrd fortran-compiler jupytext`
 
     which creates a conda environment named `virteng` containing the listed packages.  Feel free to add, remove, or modify these packages to suit your specific virtual engineering needs.
 
