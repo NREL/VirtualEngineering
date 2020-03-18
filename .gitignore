@@ -9,6 +9,10 @@ scratch/
 *.so
 *.mod
 *.exe
+*.dSYM
 
 # use jupytext to save a paired text file (markdown for now)
 *.ipynb
+
+# blanket ignore output yaml files--can add specific yaml files for tracking (e.g. environment.yaml)
+*.yaml

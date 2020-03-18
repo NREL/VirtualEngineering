@@ -116,7 +116,7 @@ pt_options.initial_acid_conc = widgets.BoundedFloatText(
     max = 1.0,
     min = 0.0,
     description = 'Acid Loading',
-    description_tooltip = 'The initial concentration of acid.  Must be in the range [0, 1]'
+    description_tooltip = 'The initial concentration of acid (g/g).  Must be in the range [0, 1]'
 )
 
 pt_options.steam_temperature = widgets.BoundedFloatText(
@@ -124,7 +124,7 @@ pt_options.steam_temperature = widgets.BoundedFloatText(
     max = 1000,
     min = 100,
     description = 'Steam Temperature',
-    description_tooltip = r'The fixed temperature of the steam ($^\circ$K).'
+    description_tooltip = r'The fixed temperature of the steam (K).'
 )
 
 pt_options.bulk_steam_conc = widgets.BoundedFloatText(
