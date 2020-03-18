@@ -55,10 +55,12 @@ cacid0 = IBCs['acid']
 eL0 = IBCs['lifr']
 l = meshp['maxx']
 
+new_inputfilename = 'pretreat_defs_updated.inp'
+pt_input.writeinpfile(new_inputfilename, meshp, scales, IBCs, rrates, Egtcs, deto)
 
 # run the simulation
 simtime=-timerlib.default_timer()
-solnvec = pt.main(m,n, inputfilename)
+solnvec = pt.main(m,n, new_inputfilename)
 simtime=simtime+timerlib.default_timer()
 
 #solnvec=pt.ptmain.interpsoln

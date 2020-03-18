@@ -103,12 +103,19 @@ def readinpfile(filename):
 def writeinpfile(filename, meshp, scales, IBCs, rrates, Egtcs, deto):
 
     # convert all the elements to strings for writing out
-    meshp = {k: str(v) for k, v in meshp.iteritems()}
-    scales = {k: str(v) for k, v in scales.iteritems()}
-    IBCs = {k: str(v) for k, v in IBCs.iteritems()}
-    Egtcs = {k: str(v) for k, v in Egtcs.iteritems()}
-    deto = {k: str(v) for k, v in deto.iteritems()}
-    rrates = {k: v.astype(str) for k, v in rrates.iteritems()}
+    # meshp = {k: str(v) for k, v in meshp.iteritems()}
+    # scales = {k: str(v) for k, v in scales.iteritems()}
+    # IBCs = {k: str(v) for k, v in IBCs.iteritems()}
+    # Egtcs = {k: str(v) for k, v in Egtcs.iteritems()}
+    # deto = {k: str(v) for k, v in deto.iteritems()}
+    # rrates = {k: v.astype(str) for k, v in rrates.iteritems()}
+    # Change for Python 3
+    meshp = {k: str(v) for k, v in meshp.items()}
+    scales = {k: str(v) for k, v in scales.items()}
+    IBCs = {k: str(v) for k, v in IBCs.items()}
+    Egtcs = {k: str(v) for k, v in Egtcs.items()}
+    deto = {k: str(v) for k, v in deto.items()}
+    rrates = {k: v.astype(str) for k, v in rrates.items()}
     
     inpfile = open(filename,'w')
     
