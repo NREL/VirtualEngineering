@@ -116,7 +116,7 @@ pt_options.initial_acid_conc = widgets.BoundedFloatText(
     max = 1.0,
     min = 0.0,
     description = 'Acid Loading',
-    description_tooltip = 'The initial concentration of acid (%).'
+    description_tooltip = 'The initial concentration of acid.  Must be in the range [0, 1]'
 )
 
 pt_options.steam_temperature = widgets.BoundedFloatText(
@@ -124,7 +124,7 @@ pt_options.steam_temperature = widgets.BoundedFloatText(
     max = 1000,
     min = 100,
     description = 'Steam Temperature',
-    description_tooltip = r'The fixed temperature of the steam ($^\circ$C).'
+    description_tooltip = r'The fixed temperature of the steam ($^\circ$K).'
 )
 
 pt_options.bulk_steam_conc = widgets.BoundedFloatText(
@@ -132,7 +132,15 @@ pt_options.bulk_steam_conc = widgets.BoundedFloatText(
     max = 1.0,
     min = 0.0,
     description = 'Bulk Steam Concentration',
-    description_tooltip = 'The bulk steam concentration (pressure).'
+    description_tooltip = 'The ambient steam concentration.  Must be in the range [0, 1]'
+)
+
+pt_options.initial_solid_fraction = widgets.BoundedFloatText(
+    value = 0.745,
+    max = 1,
+    min = 0,
+    description = r'Initial FIS$_0$',
+    description_tooltip = 'The initial fraction of insoluble solids (kg/kg).  Must be in the range [0, 1]'
 )
 
 pt_options.xylan_solid_fraction = widgets.BoundedFloatText(
@@ -140,7 +148,7 @@ pt_options.xylan_solid_fraction = widgets.BoundedFloatText(
     max = 1,
     min = 0,
     description = r'Initial $X_x$',
-    description_tooltip = 'The initial fraction of solids that is xylan (g/g).'
+    description_tooltip = 'The initial fraction of solids that is xylan (kg/kg).  Must be in the range [0, 1]'
 )
 
 pt_options.final_time = widgets.BoundedFloatText(
@@ -148,7 +156,7 @@ pt_options.final_time = widgets.BoundedFloatText(
     max = 1e16,
     min = 1,
     description = 'Final Time',
-    description_tooltip = 'Total simulation time (s).'
+    description_tooltip = r'Total simulation time (s).  Must be $\geq$ 1'
 )
 
 pt_options.show_plots = widgets.Checkbox(
@@ -184,7 +192,7 @@ eh_options.lambda_e = widgets.BoundedFloatText(
     max = 1.0,
     min = 0.0,
     description = 'Enzymatic Load',
-    description_tooltip = r'Ratio of the enzyme mass to the total solution mass (kg/kg).  Must be in the range $0 \leq \lambda_e \leq 1$'
+    description_tooltip = 'Ratio of the enzyme mass to the total solution mass (kg/kg).  Must be in the range [0, 1]'
 )
 
 eh_options.fis_0_target = widgets.BoundedFloatText(
@@ -192,21 +200,21 @@ eh_options.fis_0_target = widgets.BoundedFloatText(
     max = 1.0,
     min = 0.0,
     description = r'FIS$_0$ Target',
-    description_tooltip = r'The target value for initial fraction of insoluble solids *after* dilution (kg/kg).  Must be in the range $0 \leq f_0 \leq 1$'
+    description_tooltip = 'The target value for initial fraction of insoluble solids *after* dilution (kg/kg).  Must be in the range [0, 1]'
 )
 
-eh_options.dilution_strength = widgets.FloatSlider(
-    value = 0.5,
-    min = 0,
-    max = 1,
-    step = 0.1,
-    description = 'Dilution Strength',
-    continuous_update = False,
-    orientation = 'horizontal',
-    readout = True,
-    readout_format = '.1f',
-    description_tooltip = r'The efficacy of the dilution step: 0 means use the FIS$_0$ value from the end of the pretreatment step entirely, 1 means use the target FIS$_0$ value entirely'
-)
+# eh_options.dilution_strength = widgets.FloatSlider(
+#     value = 0.5,
+#     min = 0,
+#     max = 1,
+#     step = 0.1,
+#     description = 'Dilution Strength',
+#     continuous_update = False,
+#     orientation = 'horizontal',
+#     readout = True,
+#     readout_format = '.1f',
+#     description_tooltip = r'The efficacy of the dilution step: 0 means use the FIS$_0$ value from the end of the pretreatment step entirely, 1 means use the target FIS$_0$ value entirely'
+# )
 
 
 eh_options.t_final = widgets.BoundedFloatText(
@@ -214,7 +222,7 @@ eh_options.t_final = widgets.BoundedFloatText(
     min = 1.0,
     max = 1e16,
     description = 'Final Time',
-    description_tooltip = r'The total time of the simulation (h).  Must be $\geq 1$'
+    description_tooltip = r'The total time of the simulation (h).  Must be $\geq$ 1'
 )
 
 eh_options.show_plots = widgets.Checkbox(

@@ -74,27 +74,24 @@ KI = 1e-2 # best fit (constrained)
 #mT0 = 10. # kg -- not used
 
 lmbde = 0.03 # kg/kg; *1000 to get mg/g
-lmbde = input_dict.get('lambda_e', lmbde)
+lmbde = input_dict['lambda_e']
 
 fis0 = 0.05 # kg/kg; initial fraction insoluble solids
-fis0 = input_dict.get('fis_0_target', fis0)
-if input_dict.get('fis_0'):
-    print('\nWARNING: Found a pretreatment output for initial fraction insoluble solids')
-    print('Overriding widget value: %f' % (fis0))
-    print('With pretreatment value: %f' % (input_dict['fis_0']))
-    dilution = input_dict['dilution_strength']*fis0 + (1.0 - input_dict['dilution_strength'])*input_dict['fis_0']
-    print('After dilutions: %f' % (dilution))
-    fis0 = dilution
-    print('\n')
+fis0 = input_dict['fis_0_target']
+
+# Compute the amount of dilution required to reach the fis_0_target
+# based on the output from the pretreatment step
+dilution_factor = input_dict['fis_0_target']/input_dict['fis_0']
 
 xG0 = 1.0 # initial glucan fraction of insoluble solids -- 100% here
 rhog0 = 0.0 # g/L; initial glucose concentration in the liquid
 rhox0 = 0.0 # g/L
+rhox0 = input_dict['rho_x_0']*dilution_factor
+
 yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
 
 conversion_xylan = (1.0 - input_dict['xf'])/input_dict['xi']
-new_yF0 = 0.2 + 0.6*conversion_xylan
-yF0 = new_yF0
+yF0 = 0.2 + 0.6*conversion_xylan
 
 
 # enzymatic hydrolysis rate equation
@@ -221,7 +218,7 @@ f0 = np.array([fGF0, fGR0, fg0])
 # run simulation via igt.odeint
 #tfin = 200. # h
 tfin = 100. # h
-tfin = input_dict.get('t_final', tfin)
+tfin = input_dict['t_final']
 
 N = 200
 t = np.linspace(0, tfin, N)

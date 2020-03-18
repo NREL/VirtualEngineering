@@ -30,6 +30,7 @@ if len(sys.argv) > 1:
     IBCs['bkst'] = input_dict['bulk_steam_conc']
     meshp['ftime'] = input_dict['final_time']
     IBCs['xyfr'] = input_dict['xylan_solid_fraction']
+    IBCs['lifr'] = 1.0 - input_dict['initial_solid_fraction']
 else:
     input_dict = {}
 
@@ -131,6 +132,7 @@ output_dict = {}
 output_dict['fis_0'] = float(solidweight/(solidweight+liquid_bulk))
 output_dict['xi'] = float(fx0*(1-ep0)*l)
 output_dict['xf'] = float(xylanweight)
+output_dict['rho_x_0'] = float(xylose_bulk*1000*M_xylose)
 
 if len(sys.argv) > 2:
     # Save the output dictionary to a .yaml file
