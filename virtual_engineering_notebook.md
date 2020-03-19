@@ -114,11 +114,55 @@ class blank_object:
 ## Set Virtual Engineering Options
 
 
+### 0. Feedstock properties
+
+Set the feedstock properties.
+
+<!-- #endregion -->
+
+```python
+#================================================================
+
+# Create the collection of widgets
+fs_options = blank_object()
+
+fs_options.xylan_solid_fraction = widgets.BoundedFloatText(
+    value = 0.263,
+    max = 1,
+    min = 0,
+    description = r'Initial $X_X$',
+    description_tooltip = 'The initial fraction of solids that is xylan (kg/kg).  Must be in the range [0, 1]'
+)
+
+fs_options.glucan_solid_fraction = widgets.BoundedFloatText(
+    value = 0.40,
+    max = 1,
+    min = 0,
+    description = r'Initial $X_G$',
+    description_tooltip = 'The initial fraction of solids that is glucan (kg/kg).  Must be in the range [0, 1]'
+)
+
+fs_options.initial_porosity = widgets.BoundedFloatText(
+    value = 0.8,
+    max = 1,
+    min = 0,
+    description = r'initial porosity',
+    description_tooltip = 'The initial forous fraction of the biomass particles.  Must be in the range [0, 1]'
+)
+
+
+#================================================================
+
+# Display the widgets
+display_all_widgets(fs_options)
+
+#================================================================
+
+```
+
 ### 1. Pretreatment Operation
 
 Set the options for the pretreatment operation below.
-
-<!-- #endregion -->
 
 ```python
 #================================================================
@@ -156,14 +200,6 @@ pt_options.initial_solid_fraction = widgets.BoundedFloatText(
     min = 0,
     description = r'Initial FIS$_0$',
     description_tooltip = 'The initial fraction of insoluble solids (kg/kg).  Must be in the range [0, 1]'
-)
-
-pt_options.xylan_solid_fraction = widgets.BoundedFloatText(
-    value = 0.263,
-    max = 1,
-    min = 0,
-    description = r'Initial $X_x$',
-    description_tooltip = 'The initial fraction of solids that is xylan (kg/kg).  Must be in the range [0, 1]'
 )
 
 pt_options.final_time = widgets.BoundedFloatText(
@@ -315,10 +351,11 @@ def run_button_action(b):
     parent_path = os.getcwd()
     
     # Run the pretreatment model
-    os.chdir('preatreatment_model/test/')
+    os.chdir('pretreatment_model/test/')
     
     print('Running Pretreatment Model')
-    export_widgets_to_yaml(pt_options, 'pt_input.yaml')
+    export_widgets_to_yaml(fs_options, 'fs_input.yaml')
+    export_widgets_to_yaml(pt_options, 'pt_input.yaml', 'fs_input.yaml')
     %run ptrun.py 'pt_input.yaml' 'pt_output.yaml'
     if pt_options.show_plots.value:
         %run postprocess.py 'out_\*.dat' exptdata_150C_1acid.dat
@@ -356,10 +393,6 @@ run_button.on_click(run_button_action)
 
 ```
 
-```python
-
-```
-
 ---
 
 ```python
@@ -379,6 +412,14 @@ $( document ).ready(code_toggle);
 value="Toggle notebook code visibility (hidden by default)."></form>''')
 
 display(a)
+```
+
+```python
+pwd()
+```
+
+```python
+#cd ../..
 ```
 
 ```python

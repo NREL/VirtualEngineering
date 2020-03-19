@@ -31,6 +31,7 @@ if len(sys.argv) > 1:
     meshp['ftime'] = input_dict['final_time']
     IBCs['xyfr'] = input_dict['xylan_solid_fraction']
     IBCs['lifr'] = 1.0 - input_dict['initial_solid_fraction']
+    IBCs['poro'] = input_dict['initial_porosity']
 else:
     input_dict = {}
 

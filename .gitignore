@@ -16,3 +16,9 @@ scratch/
 
 # blanket ignore output yaml files--can add specific yaml files for tracking (e.g. environment.yaml)
 *.yaml
+
+# ignore data files--can add specific files for tracking
+*.dat
+
+# specific files to ignore
+pretreat_defs_updated.inp
