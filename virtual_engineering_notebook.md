@@ -31,6 +31,21 @@ from shutil import copyfile
 
 #================================================================
 
+# See if we're running on Eagle or on a laptop
+
+hostname_output = !hostnamectl
+
+hpc_test = [line for line in hostname_output if 'computer-server' in line]
+
+if len(hpc_test) > 0:
+    hpc_run = True
+else:
+    hpc_run = False
+    print('It looks like you\'re running this notebook on a laptop.')
+    print('Some features requiring HPC resources will be disabled.')
+
+#================================================================
+
 def display_all_widgets(widget_collection):
     
     # Define display options
@@ -281,7 +296,7 @@ When finished setting options for all unit operations, press the button below to
 
 run_button = widgets.Button(
     description = 'Run All.',
-    tooltip = 'Execute the two phase batch model with the properties specified above.'
+    tooltip = 'Execute the model start-to-finish with the properties specified above.'
 )
 
 #================================================================
@@ -300,8 +315,9 @@ def run_button_action(b):
     parent_path = os.getcwd()
     
     # Run the pretreatment model
-    print('Running Pretreatment Model')
     os.chdir('preatreatment_model/test/')
+    
+    print('Running Pretreatment Model')
     export_widgets_to_yaml(pt_options, 'pt_input.yaml')
     %run ptrun.py 'pt_input.yaml' 'pt_output.yaml'
     if pt_options.show_plots.value:
@@ -310,11 +326,26 @@ def run_button_action(b):
     print('\nFinished Pretreatment')
     
     # Run the enzymatic hydrolysis model
+    os.chdir(parent_path)
+    os.chdir('two_phase_batch_model/')
+    
     print('\nRunning Enzymatic Hydrolysis Model')
-    os.chdir('../../two_phase_batch_model/')
     export_widgets_to_yaml(eh_options, 'eh_input.yaml', 'pt_to_eh_input.yaml')
     %run two_phase_batch_model_fitting.py 'eh_input.yaml' 'eh_output.yaml'
     print('\nFinished Enzymatic Hydrolysis')
+    
+    # Run the bioreactor model
+    os.chdir(parent_path)
+    os.chdir('bioreactor/bubble_column/')
+    
+    print('\nRunning Bioreactor Model')
+    if hpc_run:
+        # call function to update ovOptions
+        !sbatch ofoamjob
+    else:
+        print('Cannot run bioreactor without HPC resources.')
+        print('$ sbatch ofoamjob')
+    print('\nFinished Bioreactor')
 
     # Return to the parent directory
     os.chdir(parent_path)
