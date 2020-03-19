@@ -160,6 +160,8 @@ display_all_widgets(fs_options)
 
 ```
 
+---
+
 ### 1. Pretreatment Operation
 
 Set the options for the pretreatment operation below.
@@ -415,11 +417,7 @@ display(a)
 ```
 
 ```python
-pwd()
-```
 
-```python
-#cd ../..
 ```
 
 ```python
