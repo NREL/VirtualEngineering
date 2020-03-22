@@ -50,7 +50,8 @@ n = gneq + 1
 finaltime = meshp['ftime']
 
 #establish parameters for porosity and time dependent [acid] calcs
-fx0 = IBCs['xyfr']
+fx0 = IBCs['xyfr'] # is this initial fraction of xylan in the solids, or in the
+                   # slurry? JJS 3/22/20
 ep0 = IBCs['poro']
 cacid0 = IBCs['acid']
 eL0 = IBCs['lifr']
@@ -71,7 +72,8 @@ x=solnvec[:,0]
 steam=solnvec[:,1]
 liquid=solnvec[:,2]
 Temp=solnvec[:,3]
-xylan=solnvec[:,4]
+xylan=solnvec[:,4] # what is this? units? dimensionless concentration? what
+                   # basis? JJS 3/22/20
 xylog=solnvec[:,5]
 xylose=solnvec[:,6]
 furfural=solnvec[:,7]
@@ -85,7 +87,7 @@ solidweight = np.trapz(solidvfrac,x)
 liquid_bulk = np.trapz(liquid,x)
 gas_bulk    = np.trapz(porosity-liquid,x)
 
-xylan_bulk    = xylanweight/solidweight
+xylan_bulk    = xylanweight/solidweight # this looks like X_X (fraction of solids)?
 xylose_bulk   = np.trapz(xylose,x)/liquid_bulk
 xylog_bulk    = np.trapz(xylog,x)/liquid_bulk
 furfural_bulk = np.trapz(furfural,x)/liquid_bulk
@@ -114,12 +116,14 @@ print( "************************************************************************
 print( "Mass balance calculations")
 print( "*************************")
 
-print( "initial xylan mass   (density =  1 g/ml):",    fx0*(1-ep0)*l)
+xylanweight0 = fx0*(1-ep0)*l
+print( "initial xylan mass   (density =  1 g/ml):",    xylanweight0)
 print( "final xylan mass     (density =  1 g/ml):",    xylanweight)
 print( "reacted xylan mass   (density =  1 g/ml):",    fx0*(1-ep0)*l-xylanweight)
 
 prodmass = liquid_bulk*(xylose_bulk*M_xylose + xylog_bulk*M_xylog + furfural_bulk*M_furf)
-reactmass = fx0*(1-ep0)*l-xylanweight
+reactmass = xylanweight0 - xylanweight
+conv = reactmass/xylanweight0
 
 print( "liquid weight (density = 1 g/ml):", liquid_bulk)
 print( "liquid volume (density = 1 g/ml):", liquid_bulk)
@@ -127,15 +131,21 @@ print( "xylose mass                     :", liquid_bulk*xylose_bulk*M_xylose)
 print( "xylooligomer mass               :", liquid_bulk*xylog_bulk*M_xylog)
 print( "furfural mass                   :", liquid_bulk*furfural_bulk*M_furf)
 print( "total mass of products          :", prodmass)
+print( "total xylan conversion (%)      :", 100*conv)
 print( "% mass balance                  :", 100*(1.0-(prodmass-reactmass)/reactmass))
 
+# compute an updated glucan fraction based on xylan conversion
+X_G = input_dict['glucan_solid_fraction']/(1 - input_dict['xylan_solid_fraction']*conv)
 
 # Save the outputs into a dictionary
 output_dict = {}
 output_dict['fis_0'] = float(solidweight/(solidweight+liquid_bulk))
-output_dict['xi'] = float(fx0*(1-ep0)*l)
-output_dict['xf'] = float(xylanweight)
-output_dict['rho_x_0'] = float(xylose_bulk*1000*M_xylose)
+output_dict['conv'] = float(conv)
+output_dict['X_X'] = float(xylan_bulk) # is this correct? JJS 3/22/20
+output_dict['X_G'] = float(X_G)
+output_dict['rho_x'] = float(xylose_bulk*1000*M_xylose)
+output_dict['rho_f'] = float(furfural_bulk*1000*M_furf) 
+
 
 if len(sys.argv) > 2:
     # Save the output dictionary to a .yaml file

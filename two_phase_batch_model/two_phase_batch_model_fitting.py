@@ -73,24 +73,26 @@ KI = 1e-2 # best fit (constrained)
 # reactor starting conditions
 #mT0 = 10. # kg -- not used
 
-lmbde = 0.03 # kg/kg; *1000 to get mg/g
+#lmbde = 0.03 # kg/kg; *1000 to get mg/g
 lmbde = input_dict['lambda_e']
 
-fis0 = 0.05 # kg/kg; initial fraction insoluble solids
+#fis0 = 0.05 # kg/kg; initial fraction insoluble solids
 fis0 = input_dict['fis_0_target']
 
 # Compute the amount of dilution required to reach the fis_0_target
 # based on the output from the pretreatment step
 dilution_factor = input_dict['fis_0_target']/input_dict['fis_0']
 
-xG0 = 1.0 # initial glucan fraction of insoluble solids -- 100% here
+#xG0 = 1.0 # initial glucan fraction of insoluble solids -- 100% here
+xG0 = input_dict['X_G']
+xX0 = input_dict['X_X']
 rhog0 = 0.0 # g/L; initial glucose concentration in the liquid
-rhox0 = 0.0 # g/L
-rhox0 = input_dict['rho_x_0']*dilution_factor
+#rhox0 = 0.0 # g/L
+rhox0 = input_dict['rho_x']*dilution_factor
 
-yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
-
-conversion_xylan = (1.0 - input_dict['xf'])/input_dict['xi']
+#yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
+# there is something wrong with this conversion calculation, JJS 3/22/20
+conversion_xylan = input_dict['conv']
 yF0 = 0.2 + 0.6*conversion_xylan
 
 
@@ -206,7 +208,8 @@ if False:
 fG0 = xG0*fis0
 fGF0 = yF0*fG0
 fGR0 = (1-yF0)*fG0
-#fL0 = (1 - xG0)*fis0
+fX0 = xX0*fis0 # not used here yet, JJS 3/22/20
+fL0 = (1 - xG0 - xX0)*fis0 # not used here yet
 fliq0 = 1 - fis0
 #epsl0 = rhoT/rhol*fliq0 # not needed
 fg0 = rhog0*fliq0/rhol

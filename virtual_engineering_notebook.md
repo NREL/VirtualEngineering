@@ -45,7 +45,8 @@ else:
     print('Some features requiring HPC resources will be disabled.')
 
 #================================================================
-
+# I think it would be cleaner to have these function definitions in a separate file
+# to be read in, JJS 3/22/20
 def display_all_widgets(widget_collection):
     
     # Define display options
@@ -355,6 +356,8 @@ def run_button_action(b):
     # Run the pretreatment model
     os.chdir('pretreatment_model/test/')
     
+    # These print statements do not show for me until the run is complete. Something that should be fixed
+    # at some point, JJS 3/22/20
     print('Running Pretreatment Model')
     export_widgets_to_yaml(fs_options, 'fs_input.yaml')
     export_widgets_to_yaml(pt_options, 'pt_input.yaml', 'fs_input.yaml')
@@ -370,6 +373,8 @@ def run_button_action(b):
     
     print('\nRunning Enzymatic Hydrolysis Model')
     export_widgets_to_yaml(eh_options, 'eh_input.yaml', 'pt_to_eh_input.yaml')
+    # output argument is not currently used, but it should be for passing info to the bioreaction 
+    # unit operation, JJS 3/22/20
     %run two_phase_batch_model_fitting.py 'eh_input.yaml' 'eh_output.yaml'
     print('\nFinished Enzymatic Hydrolysis')
     
