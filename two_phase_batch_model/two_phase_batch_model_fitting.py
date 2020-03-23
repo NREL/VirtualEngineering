@@ -89,11 +89,26 @@ xX0 = input_dict['X_X']
 rhog0 = 0.0 # g/L; initial glucose concentration in the liquid
 #rhox0 = 0.0 # g/L
 rhox0 = input_dict['rho_x']*dilution_factor
+rhof0 = input_dict['rho_f']*dilution_factor # furfural
 
 #yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
 # there is something wrong with this conversion calculation, JJS 3/22/20
 conversion_xylan = input_dict['conv']
 yF0 = 0.2 + 0.6*conversion_xylan
+
+# initial conditions in model variables
+fG0 = xG0*fis0
+fGF0 = yF0*fG0
+fGR0 = (1-yF0)*fG0
+fX0 = xX0*fis0 # used only for fis calculations
+fL0 = (1 - xG0 - xX0)*fis0 # ditto
+fliq0 = 1 - fis0
+#epsl0 = rhoT/rhol*fliq0 # not needed
+fg0 = rhog0*fliq0/rhol
+#fx0 = rhox0*fliq0/rhoT
+#fsl0 = 0
+fET = lmbde*fG0
+f0 = np.array([fGF0, fGR0, fg0])
 
 
 # enzymatic hydrolysis rate equation
@@ -123,7 +138,7 @@ def rhs(f, t, rhoT, fET, kF, kR, KdF, KdR, KI):
     
     # calculate liquid molar sugar concentration
     fG = fGF + fGR
-    fis = fG
+    fis = fG + fX0 + fL0
     fliq = 1 - fis
     epsl = rhoT/rhol*fliq 
     cg = rhol/fliq/Mwg*fg
@@ -140,83 +155,8 @@ def rhs(f, t, rhoT, fET, kF, kR, KdF, KdR, KI):
     
     return np.array([dfGF, dfGR, dfg])
 
+# deleted model fitting -- would not do that with virtual engineering sims, JJS 3/23/20
 
-# read in experimental data
-import xlrd
-wb = xlrd.open_workbook('JimFermEnz_modelvalidate120208_JJS.xlsx')
-ws = wb.sheet_by_name('Conversion Calcs')
-strow = 30
-enrow = 36
-tdat = np.array(ws.col_values(1, strow, enrow))
-rhogdat = np.array(ws.col_values(3, strow, enrow))
-rhoxdat = np.array(ws.col_values(4, strow, enrow))
-convgdat = np.array(ws.col_values(11, strow, enrow))
-convdat = np.array(ws.col_values(13, strow, enrow))
-rhosdat = rhogdat + rhoxdat
-
-
-if False:
-    # fit the model to data
-    def residual(p, tdat, convdat, fis0, xG0, rhog0, lmbde):
-        """
-        residual function computing difference between predicted and data values
-        """
-        yF0 = p[0]
-        kF = p[1] 
-        KdF = p[2]
-        KdR = p[3]
-        KI = p[4]
-        kR = kF # use same rate for facile and recalcitrant
-        fG0 = xG0*fis0
-        fGF0 = yF0*fG0
-        fGR0 = (1-yF0)*fG0
-        fliq0 = 1 - fis0
-        fg0 = rhog0*fliq0/rhol
-        fET = lmbde*fG0
-        f0 = np.array([fGF0, fGR0, fg0])
-        t = np.linspace(0, tdat[-1], 200)
-        f = igt.odeint(rhs, f0, t, args=(rhoT, fET, kF, kR, KdF, KdR, KI))
-        fGF = f[:,0]
-        fGR = f[:,1]
-        fg = f[:,2]
-        fG = fGF + fGR
-        fis = fG
-        fliq = 1 - fis
-        rhog = rhol/fliq*fg 
-        convF = (fGF0 - fGF)/fG0
-        convR = (fGR0 - fGR)/fG0
-        conv = 1 - fG/fG0
-        convi = np.interp(tdat, t, conv)
-        return convi - convdat
-
-    p0 = np.array([yF0, kF, KdF, KdR, KI])
-    optresult = opt.least_squares(residual, p0,\
-                                  bounds=([.4,0,1e-4,1e-4,1e-2],\
-                                          [.6, 5e3, np.inf, np.inf, np.inf]),\
-                                  args=(tdat, convdat, fis0, xG0, rhog0, lmbde))
-    popt = optresult.x
-    print(popt)
-    yF0 = popt[0]
-    kF = popt[1]
-    KdF = popt[2]
-    KdR = popt[3]
-    KI = popt[4]
-    kR = kF
-
-
-# initial conditions in model variables
-fG0 = xG0*fis0
-fGF0 = yF0*fG0
-fGR0 = (1-yF0)*fG0
-fX0 = xX0*fis0 # not used here yet, JJS 3/22/20
-fL0 = (1 - xG0 - xX0)*fis0 # not used here yet
-fliq0 = 1 - fis0
-#epsl0 = rhoT/rhol*fliq0 # not needed
-fg0 = rhog0*fliq0/rhol
-#fx0 = rhox0*fliq0/rhoT
-#fsl0 = 0
-fET = lmbde*fG0
-f0 = np.array([fGF0, fGR0, fg0])
 
 # run simulation via igt.odeint
 #tfin = 200. # h
@@ -232,7 +172,7 @@ fGR = f[:,1]
 fg = f[:,2]
 
 fG = fGF + fGR
-fis = fG
+fis = fG + fX0 + fL0
 fliq = 1 - fis
 #epsl = rhoT/rhol*fliq 
 rhog = rhol/fliq*fg 
@@ -244,22 +184,31 @@ mG0 = fG0 + fg0*rGg
 mG = fG + fg*rGg
 mb = 1 - mG/mG0
 
-outfile=open("wellmix_expt.dat","w")
-for i in range(len(convdat)):
-    outfile.write("%e\t%e\n"%(tdat[i],convdat[i]))
-outfile.close()
 
-outfile=open("wellmix_sim.dat","w")
-for i in range(len(conv)):
-    outfile.write("%e\t%e\n"%(t[i],conv[i]))
-outfile.close()
+# Save the outputs into a dictionary for use as inputs for bioreactor sims
+output_dict = {}
+output_dict['rho_g'] = rhog
+dilution_EH = fis/fis0
+output_dict['rho_x'] = rhox0*dilution_EH
+output_dict['rho_f'] = rhof0*dilution_EH
+if len(sys.argv) > 2:
+    # Save the output dictionary to a .yaml file
+    output_filename = sys.argv[2]
+    with open(output_filename, 'w') as fp:
+        yaml.dump(output_dict, fp)
 
 
-# save data to compare with other modeling approaches
+
+# save data to compare with other modeling approaches -- probably not needed for VE use
 if False:
     #np.savez('two-phase_no_struc.npz', t=t, conv=conv, rhog=rhog)
     filename='two-phase_no_struc_'+str(fis0)+'.npz'
     np.savez(filename, t=t, conv=conv, rhog=rhog, fis0=fis0)
+    
+    outfile=open("wellmix_sim.dat","w")
+    for i in range(len(conv)):
+        outfile.write("%e\t%e\n"%(t[i],conv[i]))
+    outfile.close()
 
 if input_dict['show_plots']:
     figure(1)
@@ -271,7 +220,7 @@ if input_dict['show_plots']:
     plot(t, convF, '--', lw=3, label='facile')
     #plot(t, convR, lw=3,marker='^',markevery=10,markersize=10,label='recalcitrant')
     plot(t, convR, '-.', lw=3, label='recalcitrant')
-    plot(tdat, convdat, 'o', markersize=10,label='exp. data')
+#    plot(tdat, convdat, 'o', markersize=10,label='exp. data')
     xlabel('time (hours)')
     ylabel('conversion')
     legend(loc='best')
@@ -287,9 +236,9 @@ if input_dict['show_plots']:
     figure(3)
     clf()
     plot(t, rhog, lw=2, label='model')
-    plot(tdat, rhosdat, 'o', label='data')
+#    plot(tdat, rhosdat, 'o', label='data')
     xlabel('t [h]')
-    ylabel(r'$\rho_s$ [g/L]')
+    ylabel(r'$\rho_g$ [g/L]')
     legend(loc='best')
     
     figure(4)
@@ -309,11 +258,11 @@ if input_dict['show_plots']:
     legend(loc='best')
     #savefig("two-phase_species.pdf", bbox_inches='tight')
     
-    figure(5)
-    clf()
-    plot(t, fGF/fGR, lw=2, label='model')
-    xlabel('t [h]')
-    ylabel(r'$\rho_s$ [g/L]')
-    legend(loc='best')
+    # figure(5)
+    # clf()
+    # plot(t, fGF/fGR, lw=2, label='model')
+    # xlabel('t [h]')
+    # #ylabel('?')
+    # legend(loc='best')
 
     show()

@@ -50,8 +50,7 @@ n = gneq + 1
 finaltime = meshp['ftime']
 
 #establish parameters for porosity and time dependent [acid] calcs
-fx0 = IBCs['xyfr'] # is this initial fraction of xylan in the solids, or in the
-                   # slurry? JJS 3/22/20
+fx0 = IBCs['xyfr'] # initial fraction of xylan in the solids, a.k.a., X_X0 
 ep0 = IBCs['poro']
 cacid0 = IBCs['acid']
 eL0 = IBCs['lifr']
@@ -145,8 +144,6 @@ output_dict['X_X'] = float(xylan_bulk) # is this correct? JJS 3/22/20
 output_dict['X_G'] = float(X_G)
 output_dict['rho_x'] = float(xylose_bulk*1000*M_xylose)
 output_dict['rho_f'] = float(furfural_bulk*1000*M_furf) 
-
-
 if len(sys.argv) > 2:
     # Save the output dictionary to a .yaml file
     output_filename = sys.argv[2]

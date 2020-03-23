@@ -312,6 +312,7 @@ br_options.t_final = widgets.BoundedFloatText(
     max = 1e16,
     description = 'Final Time',
     description_tooltip = r'The total time of the simulation (h).  Must be $\geq 1$'
+                                    # is this really 'h'? current quasi-steady simulations only run 10s of seconds
 )
 
 #================================================================
@@ -384,7 +385,7 @@ def run_button_action(b):
     
     print('\nRunning Bioreactor Model')
     if hpc_run:
-        # call function to update ovOptions
+        # call function to update ovOptions # fvOptions?
         !sbatch ofoamjob
     else:
         print('Cannot run bioreactor without HPC resources.')
