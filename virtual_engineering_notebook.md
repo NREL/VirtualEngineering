@@ -376,7 +376,7 @@ def run_button_action(b):
     export_widgets_to_yaml(eh_options, 'eh_input.yaml', 'pt_to_eh_input.yaml')
     # output argument is not currently used, but it should be for passing info to the bioreaction 
     # unit operation, JJS 3/22/20
-    %run two_phase_batch_model_fitting.py 'eh_input.yaml' 'eh_output.yaml'
+    %run two_phase_batch_model.py 'eh_input.yaml' 'eh_output.yaml'
     print('\nFinished Enzymatic Hydrolysis')
     
     # Run the bioreactor model
