@@ -113,19 +113,15 @@ def write_file_with_replacements(filename, replacements):
         c = [value for key, value in replacements.items() if key in line]
 
         if len(c) > 0:
-            # Keep everything to the left of the assignment operator
-            test = line.split('=')[0]
-            if test == line:
-                no_assignment = True
-                line = line.split()[0]
-            else:
-                no_assignment = False
-                line = test
-
+            # Keep everything to the left of the assignment operator and
             # Append the new value to this variable assignment
-            if no_assignment:
+            test = line.split('=')[0]
+            
+            if test == line:
+                line = line.split()[0]
                 line = '%s %s;\n' % (line, str(c[0]))
             else:
+                line = test
                 line = '%s= %s;\n' % (line, str(c[0]))
 
         # Write the (possibly modified) line into the new file    
@@ -390,40 +386,41 @@ def run_button_action(b):
     parent_path = os.getcwd()
     
     # Run the pretreatment model
-    os.chdir('pretreatment_model/test/')
-    
     # These print statements do not show for me until the run is complete. Something that should be fixed
     # at some point, JJS 3/22/20
     print('Running Pretreatment Model')
+    os.chdir('pretreatment_model/test/')
     export_widgets_to_yaml(fs_options, 'fs_input.yaml')
     export_widgets_to_yaml(pt_options, 'pt_input.yaml', 'fs_input.yaml')
     %run ptrun.py 'pt_input.yaml' 'pt_output.yaml'
     if pt_options.show_plots.value:
         %run postprocess.py 'out_\*.dat' exptdata_150C_1acid.dat
     copyfile('pt_output.yaml', '../../two_phase_batch_model/%s' % ('pt_to_eh_input.yaml'))
+    os.chdir(parent_path)
     print('\nFinished Pretreatment')
     
     # Run the enzymatic hydrolysis model
-    os.chdir(parent_path)
-    os.chdir('two_phase_batch_model/')
-    
     print('\nRunning Enzymatic Hydrolysis Model')
+    os.chdir('two_phase_batch_model/')
     export_widgets_to_yaml(eh_options, 'eh_input.yaml', 'pt_to_eh_input.yaml')
     # output argument is not currently used, but it should be for passing info to the bioreaction 
     # unit operation, JJS 3/22/20
     %run two_phase_batch_model.py 'eh_input.yaml' 'eh_output.yaml'
     copyfile('eh_output.yaml', '../bioreactor/bubble_column/constant/%s' % ('eh_to_br_input.yaml'))
+    os.chdir(parent_path)
     print('\nFinished Enzymatic Hydrolysis')
     
     # Run the bioreactor model
-    os.chdir(parent_path)
     os.chdir('bioreactor/bubble_column/constant/')
-    
+
     #================================================================
 
+    # FIXME: these lines of code should really exist in the fvOptions file itself
     # Create a dictionary of all the replacement values
     # where the key is a unique string to identify the definition
     # and the value is the corresponding value to assign
+
+    # Make changes to the constant/fvOptions file
     with open('eh_to_br_input.yaml') as fp:
         eh_to_br_dict = yaml.load(fp, Loader = yaml.FullLoader)
         
@@ -433,10 +430,14 @@ def run_button_action(b):
 
     write_file_with_replacements('fvOptions_base', fvOptions_replacements)
 
+    # Make changes to the system/controlDict file
     os.chdir('../system/')
     controlDict_replacements = {}
     controlDict_replacements['endTime '] = br_options.t_final.value
+    
     write_file_with_replacements('controlDict_base', controlDict_replacements)
+    
+    #================================================================
 
     os.chdir('../')
     print('\nRunning Bioreactor Model')
