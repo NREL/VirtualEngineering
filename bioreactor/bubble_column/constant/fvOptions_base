@@ -59,9 +59,9 @@ FoamFile
         double mol_m3_to_kg_m3 = mw_O2/kg_to_g;
 
         // Values output from enzymatic hydrolysis step
-        double rho_f = 0.0027753550481128503;
-        double rho_g = 19.32102656221214;
-        double rho_x = 2.8375303957681854;
+        double rho_f = 0.037; // Concentration of furfural (g/L)
+        double rho_g = 24.441; // Concentration of glucose (g/L)
+        double rho_x = 7.033; // Concentration of xylose (g/L)
 
         // Model Constants
         double our_base = 100.0; // mol/(m^3*h)

@@ -187,10 +187,10 @@ mb = 1 - mG/mG0
 
 # Save the outputs into a dictionary for use as inputs for bioreactor sims
 output_dict = {}
-output_dict['rho_g'] = rhog
-dilution_EH = fis/fis0
-output_dict['rho_x'] = rhox0*dilution_EH
-output_dict['rho_f'] = rhof0*dilution_EH
+output_dict['rho_g'] = float(rhog[-1])
+dilution_EH = fis[-1]/fis0
+output_dict['rho_x'] = float(rhox0*dilution_EH)
+output_dict['rho_f'] = float(rhof0*dilution_EH)
 if len(sys.argv) > 2:
     # Save the output dictionary to a .yaml file
     output_filename = sys.argv[2]

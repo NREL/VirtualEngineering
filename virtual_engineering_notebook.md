@@ -79,27 +79,62 @@ def display_all_widgets(widget_collection):
 
 def export_widgets_to_yaml(widget_collection, yaml_filename, merge_output_file=None):
     
-        #Start with a blank dictionary
-        widget_dict = {}
+    #Start with a blank dictionary
+    widget_dict = {}
 
-        for item in widget_collection.__dict__.items():
-            # Get the name and current state of each widget
-            widgetName = item[0]
-            widgetValue = item[1].value
-            
-            # Create a dictionary with name : value pairs
-            widget_dict['%s' % (widgetName)] = widgetValue
-            
-        if merge_output_file is not None:
-            with open(merge_output_file) as fp:
-                merge_dict = yaml.load(fp, Loader = yaml.FullLoader)
-                
-            widget_dict.update(merge_dict)
-            
-        # Dump the new dictionary into a yaml file
-        with open(yaml_filename, 'w') as fp:
-            yaml.dump(widget_dict, fp)
-            
+    for item in widget_collection.__dict__.items():
+        # Get the name and current state of each widget
+        widgetName = item[0]
+        widgetValue = item[1].value
+
+        # Create a dictionary with name : value pairs
+        widget_dict['%s' % (widgetName)] = widgetValue
+
+    if merge_output_file is not None:
+        with open(merge_output_file) as fp:
+            merge_dict = yaml.load(fp, Loader = yaml.FullLoader)
+
+        widget_dict.update(merge_dict)
+
+    # Dump the new dictionary into a yaml file
+    with open(yaml_filename, 'w') as fp:
+        yaml.dump(widget_dict, fp)
+    
+#================================================================
+
+def write_file_with_replacements(filename, replacements):
+    
+    # Create a separate pointer for reading and writing
+    f_read = open(filename, 'r')
+    f_write = open('%s' % (filename.split('_')[0]), 'w')
+
+    for line in f_read:
+        # Find the definition of the variable we want to change
+        c = [value for key, value in replacements.items() if key in line]
+
+        if len(c) > 0:
+            # Keep everything to the left of the assignment operator
+            test = line.split('=')[0]
+            if test == line:
+                no_assignment = True
+                line = line.split()[0]
+            else:
+                no_assignment = False
+                line = test
+
+            # Append the new value to this variable assignment
+            if no_assignment:
+                line = '%s %s;\n' % (line, str(c[0]))
+            else:
+                line = '%s= %s;\n' % (line, str(c[0]))
+
+        # Write the (possibly modified) line into the new file    
+        f_write.write(line)
+
+    # Close both files when finished
+    f_read.close()
+    f_write.close()
+
 #================================================================
 
 class blank_object:
@@ -377,12 +412,33 @@ def run_button_action(b):
     # output argument is not currently used, but it should be for passing info to the bioreaction 
     # unit operation, JJS 3/22/20
     %run two_phase_batch_model.py 'eh_input.yaml' 'eh_output.yaml'
+    copyfile('eh_output.yaml', '../bioreactor/bubble_column/constant/%s' % ('eh_to_br_input.yaml'))
     print('\nFinished Enzymatic Hydrolysis')
     
     # Run the bioreactor model
     os.chdir(parent_path)
-    os.chdir('bioreactor/bubble_column/')
+    os.chdir('bioreactor/bubble_column/constant/')
     
+    #================================================================
+
+    # Create a dictionary of all the replacement values
+    # where the key is a unique string to identify the definition
+    # and the value is the corresponding value to assign
+    with open('eh_to_br_input.yaml') as fp:
+        eh_to_br_dict = yaml.load(fp, Loader = yaml.FullLoader)
+        
+    fvOptions_replacements = {}
+    for k, v in eh_to_br_dict.items():
+        fvOptions_replacements['double %s' % (k)] = v
+
+    write_file_with_replacements('fvOptions_base', fvOptions_replacements)
+
+    os.chdir('../system/')
+    controlDict_replacements = {}
+    controlDict_replacements['endTime '] = br_options.t_final.value
+    write_file_with_replacements('controlDict_base', controlDict_replacements)
+
+    os.chdir('../')
     print('\nRunning Bioreactor Model')
     if hpc_run:
         # call function to update ovOptions # fvOptions?
@@ -390,6 +446,7 @@ def run_button_action(b):
     else:
         print('Cannot run bioreactor without HPC resources.')
         print('$ sbatch ofoamjob')
+        print(os.getcwd())
     print('\nFinished Bioreactor')
 
     # Return to the parent directory
