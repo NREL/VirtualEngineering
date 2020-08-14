@@ -4,3 +4,6 @@
 [submodule "submodules/ThirdParty-dev"]
 	path = submodules/ThirdParty-dev
 	url = https://github.com/OpenFOAM/ThirdParty-dev
+[submodule "submodules/Nek5000"]
+	path = submodules/Nek5000
+	url = https://github.com/Nek5000/Nek5000

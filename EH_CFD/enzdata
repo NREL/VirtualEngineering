@@ -1,0 +1,10 @@
+&enzinputs
+  omega_rpm = 30.0
+  phi_max   = 0.07
+  fis0      = 0.05
+  lmbde     = 0.03
+  yF0       = 0.4
+  dt_ss     = 560.0
+  dt_react = 2.0
+
+/

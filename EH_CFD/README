@@ -1,0 +1,33 @@
+To run this case
+
+step 0: do git submodule init 
+and git submodule update to get the 
+current Nek5000 code
+
+step 1: load intel compilers
+module use /nopt/modulefiles/
+module load compilers/intel/18.0.3.222
+module load mpi/intelmpi/18.0.3.222
+
+step 2: the file enzdata contains
+relevant parameters.
+set them accordingly or use the default.
+
+step 2: use the run.sh script. it needs
+number of MPI ranks as arguments. It needs 
+atleast 32 ranks to run, otherwise the problem will be
+too large for each task. The run.sh has a build section.
+This may ask if you need to build thirdparty when being done for first time.
+say yes.
+e.g. . ./run.sh 96
+
+I have also set the max number of steps to 10.
+Ideally you want to set the final time to ~ 1000 seconds and
+set the iterations to 0.
+
+step 3: if you want to see mesh and solutions, open the 
+paddle.nek5000 file. modify the numtimesteps in it.
+
+TODO: 
+1) run longer case - will take ~ 6 days
+2) modify the fort.42 file to print glucose conc also along with conversion
