@@ -8,3 +8,10 @@
   dt_react = 2.0
 
 /
+#omega_rpm - rotational speed in rpm
+#phi_max - maximum solids fraction
+#fis0 - initial insoluble solids fraction
+#lmbde - enzyme loading fraction
+#yF0 - fraction of facile cellulose
+#dt_ss - cfd time in sec to steady-state
+#dt_react - reaction update time in hrs
