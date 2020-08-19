@@ -13,6 +13,25 @@ jupyter:
     name: python3
 ---
 
+# Q4 Milestone Progress
+
+We've created a minimal working example of running the high-fidelity enzymatic hydrolysis (EH) model that sets the values for three EH input parameters and one computational option based on user input.
+
+### TODO
+- Fix t_final (currently, it doesn't have an effect)
+- Fold in existing pretreatment outputs, the current list of input parameters for the EH CFD model is shown below
+
+```python
+!cat ../EH_CFD/enzdata
+```
+
+- Add these feature to the existing Virtual Engineering notebook with an option to switch between high- and low-order EH models
+- Clean up all existing Virtual Engineering code and continue merging with Aspen-Python demo
+
+
+---
+# Enzymatic Hydrolysis CFD Model
+
 ```python
 from ipywidgets import *
 from IPython.display import HTML, clear_output
@@ -54,6 +73,18 @@ eh_cfd_options.t_final = widgets.BoundedFloatText(
 )
 eh_cfd_options.t_final.alt_name = 'dt_ss'
 
+host_list = !srun hostname
+num_nodes = len(host_list)
+max_cores = int(36*num_nodes)
+
+eh_cfd_options.num_cores = widgets.BoundedIntText(
+    value = 36,
+    min = 1,
+    max = max_cores,
+    description = 'Number of Cores',
+    description_tooltip = r'The number of cores to utilize for this job, must be [1, %d]' % (max_cores)
+)
+
 
 # Display the widgets
 eh_cfd_options.display_all_widgets()
@@ -82,18 +113,23 @@ def run_button_action(b):
     # Export the current state to a dictionary
     widget_dict = eh_cfd_options.export_widgets_to_yaml()
 
-    print(widget_dict)
-
     parent_path = os.getcwd()
 
     os.chdir('../EH_CFD/')
 
     # fm.write_file_with_replacements(filename, replacement_dictionary)
     fm.write_file_with_replacements('enzdata', widget_dict)
+    
+    nn = eh_cfd_options.num_cores.value
+    !./run.sh $nn
 
     os.chdir(parent_path)
 
 run_button.on_click(run_button_action)
+
+```
+
+```python
 
 ```
 

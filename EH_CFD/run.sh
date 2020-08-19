@@ -8,5 +8,5 @@ export PATH=${NEK_SOURCE_ROOT}/bin:${PATH}
 genmap < input_genmap
 echo ${PROBLEMNAME} > SESSION.NAME
 echo $PWD >> SESSION.NAME
-makenek paddle
+makenek paddle -y
 mpirun -n ${NPROC} ./nek5000
