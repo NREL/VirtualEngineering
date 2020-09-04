@@ -19,6 +19,8 @@ jupyter:
 
 The first step is to select "Cell" > "Run All" from the toolbar.  This will initialize all the widgets and allow you to interact with the unit operation options via the GUI controls.
 
+![flowchart](three_unit_flow.png)
+
 
 ```python
 %reset -f
@@ -29,112 +31,14 @@ import os
 import time
 from shutil import copyfile
 
+import vebio.WidgetFunctions as wf
+from vebio.FileModifiers import write_file_with_replacements
+from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
+
 #================================================================
 
 # See if we're running on Eagle or on a laptop
-
-hostname_output = !hostnamectl
-
-hpc_test = [line for line in hostname_output if 'computer-server' in line]
-
-if len(hpc_test) > 0:
-    hpc_run = True
-else:
-    hpc_run = False
-    print('It looks like you\'re running this notebook on a laptop.')
-    print('Some features requiring HPC resources will be disabled.')
-
-#================================================================
-# I think it would be cleaner to have these function definitions in a separate file
-# to be read in, JJS 3/22/20
-def display_all_widgets(widget_collection):
-    
-    # Define display options
-    widget_style = {'description_width': '200px'}
-    widget_layout = {'width': '400px'}
-    info_layout = {'margin': '0px 0px 0px 10px', 'width':'400px'}
-    # box_layout = {'padding': '10px'}
-    box_layout = {'padding': '10px', 'align_items': 'center'}
-
-    # For every widget
-    for item in widget_collection.__dict__.items():
-        # Extract the first object
-        w = item[1]
-
-        # Set this widget's style and layout
-        w.style = widget_style
-        w.layout = widget_layout
-        
-        myLabel = widgets.HTMLMath(
-            value = w.description_tooltip,
-            layout = info_layout
-        )
-        
-        # Organize this widget with more layout options
-        w.box = HBox([w, myLabel], layout = box_layout)
-
-        display(w.box)
-
-#================================================================
-
-def export_widgets_to_yaml(widget_collection, yaml_filename, merge_output_file=None):
-    
-    #Start with a blank dictionary
-    widget_dict = {}
-
-    for item in widget_collection.__dict__.items():
-        # Get the name and current state of each widget
-        widgetName = item[0]
-        widgetValue = item[1].value
-
-        # Create a dictionary with name : value pairs
-        widget_dict['%s' % (widgetName)] = widgetValue
-
-    if merge_output_file is not None:
-        with open(merge_output_file) as fp:
-            merge_dict = yaml.load(fp, Loader = yaml.FullLoader)
-
-        widget_dict.update(merge_dict)
-
-    # Dump the new dictionary into a yaml file
-    with open(yaml_filename, 'w') as fp:
-        yaml.dump(widget_dict, fp)
-    
-#================================================================
-
-def write_file_with_replacements(filename, replacements):
-    
-    # Create a separate pointer for reading and writing
-    f_read = open(filename, 'r')
-    f_write = open('%s' % (filename.split('_')[0]), 'w')
-
-    for line in f_read:
-        # Find the definition of the variable we want to change
-        c = [value for key, value in replacements.items() if key in line]
-
-        if len(c) > 0:
-            # Keep everything to the left of the assignment operator and
-            # Append the new value to this variable assignment
-            test = line.split('=')[0]
-            
-            if test == line:
-                line = line.split()[0]
-                line = '%s %s;\n' % (line, str(c[0]))
-            else:
-                line = test
-                line = '%s= %s;\n' % (line, str(c[0]))
-
-        # Write the (possibly modified) line into the new file    
-        f_write.write(line)
-
-    # Close both files when finished
-    f_read.close()
-    f_write.close()
-
-#================================================================
-
-class blank_object:
-    pass
+hpc_run = get_host_computer()
 
 #================================================================
 
@@ -156,7 +60,7 @@ Set the feedstock properties.
 #================================================================
 
 # Create the collection of widgets
-fs_options = blank_object()
+fs_options = wf.WidgetCollection()
 
 fs_options.xylan_solid_fraction = widgets.BoundedFloatText(
     value = 0.263,
@@ -186,7 +90,7 @@ fs_options.initial_porosity = widgets.BoundedFloatText(
 #================================================================
 
 # Display the widgets
-display_all_widgets(fs_options)
+fs_options.display_all_widgets()
 
 #================================================================
 
@@ -202,7 +106,7 @@ Set the options for the pretreatment operation below.
 #================================================================
 
 # Create the collection of widgets
-pt_options = blank_object()
+pt_options = wf.WidgetCollection()
 
 pt_options.initial_acid_conc = widgets.BoundedFloatText(
     value = 0.0001,
@@ -237,7 +141,7 @@ pt_options.initial_solid_fraction = widgets.BoundedFloatText(
 )
 
 pt_options.final_time = widgets.BoundedFloatText(
-    value = 2400,
+    value = 100,
     max = 1e16,
     min = 1,
     description = 'Final Time',
@@ -253,7 +157,7 @@ pt_options.show_plots = widgets.Checkbox(
 #================================================================
 
 # Display the widgets
-display_all_widgets(pt_options)
+pt_options.display_all_widgets()
 
 #================================================================
 
@@ -270,7 +174,7 @@ Set the options for the enzymatic hydrolysis operation using a two-phase reactio
 #================================================================
 
 # Create the collection of widgets
-eh_options = blank_object()
+eh_options = wf.WidgetCollection()
 
 eh_options.lambda_e = widgets.BoundedFloatText(
     value = 0.03,
@@ -288,20 +192,6 @@ eh_options.fis_0_target = widgets.BoundedFloatText(
     description_tooltip = 'The target value for initial fraction of insoluble solids *after* dilution (kg/kg).  Must be in the range [0, 1]'
 )
 
-# eh_options.dilution_strength = widgets.FloatSlider(
-#     value = 0.5,
-#     min = 0,
-#     max = 1,
-#     step = 0.1,
-#     description = 'Dilution Strength',
-#     continuous_update = False,
-#     orientation = 'horizontal',
-#     readout = True,
-#     readout_format = '.1f',
-#     description_tooltip = r'The efficacy of the dilution step: 0 means use the FIS$_0$ value from the end of the pretreatment step entirely, 1 means use the target FIS$_0$ value entirely'
-# )
-
-
 eh_options.t_final = widgets.BoundedFloatText(
     value = 100.0,
     min = 1.0,
@@ -318,7 +208,7 @@ eh_options.show_plots = widgets.Checkbox(
 #================================================================
 
 # Display the widgets
-display_all_widgets(eh_options)
+eh_options.display_all_widgets()
 
 #================================================================
 
@@ -335,7 +225,7 @@ Set the options for the bubble column bioreaction operation below.
 #================================================================
 
 # Create the collection of widgets
-br_options = blank_object()
+br_options = wf.WidgetCollection()
 
 br_options.t_final = widgets.BoundedFloatText(
     value = 100.0,
@@ -349,7 +239,7 @@ br_options.t_final = widgets.BoundedFloatText(
 #================================================================
 
 # Display the widgets
-display_all_widgets(br_options)
+br_options.display_all_widgets()
 
 #================================================================
 
@@ -390,9 +280,11 @@ def run_button_action(b):
     # at some point, JJS 3/22/20
     print('Running Pretreatment Model')
     os.chdir('pretreatment_model/test/')
-    export_widgets_to_yaml(fs_options, 'fs_input.yaml')
-    export_widgets_to_yaml(pt_options, 'pt_input.yaml', 'fs_input.yaml')
+    _ = fs_options.export_widgets_to_yaml('fs_input.yaml')
+    _ = pt_options.export_widgets_to_yaml('pt_input.yaml', 'fs_input.yaml')
+
     %run ptrun.py 'pt_input.yaml' 'pt_output.yaml'
+
     if pt_options.show_plots.value:
         %run postprocess.py 'out_\*.dat' exptdata_150C_1acid.dat
     copyfile('pt_output.yaml', '../../two_phase_batch_model/%s' % ('pt_to_eh_input.yaml'))
@@ -402,7 +294,8 @@ def run_button_action(b):
     # Run the enzymatic hydrolysis model
     print('\nRunning Enzymatic Hydrolysis Model')
     os.chdir('two_phase_batch_model/')
-    export_widgets_to_yaml(eh_options, 'eh_input.yaml', 'pt_to_eh_input.yaml')
+    _ = eh_options.export_widgets_to_yaml('eh_input.yaml', 'pt_to_eh_input.yaml')
+    
     # output argument is not currently used, but it should be for passing info to the bioreaction 
     # unit operation, JJS 3/22/20
     %run two_phase_batch_model.py 'eh_input.yaml' 'eh_output.yaml'
@@ -421,9 +314,9 @@ def run_button_action(b):
     # and the value is the corresponding value to assign
 
     # Make changes to the constant/fvOptions file
-    with open('eh_to_br_input.yaml') as fp:
-        eh_to_br_dict = yaml.load(fp, Loader = yaml.FullLoader)
-        
+    
+    eh_to_br_dict = yaml_to_dict('eh_to_br_input.yaml')        
+
     fvOptions_replacements = {}
     for k, v in eh_to_br_dict.items():
         fvOptions_replacements['double %s' % (k)] = v

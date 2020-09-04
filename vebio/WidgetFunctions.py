@@ -1,6 +1,8 @@
 from ipywidgets import *
 import yaml
 
+from vebio.Utilities import dict_to_yaml, yaml_to_dict
+
 #================================================================
 
 class WidgetCollection:
@@ -79,15 +81,13 @@ class WidgetCollection:
             widget_dict['%s' % (widgetName)] = widgetValue
 
         if merge_output_file is not None:
-            with open(merge_output_file) as fp:
-                merge_dict = yaml.load(fp, Loader = yaml.FullLoader)
+            merge_dict = yaml_to_dict(merge_output_file)
 
             widget_dict.update(merge_dict)
 
         # Dump the new dictionary into a yaml file
         if yaml_filename is not None:
-            with open(yaml_filename, 'w') as fp:
-                yaml.dump(widget_dict, fp)
+            dict_to_yaml(widget_dict, yaml_filename)
 
         return widget_dict
 

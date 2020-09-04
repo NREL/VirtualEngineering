@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pt_input_file_io as pt_input
 import timeit as timerlib
-import yaml
+
 import sys
+from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 # run pretreatment model
 inputfilename='pretreat_defs.inp'
@@ -20,9 +21,7 @@ meshp, scales, IBCs, rrates, Egtcs, deto =\
 # If applicable, load the input file into a dictionary
 if len(sys.argv) > 1:
     input_filename = sys.argv[1]
-    with open(input_filename) as fp:
-        input_dict = yaml.load(fp, Loader = yaml.FullLoader)
-    # print(input_dict)
+    input_dict = yaml_to_dict(input_filename)
 
     # Override pretreat_defs.inp definitions with those from the pretreatment widgets
     IBCs['acid'] = input_dict['initial_acid_conc']
@@ -144,10 +143,9 @@ output_dict['X_X'] = float(xylan_bulk) # is this correct? JJS 3/22/20
 output_dict['X_G'] = float(X_G)
 output_dict['rho_x'] = float(xylose_bulk*1000*M_xylose)
 output_dict['rho_f'] = float(furfural_bulk*1000*M_furf) 
+
 if len(sys.argv) > 2:
     # Save the output dictionary to a .yaml file
     output_filename = sys.argv[2]
-    with open(output_filename, 'w') as fp:
-        yaml.dump(output_dict, fp)
-
+    dict_to_yaml(output_dict, output_filename)
 

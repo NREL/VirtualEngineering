@@ -25,13 +25,12 @@ from matplotlib.pyplot import *
 import matplotlib as mpl
 
 import sys
-import yaml
+from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 
 if len(sys.argv) > 1:
     input_filename = sys.argv[1]
-    with open(input_filename) as fp:
-        input_dict = yaml.load(fp, Loader = yaml.FullLoader)
+    input_dict = yaml_to_dict(input_filename)
     # print(input_dict)
 else:
     input_dict = {}
@@ -73,28 +72,38 @@ KI = 1e-2 # best fit (constrained)
 # reactor starting conditions
 #mT0 = 10. # kg -- not used
 
+
 #lmbde = 0.03 # kg/kg; *1000 to get mg/g
-lmbde = input_dict['lambda_e']
+# Direct User Input
+lmbde = input_dict.get('lambda_e', 0.03)
 
 #fis0 = 0.05 # kg/kg; initial fraction insoluble solids
-fis0 = input_dict['fis_0_target']
+# Direct User Input (note, this is a target, not the output from pretreatment)
+fis0 = input_dict.get('fis_0_target', 0.05)
 
 # Compute the amount of dilution required to reach the fis_0_target
 # based on the output from the pretreatment step
-dilution_factor = input_dict['fis_0_target']/input_dict['fis_0']
+dilution_factor = fis0/input_dict.get('fis_0', fis0)
 
 #xG0 = 1.0 # initial glucan fraction of insoluble solids -- 100% here
-xG0 = input_dict['X_G']
-xX0 = input_dict['X_X']
+xG0 = input_dict.get('X_G', 1.0)
+xX0 = input_dict.get('X_X', 0.0)
 rhog0 = 0.0 # g/L; initial glucose concentration in the liquid
 #rhox0 = 0.0 # g/L
-rhox0 = input_dict['rho_x']*dilution_factor
-rhof0 = input_dict['rho_f']*dilution_factor # furfural
+rhox0 = input_dict.get('rho_x', 0.0)*dilution_factor
+rhof0 = input_dict.get('rho_f', 0.0)*dilution_factor # furfural
 
 #yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
 # there is something wrong with this conversion calculation, JJS 3/22/20
-conversion_xylan = input_dict['conv']
+conversion_xylan = input_dict.get('conv', 1.0/3.0)
 yF0 = 0.2 + 0.6*conversion_xylan
+# yF0 = 1.0*conversion_xylan
+
+print('\nINPUTS')
+print('Lambda_e = %.4f' % (lmbde))
+print('FIS_0 = %.4f' % (fis0))
+print('yF0 = %.4f' % (yF0))
+
 
 # initial conditions in model variables
 fG0 = xG0*fis0
@@ -160,8 +169,9 @@ def rhs(f, t, rhoT, fET, kF, kR, KdF, KdR, KI):
 
 # run simulation via igt.odeint
 #tfin = 200. # h
-tfin = 100. # h
-tfin = input_dict['t_final']
+# tfin = 100. # h
+tfin = input_dict.get('t_final', 100.0)
+print('t_final = %.4f' % (tfin))
 
 N = 200
 t = np.linspace(0, tfin, N)
@@ -191,12 +201,21 @@ output_dict['rho_g'] = float(rhog[-1])
 dilution_EH = fis[-1]/fis0
 output_dict['rho_x'] = float(rhox0*dilution_EH)
 output_dict['rho_f'] = float(rhof0*dilution_EH)
+
 if len(sys.argv) > 2:
     # Save the output dictionary to a .yaml file
     output_filename = sys.argv[2]
-    with open(output_filename, 'w') as fp:
-        yaml.dump(output_dict, fp)
+    dict_to_yaml(output_dict, output_filename)
 
+
+print('\nFINAL OUTPUTS (at t = %.1f hours)' % (tfin))
+print('rho_g = %.4f' % (rhog[-1]))
+# print('rho_x = ', rhox0*dilution_EH)
+# print('rho_f = ', rhof0*dilution_EH)
+# print('Facile Conversion = ', convF[-1])
+# print('Recalcitrant Conversion = ', convR[-1])
+print('Total Conversion = %.4f' % (conv[-1]))
+print()
 
 
 # save data to compare with other modeling approaches -- probably not needed for VE use
@@ -210,7 +229,7 @@ if False:
         outfile.write("%e\t%e\n"%(t[i],conv[i]))
     outfile.close()
 
-if input_dict['show_plots']:
+if input_dict.get('show_plots', False):
     figure(1)
     clf()
     xlim((-5,50))
