@@ -3,6 +3,7 @@ scratch/
 !/.gitignore
 *~
 *.pyc
+*.egg-info/
 
 # fortran/f2py compiler output
 *.o
