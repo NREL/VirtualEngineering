@@ -184,7 +184,7 @@ eh_options.lambda_e = widgets.BoundedFloatText(
     description_tooltip = 'Ratio of the enzyme mass to the total solution mass (kg/kg).  Must be in the range [0, 1]'
 )
 
-eh_options.fis_0_target = widgets.BoundedFloatText(
+eh_options.fis_0 = widgets.BoundedFloatText(
     value = 0.05,
     max = 1.0,
     min = 0.0,
@@ -205,6 +205,11 @@ eh_options.show_plots = widgets.Checkbox(
     description = 'Show Plots'
 )
 
+eh_options.use_cfd = widgets.Checkbox(
+    value = False,
+    description = 'Use High-Fidelity CFD (Requires HPC Resources)',
+)
+
 #================================================================
 
 # Display the widgets
@@ -212,6 +217,16 @@ eh_options.display_all_widgets()
 
 #================================================================
 
+def use_cfd_action(b):
+    if eh_options.use_cfd.value:
+        eh_options.show_plots.value = False
+        eh_options.show_plots.disabled = True
+    else:
+        eh_options.show_plots.value = False
+        eh_options.show_plots.disabled = False
+        
+
+eh_options.use_cfd.observe(use_cfd_action)
 ```
 
 ---
@@ -257,7 +272,9 @@ When finished setting options for all unit operations, press the button below to
 
 run_button = widgets.Button(
     description = 'Run All.',
-    tooltip = 'Execute the model start-to-finish with the properties specified above.'
+    tooltip = 'Execute the model start-to-finish with the properties specified above.',
+    layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'}, 
+    button_style = 'success'
 )
 
 #================================================================
@@ -267,73 +284,99 @@ display(run_button)
 
 #================================================================
 
-# Define a function to be executed each time the run button is pressed
-def run_button_action(b):
-    clear_output()
-    display(run_button)
-    
-    # Store the current working directory
+def run_pretreatment():
+    print('Running Pretreatment Model')
     parent_path = os.getcwd()
     
-    # Run the pretreatment model
-    # These print statements do not show for me until the run is complete. Something that should be fixed
-    # at some point, JJS 3/22/20
-    print('Running Pretreatment Model')
+    # Export the feedstock and pretreatment options to a global yaml file
+    fs_options.export_widgets_to_yaml('feedstock', 'virteng_params.yaml')
+    pt_options.export_widgets_to_yaml('pretreatment_input', 'virteng_params.yaml', 'virteng_params.yaml')
+
+    # Move into the pretreatment directory
     os.chdir('pretreatment_model/test/')
-    _ = fs_options.export_widgets_to_yaml('fs_input.yaml')
-    _ = pt_options.export_widgets_to_yaml('pt_input.yaml', 'fs_input.yaml')
-
-    %run ptrun.py 'pt_input.yaml' 'pt_output.yaml'
-
+    
+    # Run pretreatment code specifying location of input file
+    path_to_input_file = '%s/virteng_params.yaml' % (parent_path)
+    %run ptrun.py $path_to_input_file
+    
     if pt_options.show_plots.value:
         %run postprocess.py 'out_\*.dat' exptdata_150C_1acid.dat
-    copyfile('pt_output.yaml', '../../two_phase_batch_model/%s' % ('pt_to_eh_input.yaml'))
+
     os.chdir(parent_path)
     print('\nFinished Pretreatment')
+
     
-    # Run the enzymatic hydrolysis model
+def run_enzymatic_hydrolysis():
     print('\nRunning Enzymatic Hydrolysis Model')
-    os.chdir('two_phase_batch_model/')
-    _ = eh_options.export_widgets_to_yaml('eh_input.yaml', 'pt_to_eh_input.yaml')
+    parent_path = os.getcwd()
+
+    # Export the enzymatic hydrolysis options to a global yaml file
+    eh_options.export_widgets_to_yaml('enzymatic_input', 'virteng_params.yaml', 'virteng_params.yaml')
     
-    # output argument is not currently used, but it should be for passing info to the bioreaction 
-    # unit operation, JJS 3/22/20
-    %run two_phase_batch_model.py 'eh_input.yaml' 'eh_output.yaml'
-    copyfile('eh_output.yaml', '../bioreactor/bubble_column/constant/%s' % ('eh_to_br_input.yaml'))
+    # Run the selected enzymatic hydrolysis model
+    if eh_options.use_cfd.value:
+        
+        # Export the current state to a dictionary
+        virteng_params = yaml_to_dict('virteng_params.yaml') 
+        
+        enzdata_replacements = {}
+        enzdata_replacements['lmbde'] = virteng_params['enzymatic_input']['lambda_e']
+        enzdata_replacements['fis0'] = virteng_params['enzymatic_input']['fis_0']
+        enzdata_replacements['dt_ss'] = virteng_params['enzymatic_input']['t_final']
+    
+        os.chdir('EH_CFD/')
+
+        write_file_with_replacements('enzdata', enzdata_replacements)
+        
+        if hpc_run:
+            host_list = !srun hostname
+            num_nodes = len(host_list)
+            max_cores = int(36*num_nodes)
+            
+            !./run.sh $max_cores
+        else:
+            print('Cannot run EH_CFD without HPC resources.')
+            print('$ ./run.sh $max_cores')
+            print(os.getcwd())
+
+    else:
+        os.chdir('two_phase_batch_model/')
+        path_to_input_file = '%s/virteng_params.yaml' % (parent_path)
+        %run two_phase_batch_model.py $path_to_input_file
+    
     os.chdir(parent_path)
     print('\nFinished Enzymatic Hydrolysis')
+
     
-    # Run the bioreactor model
-    os.chdir('bioreactor/bubble_column/constant/')
-
-    #================================================================
-
-    # FIXME: these lines of code should really exist in the fvOptions file itself
-    # Create a dictionary of all the replacement values
-    # where the key is a unique string to identify the definition
-    # and the value is the corresponding value to assign
-
-    # Make changes to the constant/fvOptions file
-    
-    eh_to_br_dict = yaml_to_dict('eh_to_br_input.yaml')        
-
-    fvOptions_replacements = {}
-    for k, v in eh_to_br_dict.items():
-        fvOptions_replacements['double %s' % (k)] = v
-
-    write_file_with_replacements('fvOptions_base', fvOptions_replacements)
-
-    # Make changes to the system/controlDict file
-    os.chdir('../system/')
-    controlDict_replacements = {}
-    controlDict_replacements['endTime '] = br_options.t_final.value
-    
-    write_file_with_replacements('controlDict_base', controlDict_replacements)
-    
-    #================================================================
-
-    os.chdir('../')
+def run_bioreactor():
     print('\nRunning Bioreactor Model')
+    parent_path = os.getcwd()
+
+    # Export the bioreactor options to a global yaml file
+    br_options.export_widgets_to_yaml('bioreactor_input', 'virteng_params.yaml', 'virteng_params.yaml')
+    
+    # Convert the current parameters file to a dictionary
+    virteng_params = yaml_to_dict('virteng_params.yaml')        
+
+    # Make changes to the fvOptions file based on replacement options
+    fvOptions_replacements = {}
+    for key, value in virteng_params['enzymatic_output'].items():
+        fvOptions_replacements['double %s' % (key)] = value
+
+    os.chdir('bioreactor/bubble_column/constant/')
+    write_file_with_replacements('fvOptions', fvOptions_replacements)
+    os.chdir(parent_path)
+    
+    # Make changes to the controlDict file based on replacement options
+    controlDict_replacements = {}
+    controlDict_replacements['endTime '] = virteng_params['bioreactor_input']['t_final']
+    
+    os.chdir('bioreactor/bubble_column/system/')
+    write_file_with_replacements('controlDict', controlDict_replacements)
+    os.chdir(parent_path)
+
+    # Run the bioreactor model
+    os.chdir('bioreactor/bubble_column/')
     if hpc_run:
         # call function to update ovOptions # fvOptions?
         !sbatch ofoamjob
@@ -341,10 +384,24 @@ def run_button_action(b):
         print('Cannot run bioreactor without HPC resources.')
         print('$ sbatch ofoamjob')
         print(os.getcwd())
+        
+    os.chdir(parent_path)
     print('\nFinished Bioreactor')
 
-    # Return to the parent directory
-    os.chdir(parent_path)
+
+# Define a function to be executed each time the run button is pressed
+def run_button_action(b):
+    clear_output()
+    display(run_button)
+    
+    # Run the pretreatment model
+    run_pretreatment()
+    
+    # Run the enzymatic hydrolysis model
+    run_enzymatic_hydrolysis()
+    
+    # Run the bioreactor model
+    run_bioreactor()
     
 run_button.on_click(run_button_action)
 
@@ -368,7 +425,7 @@ function code_toggle() {
 $( document ).ready(code_toggle);
 </script>
 <form action="javascript:code_toggle()"><input type="submit" \
-value="Toggle notebook code visibility (hidden by default)."></form>''')
+value="Toggle code visibility (hidden by default)."></form>''')
 
 display(a)
 ```

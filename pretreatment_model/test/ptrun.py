@@ -21,18 +21,20 @@ meshp, scales, IBCs, rrates, Egtcs, deto =\
 # If applicable, load the input file into a dictionary
 if len(sys.argv) > 1:
     input_filename = sys.argv[1]
-    input_dict = yaml_to_dict(input_filename)
+    virteng_params = yaml_to_dict(input_filename)
+
+    # print(virteng_params)
 
     # Override pretreat_defs.inp definitions with those from the pretreatment widgets
-    IBCs['acid'] = input_dict['initial_acid_conc']
-    IBCs['stmT'] = input_dict['steam_temperature']
-    IBCs['bkst'] = input_dict['bulk_steam_conc']
-    meshp['ftime'] = input_dict['final_time']
-    IBCs['xyfr'] = input_dict['xylan_solid_fraction']
-    IBCs['lifr'] = 1.0 - input_dict['initial_solid_fraction']
-    IBCs['poro'] = input_dict['initial_porosity']
+    IBCs['acid'] = virteng_params['pretreatment_input']['initial_acid_conc']
+    IBCs['stmT'] = virteng_params['pretreatment_input']['steam_temperature']
+    IBCs['bkst'] = virteng_params['pretreatment_input']['bulk_steam_conc']
+    meshp['ftime'] = virteng_params['pretreatment_input']['final_time']
+    IBCs['xyfr'] = virteng_params['feedstock']['xylan_solid_fraction']
+    IBCs['lifr'] = 1.0 - virteng_params['pretreatment_input']['initial_solid_fraction']
+    IBCs['poro'] = virteng_params['feedstock']['initial_porosity']
 else:
-    input_dict = {}
+    virteng_params = {}
 
 
 # read in number of elements from input file
@@ -133,19 +135,23 @@ print( "total xylan conversion (%)      :", 100*conv)
 print( "% mass balance                  :", 100*(1.0-(prodmass-reactmass)/reactmass))
 
 # compute an updated glucan fraction based on xylan conversion
-X_G = input_dict['glucan_solid_fraction']/(1 - input_dict['xylan_solid_fraction']*conv)
+X_G = virteng_params['feedstock']['glucan_solid_fraction']/(1 - virteng_params['feedstock']['xylan_solid_fraction']*conv)
 
 # Save the outputs into a dictionary
-output_dict = {}
-output_dict['fis_0'] = float(solidweight/(solidweight+liquid_bulk))
-output_dict['conv'] = float(conv)
-output_dict['X_X'] = float(xylan_bulk) # is this correct? JJS 3/22/20
-output_dict['X_G'] = float(X_G)
-output_dict['rho_x'] = float(xylose_bulk*1000*M_xylose)
-output_dict['rho_f'] = float(furfural_bulk*1000*M_furf) 
+output_dict = {'pretreatment_output': {}}
+output_dict['pretreatment_output']['fis_0'] = float(solidweight/(solidweight+liquid_bulk))
+output_dict['pretreatment_output']['conv'] = float(conv)
+output_dict['pretreatment_output']['X_X'] = float(xylan_bulk) # is this correct? JJS 3/22/20
+output_dict['pretreatment_output']['X_G'] = float(X_G)
+output_dict['pretreatment_output']['rho_x'] = float(xylose_bulk*1000*M_xylose)
+output_dict['pretreatment_output']['rho_f'] = float(furfural_bulk*1000*M_furf)
 
-if len(sys.argv) > 2:
-    # Save the output dictionary to a .yaml file
-    output_filename = sys.argv[2]
-    dict_to_yaml(output_dict, output_filename)
+if len(sys.argv) > 1:
+    virteng_params.update(output_dict)
+    dict_to_yaml(virteng_params, input_filename)
+
+# if len(sys.argv) > 2:
+#     # Save the output dictionary to a .yaml file
+#     output_filename = sys.argv[2]
+#     dict_to_yaml(output_dict, output_filename)
 

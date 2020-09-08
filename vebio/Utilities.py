@@ -30,29 +30,43 @@ def get_host_computer():
     return hpc_run
 
 
-def dict_to_yaml(dictionary_to_write, yaml_filename, verbose=True):
+def print_dict(dict_to_print, indent=0):
+
+    for key, value in dict_to_print.items():
+        if type(value) is dict:
+            for j in range(indent):
+                print('  ', end='')
+            print('["%s"] = ' % (key))
+            indent += 1
+            print_dict(value, indent)
+            indent -= 1
+
+        else:
+            for j in range(indent):
+                print('  ', end='')
+            print('["%s"] = ' % (key), value)
+
+def dict_to_yaml(dictionary_to_write, yaml_filename, verbose=False):
     if type(dictionary_to_write) is not dict:
         error_string = ('Input is not a dictionary. \nArguments should be (dict_to_write, yaml_filename), \nare they switched?')
         raise ValueError(error_string)
 
     if verbose:
         print('Writing the Dictionary:')
-        for k, v in dictionary_to_write.items():
-            print('    ["%s"] = %f' % (k, v))
+        print_dict(dictionary_to_write)
         print('To the File: %s\n' % (yaml_filename))
 
     with open(yaml_filename, 'w') as fp:
-        yaml.dump(dictionary_to_write, fp)
+        yaml.dump(dictionary_to_write, fp, sort_keys=False)
 
 
-def yaml_to_dict(yaml_filename, verbose=True):
+def yaml_to_dict(yaml_filename, verbose=False):
     with open(yaml_filename) as fp:
         output_dictionary = yaml.load(fp, Loader = yaml.FullLoader)
 
     if verbose:
         print('Read the Dictionary:')
-        for k, v in output_dictionary.items():
-            print('    ["%s"] = %f' % (k, v))
+        print_dict(output_dictionary)
         print('From the File: %s\n' % (yaml_filename))
 
     return output_dictionary

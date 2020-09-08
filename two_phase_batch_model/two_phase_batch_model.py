@@ -30,10 +30,9 @@ from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 if len(sys.argv) > 1:
     input_filename = sys.argv[1]
-    input_dict = yaml_to_dict(input_filename)
-    # print(input_dict)
+    virteng_params = yaml_to_dict(input_filename)
 else:
-    input_dict = {}
+    virteng_params = {}
 
 
 font={'family':'Helvetica', 'size':'15'}
@@ -75,27 +74,27 @@ KI = 1e-2 # best fit (constrained)
 
 #lmbde = 0.03 # kg/kg; *1000 to get mg/g
 # Direct User Input
-lmbde = input_dict.get('lambda_e', 0.03)
+lmbde = virteng_params['enzymatic_input']['lambda_e']
 
 #fis0 = 0.05 # kg/kg; initial fraction insoluble solids
 # Direct User Input (note, this is a target, not the output from pretreatment)
-fis0 = input_dict.get('fis_0_target', 0.05)
+fis0 = virteng_params['enzymatic_input']['fis_0']
 
 # Compute the amount of dilution required to reach the fis_0_target
 # based on the output from the pretreatment step
-dilution_factor = fis0/input_dict.get('fis_0', fis0)
+dilution_factor = fis0/virteng_params['pretreatment_output']['fis_0']
 
 #xG0 = 1.0 # initial glucan fraction of insoluble solids -- 100% here
-xG0 = input_dict.get('X_G', 1.0)
-xX0 = input_dict.get('X_X', 0.0)
+xG0 = virteng_params['pretreatment_output']['X_G']
+xX0 = virteng_params['pretreatment_output']['X_X']
 rhog0 = 0.0 # g/L; initial glucose concentration in the liquid
 #rhox0 = 0.0 # g/L
-rhox0 = input_dict.get('rho_x', 0.0)*dilution_factor
-rhof0 = input_dict.get('rho_f', 0.0)*dilution_factor # furfural
+rhox0 = virteng_params['pretreatment_output']['rho_x']*dilution_factor
+rhof0 = virteng_params['pretreatment_output']['rho_f']*dilution_factor # furfural
 
 #yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
 # there is something wrong with this conversion calculation, JJS 3/22/20
-conversion_xylan = input_dict.get('conv', 1.0/3.0)
+conversion_xylan = virteng_params['pretreatment_output']['conv']
 yF0 = 0.2 + 0.6*conversion_xylan
 # yF0 = 1.0*conversion_xylan
 
@@ -170,7 +169,7 @@ def rhs(f, t, rhoT, fET, kF, kR, KdF, KdR, KI):
 # run simulation via igt.odeint
 #tfin = 200. # h
 # tfin = 100. # h
-tfin = input_dict.get('t_final', 100.0)
+tfin = virteng_params['enzymatic_input']['t_final']
 print('t_final = %.4f' % (tfin))
 
 N = 200
@@ -196,17 +195,15 @@ mb = 1 - mG/mG0
 
 
 # Save the outputs into a dictionary for use as inputs for bioreactor sims
-output_dict = {}
-output_dict['rho_g'] = float(rhog[-1])
+output_dict = {'enzymatic_output': {}}
+output_dict['enzymatic_output']['rho_g'] = float(rhog[-1])
 dilution_EH = fis[-1]/fis0
-output_dict['rho_x'] = float(rhox0*dilution_EH)
-output_dict['rho_f'] = float(rhof0*dilution_EH)
+output_dict['enzymatic_output']['rho_x'] = float(rhox0*dilution_EH)
+output_dict['enzymatic_output']['rho_f'] = float(rhof0*dilution_EH)
 
-if len(sys.argv) > 2:
-    # Save the output dictionary to a .yaml file
-    output_filename = sys.argv[2]
-    dict_to_yaml(output_dict, output_filename)
-
+if len(sys.argv) > 1:
+    virteng_params.update(output_dict)
+    dict_to_yaml(virteng_params, input_filename)
 
 print('\nFINAL OUTPUTS (at t = %.1f hours)' % (tfin))
 print('rho_g = %.4f' % (rhog[-1]))
@@ -229,7 +226,7 @@ if False:
         outfile.write("%e\t%e\n"%(t[i],conv[i]))
     outfile.close()
 
-if input_dict.get('show_plots', False):
+if virteng_params.get('show_plots', False):
     figure(1)
     clf()
     xlim((-5,50))

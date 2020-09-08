@@ -20,9 +20,9 @@ class WidgetCollection:
         # Define display options
         widget_style = {'description_width': '%dpx' % (description_width)}
         widget_layout = {'width': '%dpx' % (widget_width)}
-        info_layout = {'margin': '0px 0px 0px %dpx' % (padding), 'width':'%dpx' % (info_width)}
+        info_layout = {'margin': '0px 0px 0px %dpx' % (2*padding), 'width':'%dpx' % (info_width)}
         # box_layout = {'padding': '10px'}
-        box_layout = {'padding': '%dpx' % (padding), 'align_items': 'center'}
+        box_layout = {'padding': '0px %dpx 0px %dpx' % (padding, padding), 'align_items': 'center'}
 
         # For every widget
         for item in self.__dict__.items():
@@ -64,8 +64,11 @@ class WidgetCollection:
 
             display(w.box)
 
-    def export_widgets_to_yaml(self, yaml_filename=None, merge_output_file=None):
+    def export_widgets_to_yaml(self, parent_name=None, yaml_filename=None, merge_output_file=None):
         
+        if merge_output_file is not None:
+            merge_dict = yaml_to_dict(merge_output_file)
+
         #Start with a blank dictionary
         widget_dict = {}
 
@@ -80,10 +83,12 @@ class WidgetCollection:
             # Create a dictionary with name : value pairs
             widget_dict['%s' % (widgetName)] = widgetValue
 
-        if merge_output_file is not None:
-            merge_dict = yaml_to_dict(merge_output_file)
+        if parent_name is not None:
+            widget_dict = {'%s' % (parent_name): widget_dict}
 
-            widget_dict.update(merge_dict)
+        if merge_output_file is not None:
+            merge_dict.update(widget_dict)
+            widget_dict = merge_dict
 
         # Dump the new dictionary into a yaml file
         if yaml_filename is not None:
