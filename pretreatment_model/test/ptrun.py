@@ -20,8 +20,8 @@ meshp, scales, IBCs, rrates, Egtcs, deto =\
 
 # If applicable, load the input file into a dictionary
 if len(sys.argv) > 1:
-    input_filename = sys.argv[1]
-    virteng_params = yaml_to_dict(input_filename)
+    params_filename = sys.argv[1]
+    virteng_params = yaml_to_dict(params_filename)
 
     # print(virteng_params)
 
@@ -147,8 +147,7 @@ output_dict['pretreatment_output']['rho_x'] = float(xylose_bulk*1000*M_xylose)
 output_dict['pretreatment_output']['rho_f'] = float(furfural_bulk*1000*M_furf)
 
 if len(sys.argv) > 1:
-    virteng_params.update(output_dict)
-    dict_to_yaml(virteng_params, input_filename)
+    dict_to_yaml([virteng_params, output_dict], params_filename)
 
 # if len(sys.argv) > 2:
 #     # Save the output dictionary to a .yaml file

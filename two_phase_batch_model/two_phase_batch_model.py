@@ -29,8 +29,9 @@ from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 
 if len(sys.argv) > 1:
-    input_filename = sys.argv[1]
-    virteng_params = yaml_to_dict(input_filename)
+    params_filename = sys.argv[1]
+    virteng_params = yaml_to_dict(params_filename)
+    
 else:
     virteng_params = {}
 
@@ -202,8 +203,7 @@ output_dict['enzymatic_output']['rho_x'] = float(rhox0*dilution_EH)
 output_dict['enzymatic_output']['rho_f'] = float(rhof0*dilution_EH)
 
 if len(sys.argv) > 1:
-    virteng_params.update(output_dict)
-    dict_to_yaml(virteng_params, input_filename)
+    dict_to_yaml([virteng_params, output_dict], params_filename)
 
 print('\nFINAL OUTPUTS (at t = %.1f hours)' % (tfin))
 print('rho_g = %.4f' % (rhog[-1]))

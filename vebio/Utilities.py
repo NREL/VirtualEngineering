@@ -36,7 +36,7 @@ def print_dict(dict_to_print, indent=0):
         if type(value) is dict:
             for j in range(indent):
                 print('  ', end='')
-            print('["%s"] = ' % (key))
+            print('["%s"]' % (key))
             indent += 1
             print_dict(value, indent)
             indent -= 1
@@ -46,10 +46,23 @@ def print_dict(dict_to_print, indent=0):
                 print('  ', end='')
             print('["%s"] = ' % (key), value)
 
-def dict_to_yaml(dictionary_to_write, yaml_filename, verbose=False):
-    if type(dictionary_to_write) is not dict:
+def dict_to_yaml(dictionary_to_write, yaml_filename, merge_with_existing=False, verbose=False):
+    if type(dictionary_to_write) is not dict and type(dictionary_to_write) is not list:
         error_string = ('Input is not a dictionary. \nArguments should be (dict_to_write, yaml_filename), \nare they switched?')
         raise ValueError(error_string)
+
+    if type(dictionary_to_write) is list:
+        dict_temp = {}
+
+        for d in dictionary_to_write:
+            dict_temp.update(d)
+
+        dictionary_to_write = dict_temp
+
+    if merge_with_existing:
+        existing_dict = yaml_to_dict(yaml_filename)
+        existing_dict.update(dictionary_to_write)
+        dictionary_to_write = existing_dict
 
     if verbose:
         print('Writing the Dictionary:')

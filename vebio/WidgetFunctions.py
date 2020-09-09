@@ -1,5 +1,4 @@
 from ipywidgets import *
-import yaml
 
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
@@ -64,11 +63,8 @@ class WidgetCollection:
 
             display(w.box)
 
-    def export_widgets_to_yaml(self, parent_name=None, yaml_filename=None, merge_output_file=None):
+    def export_widgets_to_dict(self, parent_name=None):
         
-        if merge_output_file is not None:
-            merge_dict = yaml_to_dict(merge_output_file)
-
         #Start with a blank dictionary
         widget_dict = {}
 
@@ -85,14 +81,6 @@ class WidgetCollection:
 
         if parent_name is not None:
             widget_dict = {'%s' % (parent_name): widget_dict}
-
-        if merge_output_file is not None:
-            merge_dict.update(widget_dict)
-            widget_dict = merge_dict
-
-        # Dump the new dictionary into a yaml file
-        if yaml_filename is not None:
-            dict_to_yaml(widget_dict, yaml_filename)
 
         return widget_dict
 

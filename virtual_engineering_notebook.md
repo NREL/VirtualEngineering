@@ -26,10 +26,7 @@ The first step is to select "Cell" > "Run All" from the toolbar.  This will init
 %reset -f
 from ipywidgets import *
 from IPython.display import HTML, clear_output
-import yaml
 import os
-import time
-from shutil import copyfile
 
 import vebio.WidgetFunctions as wf
 from vebio.FileModifiers import write_file_with_replacements
@@ -284,40 +281,46 @@ display(run_button)
 
 #================================================================
 
-def run_pretreatment():
+def run_pretreatment(root_dir, params_filename):
     print('Running Pretreatment Model')
-    parent_path = os.getcwd()
     
     # Export the feedstock and pretreatment options to a global yaml file
-    fs_options.export_widgets_to_yaml('feedstock', 'virteng_params.yaml')
-    pt_options.export_widgets_to_yaml('pretreatment_input', 'virteng_params.yaml', 'virteng_params.yaml')
+    fs_dict = fs_options.export_widgets_to_dict('feedstock')
+    pt_dict = pt_options.export_widgets_to_dict('pretreatment_input')
+    dict_to_yaml([fs_dict, pt_dict], params_filename)
 
     # Move into the pretreatment directory
     os.chdir('pretreatment_model/test/')
     
     # Run pretreatment code specifying location of input file
-    path_to_input_file = '%s/virteng_params.yaml' % (parent_path)
+    path_to_input_file = '%s/%s' % (root_dir, params_filename)
     %run ptrun.py $path_to_input_file
     
     if pt_options.show_plots.value:
         %run postprocess.py 'out_\*.dat' exptdata_150C_1acid.dat
 
-    os.chdir(parent_path)
+    os.chdir(root_dir)
     print('\nFinished Pretreatment')
 
     
-def run_enzymatic_hydrolysis():
+def run_enzymatic_hydrolysis(root_dir, params_filename):
     print('\nRunning Enzymatic Hydrolysis Model')
-    parent_path = os.getcwd()
 
     # Export the enzymatic hydrolysis options to a global yaml file
-    eh_options.export_widgets_to_yaml('enzymatic_input', 'virteng_params.yaml', 'virteng_params.yaml')
+    eh_dict = eh_options.export_widgets_to_dict('enzymatic_input')
+    dict_to_yaml(eh_dict, params_filename, merge_with_existing=True)
     
     # Run the selected enzymatic hydrolysis model
     if eh_options.use_cfd.value:
         
         # Export the current state to a dictionary
-        virteng_params = yaml_to_dict('virteng_params.yaml') 
+        virteng_params = yaml_to_dict(params_filename)
+        
+        # TODO: set a dilution factor here based on PT output and fis0 target
+        # Use to modify rhox0 and rhof0 coming out of PT step
+        # Write rho_g, rho_x, and rho_f based on CFD outputs
+        # Set tF0 based on conversion_xyland from PT output
+        # xG0 may be 1.0 and other 0.0
         
         enzdata_replacements = {}
         enzdata_replacements['lmbde'] = virteng_params['enzymatic_input']['lambda_e']
@@ -338,25 +341,34 @@ def run_enzymatic_hydrolysis():
             print('Cannot run EH_CFD without HPC resources.')
             print('$ ./run.sh $max_cores')
             print(os.getcwd())
+            
+#         output_dict = {'enzymatic_output': {}}
+#         output_dict['enzymatic_output']['rho_g'] = 0.11 # Get from CFD output
+#         dilution_EH = fis[-1]/fis0
+#         output_dict['enzymatic_output']['rho_x'] = rhox0*dilution_EH
+#         output_dict['enzymatic_output']['rho_f'] = rhof0*dilution_EH
+
+#         virteng_params.update(output_dict)
+#         dict_to_yaml(virteng_params, input_filename)
 
     else:
         os.chdir('two_phase_batch_model/')
-        path_to_input_file = '%s/virteng_params.yaml' % (parent_path)
+        path_to_input_file = '%s/%s' % (root_dir, params_filename)
         %run two_phase_batch_model.py $path_to_input_file
     
-    os.chdir(parent_path)
+    os.chdir(root_dir)
     print('\nFinished Enzymatic Hydrolysis')
 
     
-def run_bioreactor():
+def run_bioreactor(root_dir, params_filename):
     print('\nRunning Bioreactor Model')
-    parent_path = os.getcwd()
 
     # Export the bioreactor options to a global yaml file
-    br_options.export_widgets_to_yaml('bioreactor_input', 'virteng_params.yaml', 'virteng_params.yaml')
-    
+    br_dict = br_options.export_widgets_to_dict('bioreactor_input')
+    dict_to_yaml(br_dict, params_filename, merge_with_existing=True)
+
     # Convert the current parameters file to a dictionary
-    virteng_params = yaml_to_dict('virteng_params.yaml')        
+    virteng_params = yaml_to_dict(params_filename)        
 
     # Make changes to the fvOptions file based on replacement options
     fvOptions_replacements = {}
@@ -365,7 +377,7 @@ def run_bioreactor():
 
     os.chdir('bioreactor/bubble_column/constant/')
     write_file_with_replacements('fvOptions', fvOptions_replacements)
-    os.chdir(parent_path)
+    os.chdir(root_dir)
     
     # Make changes to the controlDict file based on replacement options
     controlDict_replacements = {}
@@ -373,7 +385,7 @@ def run_bioreactor():
     
     os.chdir('bioreactor/bubble_column/system/')
     write_file_with_replacements('controlDict', controlDict_replacements)
-    os.chdir(parent_path)
+    os.chdir(root_dir)
 
     # Run the bioreactor model
     os.chdir('bioreactor/bubble_column/')
@@ -385,7 +397,7 @@ def run_bioreactor():
         print('$ sbatch ofoamjob')
         print(os.getcwd())
         
-    os.chdir(parent_path)
+    os.chdir(root_dir)
     print('\nFinished Bioreactor')
 
 
@@ -394,14 +406,18 @@ def run_button_action(b):
     clear_output()
     display(run_button)
     
+    # Set global paths and files for communication between operations
+    root_dir = os.getcwd()
+    params_filename = 'virteng_params.yaml'
+    
     # Run the pretreatment model
-    run_pretreatment()
+    run_pretreatment(root_dir, params_filename)
     
     # Run the enzymatic hydrolysis model
-    run_enzymatic_hydrolysis()
+    run_enzymatic_hydrolysis(root_dir, params_filename)
     
     # Run the bioreactor model
-    run_bioreactor()
+    run_bioreactor(root_dir, params_filename)
     
 run_button.on_click(run_button_action)
 
