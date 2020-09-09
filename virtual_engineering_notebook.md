@@ -138,7 +138,7 @@ pt_options.initial_solid_fraction = widgets.BoundedFloatText(
 )
 
 pt_options.final_time = widgets.BoundedFloatText(
-    value = 100,
+    value = 100, #2400
     max = 1e16,
     min = 1,
     description = 'Final Time',
@@ -147,7 +147,7 @@ pt_options.final_time = widgets.BoundedFloatText(
 
 pt_options.show_plots = widgets.Checkbox(
     value = False,
-    description = 'Show Plots'
+    description_tooltip = 'Show Plots'
 )
 
 
@@ -199,12 +199,12 @@ eh_options.t_final = widgets.BoundedFloatText(
 
 eh_options.show_plots = widgets.Checkbox(
     value = False,
-    description = 'Show Plots'
+    description_tooltip = 'Show Plots'
 )
 
 eh_options.use_cfd = widgets.Checkbox(
     value = False,
-    description = 'Use High-Fidelity CFD (Requires HPC Resources)',
+    description_tooltip = 'Use High-Fidelity CFD (Requires HPC Resources)',
 )
 
 #================================================================
@@ -218,10 +218,12 @@ def use_cfd_action(b):
     if eh_options.use_cfd.value:
         eh_options.show_plots.value = False
         eh_options.show_plots.disabled = True
+        eh_options.show_plots.description_tooltip = 'Show Plots (Not available for CFD operation)'
     else:
         eh_options.show_plots.value = False
         eh_options.show_plots.disabled = False
-        
+        eh_options.show_plots.description_tooltip = 'Show Plots'
+
 
 eh_options.use_cfd.observe(use_cfd_action)
 ```
@@ -265,22 +267,6 @@ When finished setting options for all unit operations, press the button below to
 
 
 ```python
-#================================================================
-
-run_button = widgets.Button(
-    description = 'Run All.',
-    tooltip = 'Execute the model start-to-finish with the properties specified above.',
-    layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'}, 
-    button_style = 'success'
-)
-
-#================================================================
-
-# run_button_output = widgets.Output()
-display(run_button)
-
-#================================================================
-
 def run_pretreatment(root_dir, params_filename):
     print('Running Pretreatment Model')
     
@@ -314,21 +300,22 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
     if eh_options.use_cfd.value:
         
         # Export the current state to a dictionary
-        virteng_params = yaml_to_dict(params_filename)
-        
-        # TODO: set a dilution factor here based on PT output and fis0 target
-        # Use to modify rhox0 and rhof0 coming out of PT step
-        # Write rho_g, rho_x, and rho_f based on CFD outputs
-        # Set tF0 based on conversion_xyland from PT output
-        # xG0 may be 1.0 and other 0.0
-        
+        ve_params = yaml_to_dict(params_filename)
+                
+        # Prepare input values for EH CFD operation
+        dilution_factor = ve_params['enzymatic_input']['fis_0']/ve_params['pretreatment_output']['fis_0']
+        rho_x0 = ve_params['pretreatment_output']['rho_x']*dilution_factor
+        rho_f0 = ve_params['pretreatment_output']['rho_f']*dilution_factor
+ 
         enzdata_replacements = {}
-        enzdata_replacements['lmbde'] = virteng_params['enzymatic_input']['lambda_e']
-        enzdata_replacements['fis0'] = virteng_params['enzymatic_input']['fis_0']
-        enzdata_replacements['dt_ss'] = virteng_params['enzymatic_input']['t_final']
-    
+        enzdata_replacements['lmbde'] = ve_params['enzymatic_input']['lambda_e']
+        enzdata_replacements['fis0'] = ve_params['enzymatic_input']['fis_0']
+        # FIXME: dt_ss value in enzdata isn't correct interpretation of simulation time
+        # need to change the correct value in a different file
+        enzdata_replacements['dt_ss'] = ve_params['enzymatic_input']['t_final']
+        enzdata_replacements['yF0'] = 0.2 + 0.6*ve_params['pretreatment_output']['conv']
+        
         os.chdir('EH_CFD/')
-
         write_file_with_replacements('enzdata', enzdata_replacements)
         
         if hpc_run:
@@ -342,21 +329,30 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
             print('$ ./run.sh $max_cores')
             print(os.getcwd())
             
-#         output_dict = {'enzymatic_output': {}}
-#         output_dict['enzymatic_output']['rho_g'] = 0.11 # Get from CFD output
-#         dilution_EH = fis[-1]/fis0
-#         output_dict['enzymatic_output']['rho_x'] = rhox0*dilution_EH
-#         output_dict['enzymatic_output']['rho_f'] = rhof0*dilution_EH
+        # Prepare output values from EH CFD operations
+        # FIXME: rho_g should be value taken from CFD output
+        rho_g = 1.0
+        # FIXME: dilution_factor_final should be (fis_final)/(ve_params['enzymatic_input']['fis_0'])
+        # where fis_final is taken from CFD output
+        dilution_factor_final = 1.0
+        rho_x = rho_x0*dilution_factor_final
+        rho_f = rho_f0*dilution_factor_final
+        
+        output_dict = {'enzymatic_output': {}}
+        output_dict['enzymatic_output']['rho_g'] = rho_g
+        output_dict['enzymatic_output']['rho_x'] = rho_x
+        output_dict['enzymatic_output']['rho_f'] = rho_f
+        
+        os.chdir(root_dir)
 
-#         virteng_params.update(output_dict)
-#         dict_to_yaml(virteng_params, input_filename)
-
+        dict_to_yaml([ve_params, output_dict], params_filename)
+        
     else:
         os.chdir('two_phase_batch_model/')
         path_to_input_file = '%s/%s' % (root_dir, params_filename)
         %run two_phase_batch_model.py $path_to_input_file
-    
-    os.chdir(root_dir)
+        os.chdir(root_dir)
+
     print('\nFinished Enzymatic Hydrolysis')
 
     
@@ -368,11 +364,11 @@ def run_bioreactor(root_dir, params_filename):
     dict_to_yaml(br_dict, params_filename, merge_with_existing=True)
 
     # Convert the current parameters file to a dictionary
-    virteng_params = yaml_to_dict(params_filename)        
+    ve_params = yaml_to_dict(params_filename)        
 
     # Make changes to the fvOptions file based on replacement options
     fvOptions_replacements = {}
-    for key, value in virteng_params['enzymatic_output'].items():
+    for key, value in ve_params['enzymatic_output'].items():
         fvOptions_replacements['double %s' % (key)] = value
 
     os.chdir('bioreactor/bubble_column/constant/')
@@ -381,7 +377,7 @@ def run_bioreactor(root_dir, params_filename):
     
     # Make changes to the controlDict file based on replacement options
     controlDict_replacements = {}
-    controlDict_replacements['endTime '] = virteng_params['bioreactor_input']['t_final']
+    controlDict_replacements['endTime '] = ve_params['bioreactor_input']['t_final']
     
     os.chdir('bioreactor/bubble_column/system/')
     write_file_with_replacements('controlDict', controlDict_replacements)
@@ -397,9 +393,30 @@ def run_bioreactor(root_dir, params_filename):
         print('$ sbatch ofoamjob')
         print(os.getcwd())
         
+    output_dict = {'bioreactor_output': {}}
+    output_dict['bioreactor_output']['placeholder'] = 123
+
     os.chdir(root_dir)
+
+    dict_to_yaml([ve_params, output_dict], params_filename)
+
     print('\nFinished Bioreactor')
 
+#================================================================
+
+run_button = widgets.Button(
+    description = 'Run All.',
+    tooltip = 'Execute the model start-to-finish with the properties specified above.',
+    layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'}, 
+    button_style = 'success'
+)
+
+#================================================================
+
+# run_button_output = widgets.Output()
+display(run_button)
+
+#================================================================
 
 # Define a function to be executed each time the run button is pressed
 def run_button_action(b):

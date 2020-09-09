@@ -21,20 +21,20 @@ meshp, scales, IBCs, rrates, Egtcs, deto =\
 # If applicable, load the input file into a dictionary
 if len(sys.argv) > 1:
     params_filename = sys.argv[1]
-    virteng_params = yaml_to_dict(params_filename)
+    ve_params = yaml_to_dict(params_filename)
 
-    # print(virteng_params)
+    # print(ve_params)
 
     # Override pretreat_defs.inp definitions with those from the pretreatment widgets
-    IBCs['acid'] = virteng_params['pretreatment_input']['initial_acid_conc']
-    IBCs['stmT'] = virteng_params['pretreatment_input']['steam_temperature']
-    IBCs['bkst'] = virteng_params['pretreatment_input']['bulk_steam_conc']
-    meshp['ftime'] = virteng_params['pretreatment_input']['final_time']
-    IBCs['xyfr'] = virteng_params['feedstock']['xylan_solid_fraction']
-    IBCs['lifr'] = 1.0 - virteng_params['pretreatment_input']['initial_solid_fraction']
-    IBCs['poro'] = virteng_params['feedstock']['initial_porosity']
+    IBCs['acid'] = ve_params['pretreatment_input']['initial_acid_conc']
+    IBCs['stmT'] = ve_params['pretreatment_input']['steam_temperature']
+    IBCs['bkst'] = ve_params['pretreatment_input']['bulk_steam_conc']
+    meshp['ftime'] = ve_params['pretreatment_input']['final_time']
+    IBCs['xyfr'] = ve_params['feedstock']['xylan_solid_fraction']
+    IBCs['lifr'] = 1.0 - ve_params['pretreatment_input']['initial_solid_fraction']
+    IBCs['poro'] = ve_params['feedstock']['initial_porosity']
 else:
-    virteng_params = {}
+    ve_params = {}
 
 
 # read in number of elements from input file
@@ -135,7 +135,7 @@ print( "total xylan conversion (%)      :", 100*conv)
 print( "% mass balance                  :", 100*(1.0-(prodmass-reactmass)/reactmass))
 
 # compute an updated glucan fraction based on xylan conversion
-X_G = virteng_params['feedstock']['glucan_solid_fraction']/(1 - virteng_params['feedstock']['xylan_solid_fraction']*conv)
+X_G = ve_params['feedstock']['glucan_solid_fraction']/(1 - ve_params['feedstock']['xylan_solid_fraction']*conv)
 
 # Save the outputs into a dictionary
 output_dict = {'pretreatment_output': {}}
@@ -147,7 +147,7 @@ output_dict['pretreatment_output']['rho_x'] = float(xylose_bulk*1000*M_xylose)
 output_dict['pretreatment_output']['rho_f'] = float(furfural_bulk*1000*M_furf)
 
 if len(sys.argv) > 1:
-    dict_to_yaml([virteng_params, output_dict], params_filename)
+    dict_to_yaml([ve_params, output_dict], params_filename)
 
 # if len(sys.argv) > 2:
 #     # Save the output dictionary to a .yaml file

@@ -11,7 +11,7 @@ class WidgetCollection:
     def display_all_widgets(self):
         
         # Set default viewing options
-        description_width = 150
+        description_width = 175
         widget_width = 350
         info_width = 300
         padding = 10
@@ -47,6 +47,10 @@ class WidgetCollection:
             else:
                 # Set this widget's style and layout
                 w.style = widget_style
+
+                if type(w) == Checkbox:
+                    shift_amt = 0.88*(widget_width - description_width)
+                    widget_layout.update({'padding': '0px 0px 0px %dpx ' % (shift_amt)})
 
                 if hasattr(w, 'custom_layout'):
                     widget_layout.update(w.custom_layout)
