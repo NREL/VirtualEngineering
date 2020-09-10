@@ -4,10 +4,10 @@
   fis0      = 0.05
   lmbde     = 0.03
   yF0       = 0.4
-  dt_ss     = 560.0
-  dt_react  = 2.0
-  dt_fr     = 30.0
-  fGl0      = 1.0
+  dt_ss     = 0.01
+  dt_react  = 0.1
+  dt_fr     = 0.005
+  fGl0      = 0.8
 
 /
 #omega_rpm - rotational speed in rpm
@@ -19,3 +19,4 @@
 #dt_react - reaction update time in hrs
 #dt_fr - fluid update time between reaction solves
 #fGl0  - fraction of glucan in solids
+#final time in rea is set for t_final of 1 hour

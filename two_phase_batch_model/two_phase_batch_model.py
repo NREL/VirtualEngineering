@@ -25,16 +25,15 @@ from matplotlib.pyplot import *
 import matplotlib as mpl
 
 import sys
-import yaml
+from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 
 if len(sys.argv) > 1:
-    input_filename = sys.argv[1]
-    with open(input_filename) as fp:
-        input_dict = yaml.load(fp, Loader = yaml.FullLoader)
-    # print(input_dict)
+    params_filename = sys.argv[1]
+    ve_params = yaml_to_dict(params_filename)
+
 else:
-    input_dict = {}
+    ve_params = {}
 
 
 font={'family':'Helvetica', 'size':'15'}
@@ -73,28 +72,38 @@ KI = 1e-2 # best fit (constrained)
 # reactor starting conditions
 #mT0 = 10. # kg -- not used
 
+
 #lmbde = 0.03 # kg/kg; *1000 to get mg/g
-lmbde = input_dict['lambda_e']
+# Direct User Input
+lmbde = ve_params['enzymatic_input']['lambda_e']
 
 #fis0 = 0.05 # kg/kg; initial fraction insoluble solids
-fis0 = input_dict['fis_0_target']
+# Direct User Input (note, this is a target, not the output from pretreatment)
+fis0 = ve_params['enzymatic_input']['fis_0']
 
 # Compute the amount of dilution required to reach the fis_0_target
 # based on the output from the pretreatment step
-dilution_factor = input_dict['fis_0_target']/input_dict['fis_0']
+dilution_factor = fis0/ve_params['pretreatment_output']['fis_0']
 
 #xG0 = 1.0 # initial glucan fraction of insoluble solids -- 100% here
-xG0 = input_dict['X_G']
-xX0 = input_dict['X_X']
+xG0 = ve_params['pretreatment_output']['X_G']
+xX0 = ve_params['pretreatment_output']['X_X']
 rhog0 = 0.0 # g/L; initial glucose concentration in the liquid
 #rhox0 = 0.0 # g/L
-rhox0 = input_dict['rho_x']*dilution_factor
-rhof0 = input_dict['rho_f']*dilution_factor # furfural
+rhox0 = ve_params['pretreatment_output']['rho_x']*dilution_factor
+rhof0 = ve_params['pretreatment_output']['rho_f']*dilution_factor # furfural
 
 #yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
 # there is something wrong with this conversion calculation, JJS 3/22/20
-conversion_xylan = input_dict['conv']
+conversion_xylan = ve_params['pretreatment_output']['conv']
 yF0 = 0.2 + 0.6*conversion_xylan
+# yF0 = 1.0*conversion_xylan
+
+print('\nINPUTS')
+print('Lambda_e = %.4f' % (lmbde))
+print('FIS_0 = %.4f' % (fis0))
+print('yF0 = %.4f' % (yF0))
+
 
 # initial conditions in model variables
 fG0 = xG0*fis0
@@ -160,8 +169,9 @@ def rhs(f, t, rhoT, fET, kF, kR, KdF, KdR, KI):
 
 # run simulation via igt.odeint
 #tfin = 200. # h
-tfin = 100. # h
-tfin = input_dict['t_final']
+# tfin = 100. # h
+tfin = ve_params['enzymatic_input']['t_final']
+print('t_final = %.4f' % (tfin))
 
 N = 200
 t = np.linspace(0, tfin, N)
@@ -186,17 +196,23 @@ mb = 1 - mG/mG0
 
 
 # Save the outputs into a dictionary for use as inputs for bioreactor sims
-output_dict = {}
-output_dict['rho_g'] = float(rhog[-1])
+output_dict = {'enzymatic_output': {}}
+output_dict['enzymatic_output']['rho_g'] = float(rhog[-1])
 dilution_EH = fis[-1]/fis0
-output_dict['rho_x'] = float(rhox0*dilution_EH)
-output_dict['rho_f'] = float(rhof0*dilution_EH)
-if len(sys.argv) > 2:
-    # Save the output dictionary to a .yaml file
-    output_filename = sys.argv[2]
-    with open(output_filename, 'w') as fp:
-        yaml.dump(output_dict, fp)
+output_dict['enzymatic_output']['rho_x'] = float(rhox0*dilution_EH)
+output_dict['enzymatic_output']['rho_f'] = float(rhof0*dilution_EH)
 
+if len(sys.argv) > 1:
+    dict_to_yaml([ve_params, output_dict], params_filename)
+
+print('\nFINAL OUTPUTS (at t = %.1f hours)' % (tfin))
+print('rho_g = %.4f' % (rhog[-1]))
+# print('rho_x = ', rhox0*dilution_EH)
+# print('rho_f = ', rhof0*dilution_EH)
+# print('Facile Conversion = ', convF[-1])
+# print('Recalcitrant Conversion = ', convR[-1])
+print('Total Conversion = %.4f' % (conv[-1]))
+print()
 
 
 # save data to compare with other modeling approaches -- probably not needed for VE use
@@ -210,7 +226,7 @@ if False:
         outfile.write("%e\t%e\n"%(t[i],conv[i]))
     outfile.close()
 
-if input_dict['show_plots']:
+if ve_params.get('show_plots', False):
     figure(1)
     clf()
     xlim((-5,50))

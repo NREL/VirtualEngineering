@@ -1,31 +1,49 @@
 To run this case
 
-step 0: do git submodule init 
-and git submodule update to get the 
+STEP 0: do 'git submodule init' 
+and 'git submodule update' to get the 
 current Nek5000 code
 
-step 1: load intel compilers
+STEP 1: Build additional Nek5000 tools
+cd to the /submodules/Nek5000/tools/ directory
+
+load an appropriate compiler with:
+module purge
+module use /nopt/nrel/apps/modules/centos77/modulefiles/
+module load intel-mpi/2020.1.217
+
+build the additional Nek5000 tools with:
+./maketools all
+
+STEP 2: Simulation setup
+cd back to the /EH_CFD/ directory
+
+load intel compilers with:
+module purge
 module use /nopt/modulefiles/
 module load compilers/intel/18.0.3.222
 module load mpi/intelmpi/18.0.3.222
 
-step 2: the file enzdata contains
+STEP 3: Locate the file enzdata which contains
 relevant parameters.
 set them accordingly or use the default.
 
-step 2: use the run.sh script. it needs
+STEP 4: use the run.sh script. it needs
 number of MPI ranks as arguments. It needs 
 atleast 32 ranks to run, otherwise the problem will be
 too large for each task. The run.sh has a build section.
 This may ask if you need to build thirdparty when being done for first time.
 say yes.
-e.g. . ./run.sh 96
+for example: ./run.sh 96
 
-I have also set the max number of steps to 10.
-Ideally you want to set the final time to ~ 1000 seconds and
-set the iterations to 0.
+NOTE:
+the final time (FINTIME p010) should be set as 
+dt_ss + (t_final/dt_react)*dt_fr
+for eg: for a realistic EH case that runs for 24 hours
+and a dt_react of 2 hours and dt_fr of 30 sec and dt_ss of 560 sec
+final time = 560 + 12 * 30 = 920 
 
-step 3: if you want to see mesh and solutions, open the 
+STEP 5: if you want to see mesh and solutions, open the 
 paddle.nek5000 file. modify the numtimesteps in it.
 
 fort.42 file shows time (h) vs conversion  (1-phi/phi0)

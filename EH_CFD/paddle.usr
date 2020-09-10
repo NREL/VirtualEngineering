@@ -51,12 +51,13 @@ c-----------------------------------------------------------------------
          utrans  = density_water ! density
 
       !add 1 to include momentum equation
-      elseif (ifield .le. (PS_FACILE+1) )  then  !(2 is total solids, 3 is facile)
+      elseif (ifield .le. (PS_RECALC+1) )  then  
+        !(2 is total solids, 3 is facile, 4 is recalc)
 
         udiff   = diffusivity
         utrans  = 1.
  	!free enzymes (4) , bound enzymes (5) and glucose (6)
-      elseif (ifield .gt. (PS_FACILE+1)) then 
+      elseif (ifield .gt. (PS_RECALC+1)) then 
 
 	!udiff= fitting_fac*st_eins_diff*(1-temp) !scale by liquid fraction 
 	udiff= fitting_fac*diffusivity*(1-temp) !scale by liquid fraction 
@@ -196,7 +197,7 @@ c-----------------------------------------------------------------------
 
       real :: fGan0, fGF0, fGR0
       real :: fliq0, fg0, fET
-      common /initial/ phi_s_i, tbar_i(5), fGan0, 
+      common /initial/ phi_s_i, tbar_i(6), fGan0, 
      &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
@@ -685,7 +686,7 @@ c-----------------------------------------------------------------------
       integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
 
-      common /initial/ phi_s_i, tbar_i(5), fGan0, 
+      common /initial/ phi_s_i, tbar_i(6), fGan0, 
      &                phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
@@ -697,13 +698,10 @@ c-----------------------------------------------------------------------
       uz   = 0.
 
       if (ifield .eq. (PS_SOLIDS+1))  temp = phi_s_i
-      !phi_s*facile fraction
-      if (ifield .eq. (PS_FACILE+1))  temp = phi_s_i*yF0
-      ! CEB0
+      if (ifield .eq. (PS_FACILE+1))  temp = phi_facile
+      if (ifield .eq. (PS_RECALC+1))  temp = phi_recalc
       if (ifield .eq. (PS_ENZB+1))    temp = CEB0
-      ! CEF0
       if (ifield .eq. (PS_ENZF+1))    temp = CEF0
-      ! CEG0
       if (ifield .eq. (PS_GLUCOSE+1)) temp = CG0
 
       ! used to compute the averages of each passive scalar
@@ -753,7 +751,7 @@ c-----------------------------------------------------------------------
       integer :: FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
 
       real np_i
-      common /initial/ phi_s_i, tbar_i(5), fGan0, 
+      common /initial/ phi_s_i, tbar_i(6), fGan0, 
      &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
    
@@ -854,15 +852,13 @@ c-----------------------------------------------------------------------
 
         ! using model variables
         fGan0 = fGl0 * fis0 
-        fGF0 = yF0 * fGan0
-        fGR0 = (1.0 - yF0) * fGan0
         fliq0 = 1.0 - fis0
         fg0 = rhog0 * fliq0 / rhol
-        fET = lmbde * fGan0
+        fET = lmbde * fis0
         !phi_s_i = rhoT/rhos * fis0 
         phi_s_i = rhol * fis0/(rhos - fis0*(rhos - rhol))  
-        phi_facile = phi_s_i*fGF0
-        phi_recalc = phi_s_i*fGR0
+        phi_facile = phi_s_i*yF0*fGl0
+        phi_recalc = phi_s_i*(1.0-yF0)*fGl0
 
         ! use model fractions to compute initial conditions for
         ! for the convected species: free enzyme (CEF),
@@ -1452,6 +1448,7 @@ c-----------------------------------------------------------------------
           real cg(ltot1), CEg(ltot1), massf(ltot1)
           real fg_is(ltot1) !fis for glucan
           real fx_is(ltot1) !fis for xylan
+          real fis_f,fis_r,phi_s
 	  real masserr(ltot1),glucinitial(ltot1)
           real phis(ltot1), phisf
           real rhoTrhos, rhoTrhol, mwGrho, eps,tmp
@@ -1468,7 +1465,7 @@ c-----------------------------------------------------------------------
           common /fixed/ MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
           common /chemconstants/ kF, kR, KdF, KdR, KI
           common /chemconstants2/ yF0
-          common /initial/ phi_s_i, tbar_i(5), fGan0, 
+          common /initial/ phi_s_i, tbar_i(6), fGan0, 
      &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
@@ -1493,10 +1490,11 @@ c-----------------------------------------------------------------------
 
 	  !vt components
 	  !1 - total solids volume fraction (phi)
-	  !2 - facile glucan mass (phi*f_{fg}) fg_tilda
-	  !3 - bound enzymes
-	  !4 - free enzymes
-	  !5 - glucose
+	  !2 - facile glucan volume fraction
+	  !3 - recalc glucan volume fraction
+	  !4 - bound enzymes
+	  !5 - free enzymes
+	  !6 - glucose
      
           ! update CET over cells of mesh
           ! using CEF and CEB
@@ -1524,14 +1522,14 @@ c-----------------------------------------------------------------------
 	    fg_tilda = vt(i,PS_FACILE)
 	    fr_tilda = vt(i,PS_RECALC)
 
-            vt(i,FACILE_INDEX) = rhos/(rhol+vt(i,1)*(rhos-rhol))
-     &                             *fg_tilda
+            vt(i,FACILE_INDEX)=rhos/(rhol+vt(i,PS_SOLIDS)*(rhos-rhol))
+     &                         *fg_tilda
             
-            vt(i,RECALC_INDEX) = rhos/(rhol+vt(i,1)*(rhos-rhol))
-     &                           *fr_tilda
+            vt(i,RECALC_INDEX)=rhos/(rhol+vt(i,PS_SOLIDS)*(rhos-rhol))
+     &                         *fr_tilda
 
 	    fg_is(i)=vt(i,FACILE_INDEX)+vt(i,RECALC_INDEX)
-            fx_is(i)=1.0-vt(i,FACILE_INDEX)-vt(i,RECALC_INDEX)
+            fx_is(i)=fis-vt(i,FACILE_INDEX)-vt(i,RECALC_INDEX)
 
             cg(i) = vt(i,PS_GLUCOSE)
             vt(i,GLUC_INDEX) = cg(i)/rhoT*epsl*MwGse
@@ -1640,7 +1638,9 @@ c-----------------------------------------------------------------------
              t_react = t_react + dt_rk4
           end do
           
-          write(*,*) "CHECKING FINAL VALUES"
+          if (nid .eq. 0) then
+             write(*,*) "CHECKING FINAL VALUES"
+          endif
           do ifld=1,ldimt
                 maxvalues(ifld)=glmax(vt(:,ifld),ntot1)
                 if(nid .eq. 0) write(*,*) ifld, maxvalues(ifld)
@@ -1672,17 +1672,11 @@ c-----------------------------------------------------------------------
           do i=1,ntot1
             
 	    fGT = vt(i,FACILE_INDEX) + vt(i,RECALC_INDEX)
+            fis_f = vt(i,FACILE_INDEX) !facile insoluble solids fraction 
+            fis_r = vt(i,RECALC_INDEX) !recalc insoluble solids fraction
             fis = fGT+fx_is(i) !add xylan
             fliq = 1.0 - fis
 
-            !fraction of solids that is facile
-	    !yfacile = vt(i,FACILE_INDEX)/fis 
-            if(fis .gt. 1e-6) then
-	    	yfacile = vt(i,FACILE_INDEX)/fis 
-	    else
-	    	yfacile = 0.0
-	    endif
-	 
             ! update rhoT
             rhoT = 1./(fis/rhos + fliq/rhol)
            
@@ -1693,7 +1687,8 @@ c-----------------------------------------------------------------------
             mwGrho = MwGan/rhoT
 
             ! compute phi_s
-            vt(i,PS_SOLIDS) = rhol * fis/(rhos - fis*(rhos - rhol))  
+            phi_s = rhol * fis/(rhos - fis*(rhos - rhol))
+            vt(i,PS_SOLIDS) = phi_s
             
             ! compute CEGF and CEGR
             CGF = vt(i,FACILE_INDEX) / mwGrho ! rhoT/MwGan * fGF
@@ -1724,7 +1719,8 @@ c-----------------------------------------------------------------------
             CET(i) = vt(i,PS_ENZB) + vt(i,PS_ENZF) 
 	
 	    !set facile passive scalar
-	    vt(i,PS_FACILE) = vt(i,PS_SOLIDS)*yfacile
+	    vt(i,PS_FACILE) = (rhol+phi_s*(rhos-rhol))*fis_f/rhos
+	    vt(i,PS_RECALC) = (rhol+phi_s*(rhos-rhol))*fis_r/rhos
 	    
 
           enddo
@@ -1741,7 +1737,7 @@ c-----------------------------------------------------------------------
              !write(*,*) "time: ", time, " mass e-glucose: ", mass_ge
              !write(*,*) "time: ", time, " mass solids: ", mass_s
              !write(*,*) " total mass: ", total_mass_s
-     	     write(44,*) time, cgbar
+     	     write(44,*) t_react, cgbar
              call flush(44)
           end if
           
@@ -1773,7 +1769,7 @@ c-----------------------------------------------------------------------
 
           common /fixed/ MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
           common /chemconstants/ kF, kR, KdF, KdR, KI
-          common /initial/ phi_s_i, tbar_i(5), fGan0, 
+          common /initial/ phi_s_i, tbar_i(6), fGan0, 
      &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
@@ -1786,8 +1782,10 @@ c-----------------------------------------------------------------------
 
           n = nx1 * ny1 * nz1 * nelt
 
+          dydt=0.0
+
           do i = 1, n
-             ! unpack terms 
+             ! unpack terms
 
              fGF = yt(i,FACILE_INDEX)
              fGR = yt(i,RECALC_INDEX)
@@ -1819,11 +1817,9 @@ c-----------------------------------------------------------------------
              rR = kR * CEGR
 	     
              ! setup RHS
-             dydt(i,PS_SOLIDS) = 0.0 ! phi_s_i ; updated after scheme
              dydt(i,FACILE_INDEX) = -mwGrho * rF ! fGF
              dydt(i,RECALC_INDEX) = -mwGrho * rR ! fGR
              dydt(i,GLUC_INDEX) = Mwgse/rhoT * (rF + rR) ! fg 
-             dydt(i,PS_GLUCOSE) = 0.0
           end do
       end
 
