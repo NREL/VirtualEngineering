@@ -5,7 +5,9 @@
   lmbde     = 0.03
   yF0       = 0.4
   dt_ss     = 560.0
-  dt_react = 2.0
+  dt_react  = 2.0
+  dt_fr     = 30.0
+  fGl0      = 1.0
 
 /
 #omega_rpm - rotational speed in rpm
@@ -15,3 +17,5 @@
 #yF0 - fraction of facile cellulose
 #dt_ss - cfd time in sec to steady-state
 #dt_react - reaction update time in hrs
+#dt_fr - fluid update time between reaction solves
+#fGl0  - fraction of glucan in solids

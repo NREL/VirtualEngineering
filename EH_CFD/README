@@ -28,6 +28,9 @@ set the iterations to 0.
 step 3: if you want to see mesh and solutions, open the 
 paddle.nek5000 file. modify the numtimesteps in it.
 
+fort.42 file shows time (h) vs conversion  (1-phi/phi0)
+fort.44 file shows time (h) vs glucose conc (M)
+
 TODO: 
 1) run longer case - will take ~ 6 days
-2) modify the fort.42 file to print glucose conc also along with conversion
+2) change scale variable as a way to change size of reactor

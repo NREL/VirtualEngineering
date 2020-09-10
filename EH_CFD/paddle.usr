@@ -22,9 +22,9 @@ c-----------------------------------------------------------------------
      &                    visc_max, power_fit, d_phi, error_mass
 
       common /invariants/  sec_invar(lx1,ly1,lz1,lelt)
-      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, 
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
-      integer ::  PS_SOLIDS, PS_FACILE, 
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
 
       integer e,f,eg
@@ -197,14 +197,16 @@ c-----------------------------------------------------------------------
       real :: fGan0, fGF0, fGR0
       real :: fliq0, fg0, fET
       common /initial/ phi_s_i, tbar_i(5), fGan0, 
+     &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
       logical   irescale
       common /rescale/   irescale
-      common /reaction/ t_react, dt_react, t_ss, dt_ss, dt_rk4
-      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, 
+      common /reaction/ t_react, dt_react, t_ss, dt_ss, 
+     &                  dt_rk4, dt_fr
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
-      integer ::  PS_SOLIDS, PS_FACILE, 
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
 
 
@@ -516,30 +518,6 @@ c-----------------------------------------------------------------------
         ! a = a + b
         call add2(div_flux(1,1,1,1,ifld), grad1_z, n)
       enddo
-      
-
-      !do adsorption
-      adsorb_during_cfd=.false.
-      if(adsorb_during_cfd) then
-       do i=1,n
-	solmass = rhos*t(i,1,1,1,PS_SOLIDS)    !rho*phi
-	facilemass = rhos*t(i,1,1,1,PS_FACILE) !rho*phi*y
-        CGF = facilemass / MwGan
-        CGR = (solmass-facilemass) / MwGan
-	epsl = 1 - t(i,1,1,1,PS_SOLIDS)
-        cg =  t(i,1,1,1,PS_GLUCOSE)
-	enztotal = t(i,1,1,1,PS_ENZB) + t(i,1,1,1,PS_ENZF)
-      	call adsorption(CEfb,CErb,CGF,CGR,enztotal,cg,epsl)
-	t(i,1,1,1,PS_ENZB)=CEfb+CErb
-	t(i,1,1,1,PS_ENZF)=enztotal-CEfb-CErb
-
-	!write(nid*10+1,*) solmass, facilemass, CGF, CGR, epsl, 
-        !&      cg, enztotal, CEfb,CErb
-
-       enddo
-      endif
-
-
 
 !....................................
 ! reactions
@@ -556,7 +534,7 @@ c-----------------------------------------------------------------------
          endif
 
          t_ss = time
-         dt_ss = 30.  ! new dt for fluid-update duration
+         dt_ss = dt_fr  ! new dt for fluid-update duration
       
 	 do ifld = 1, ldimt
           tbar(ifld) = glsc2(t(1,1,1,1,ifld),bm1,n) / voltm1
@@ -635,9 +613,9 @@ c-----------------------------------------------------------------------
       logical   irescale
       common /rescale/   irescale
 
-      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, 
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
-      integer ::  PS_SOLIDS, PS_FACILE, 
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
 
       integer e,eg
@@ -702,12 +680,13 @@ c-----------------------------------------------------------------------
 
       !real :: fGan0, fGF0, fGR0
       !real :: fliq0, fg0, fET
-      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, 
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
-      integer ::  PS_SOLIDS, PS_FACILE, 
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
 
       common /initial/ phi_s_i, tbar_i(5), fGan0, 
+     &                phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
       common /chemconstants2/ yF0
@@ -729,7 +708,8 @@ c-----------------------------------------------------------------------
 
       ! used to compute the averages of each passive scalar
       tbar_i(PS_SOLIDS)  = phi_s_i ! phi_s
-      tbar_i(PS_FACILE)  = phi_s_i*yF0 ! phi_s
+      tbar_i(PS_FACILE)  = phi_facile
+      tbar_i(PS_RECALC)  = phi_recalc
       tbar_i(PS_ENZB)    = CEB0 ! CEB
       tbar_i(PS_ENZF)    = CEF0 ! CEF
       tbar_i(PS_GLUCOSE) = CG0 ! CG
@@ -744,7 +724,7 @@ c-----------------------------------------------------------------------
       real MwE, MwGan, MwGse
       real rhol, rhoT, rGg
       real kF, kR, KdF, KdR, KI
-      real lmbde, fis0, xG0, rhog0, rhox0, yF0
+      real lmbde, fis0, fGl0, rhog0, rhox0, yF0
 
       real fGan0, fGF0, fGR0
       real fliq0, fg0, fET
@@ -761,11 +741,12 @@ c-----------------------------------------------------------------------
      &                    density_water, diffusivity, temp_ic,
      &                    visc_max, power_fit, d_phi, error_mass
 
-      common /reaction/ t_react, dt_react, t_ss, dt_ss, dt_rk4
+      common /reaction/ t_react, dt_react, t_ss, dt_ss, 
+     &                  dt_rk4, dt_fr
 
-      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, 
-     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
-      integer ::  PS_SOLIDS, PS_FACILE, 
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE,
+     &        PS_RECALC, PS_ENZB, PS_ENZF, PS_GLUCOSE
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
 
       common /react_ids/ FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
@@ -773,6 +754,7 @@ c-----------------------------------------------------------------------
 
       real np_i
       common /initial/ phi_s_i, tbar_i(5), fGan0, 
+     &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
    
 
@@ -790,16 +772,17 @@ c-----------------------------------------------------------------------
       real :: eps
 
       namelist /enzinputs/ omega_rpm, phi_max, 
-     &   fis0, lmbde, yF0, dt_ss, dt_react
+     &   fis0, lmbde, yF0, dt_ss, dt_react, dt_fr, fGl0
 
       pi  = acos(-1.)
       eps = 0.01
 
       PS_SOLIDS  = 1
       PS_FACILE  = 2
-      PS_ENZB    = 3
-      PS_ENZF    = 4
-      PS_GLUCOSE = 5
+      PS_RECALC  = 3
+      PS_ENZB    = 4
+      PS_ENZF    = 5
+      PS_GLUCOSE = 6
 
       !for reaction update, this is not the same as passive
       !scalar indices
@@ -826,6 +809,7 @@ c-----------------------------------------------------------------------
         t_react = 0.      ! initial reaction time
         dt_react = 2.0    !hours
         dt_rk4 = 0.00005  ! reaction rk4 dt (hours)
+        dt_fr  = 30.0     ! fluid update time between reactions
         t_ss  = 0.        
         dt_ss = 560.0     ! 
 
@@ -846,7 +830,7 @@ c-----------------------------------------------------------------------
         ! reactor starting conditions
         lmbde = 0.03 ! kg/kg; *1000 to get mg/g
         fis0 = 0.05 ! 0.2 ! kg/kg; initial fraction of insoluble solids
-        xG0 = 1.0 ! initial glucan fraction of insoluble solids -- 100%
+        fGl0 = 1.0 ! initial glucan fraction of insoluble solids -- 100%
         rhog0 = 0.0 ! g/L; initial glucose concentration in the liquid
         rhox0 = 0.0 ! g/L
         yF0 = 0.4
@@ -869,7 +853,7 @@ c-----------------------------------------------------------------------
         rhoT = 1./(fis0/rhos + fliq0/rhol)
 
         ! using model variables
-        fGan0 = xG0 * fis0 
+        fGan0 = fGl0 * fis0 
         fGF0 = yF0 * fGan0
         fGR0 = (1.0 - yF0) * fGan0
         fliq0 = 1.0 - fis0
@@ -877,6 +861,8 @@ c-----------------------------------------------------------------------
         fET = lmbde * fGan0
         !phi_s_i = rhoT/rhos * fis0 
         phi_s_i = rhol * fis0/(rhos - fis0*(rhos - rhol))  
+        phi_facile = phi_s_i*fGF0
+        phi_recalc = phi_s_i*fGR0
 
         ! use model fractions to compute initial conditions for
         ! for the convected species: free enzyme (CEF),
@@ -1463,7 +1449,9 @@ c-----------------------------------------------------------------------
           real dydt(ltot1,ldimt), dyt(ltot1,ldimt)
           real dym(ltot1,ldimt), maxvalues(ldimt)
           real tbar(ldimt), CET(ltot1)
-          real cg(ltot1), CEg(ltot1), massf(ltot1),f_is(ltot1)
+          real cg(ltot1), CEg(ltot1), massf(ltot1)
+          real fg_is(ltot1) !fis for glucan
+          real fx_is(ltot1) !fis for xylan
 	  real masserr(ltot1),glucinitial(ltot1)
           real phis(ltot1), phisf
           real rhoTrhos, rhoTrhol, mwGrho, eps,tmp
@@ -1471,21 +1459,22 @@ c-----------------------------------------------------------------------
           real MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
           real kF, kR, KdF, KdR, KI
           real fGT, fis, fliq, epsl, yfacile
-          real CETbar, cgbar, mass_s,f_isbar
+          real CETbar, cgbar, mass_s,fg_isbar
           real imass_s, total_mass_s
           real mass_glucose, mass_ge
           real time, fg_tilda
 
-          common /reaction/ t_react,dt_react,t_ss,dt_ss,dt_rk4
+          common /reaction/ t_react,dt_react,t_ss,dt_ss,dt_rk4,dt_fr
           common /fixed/ MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
           common /chemconstants/ kF, kR, KdF, KdR, KI
           common /chemconstants2/ yF0
           common /initial/ phi_s_i, tbar_i(5), fGan0, 
+     &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
-      	  common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, 
+      	  common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
-      	  integer ::  PS_SOLIDS, PS_FACILE, 
+      	  integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
           common /react_ids/ FACILE_INDEX,RECALC_INDEX,GLUC_INDEX
           integer :: FACILE_INDEX,RECALC_INDEX,GLUC_INDEX
@@ -1527,17 +1516,22 @@ c-----------------------------------------------------------------------
             ! compute fis from the solids fraction
              fis = rhos*vt(i,PS_SOLIDS)/
      &		(rhol+vt(i,PS_SOLIDS)*(rhos-rhol))
-	     f_is(i)=fis
 
             fliq = 1.0 - fis
             rhoT = 1./(fis/rhos + fliq/rhol)
             epsl = rhoT/rhol * fliq
 
 	    fg_tilda = vt(i,PS_FACILE)
+	    fr_tilda = vt(i,PS_RECALC)
+
             vt(i,FACILE_INDEX) = rhos/(rhol+vt(i,1)*(rhos-rhol))
      &                             *fg_tilda
+            
+            vt(i,RECALC_INDEX) = rhos/(rhol+vt(i,1)*(rhos-rhol))
+     &                           *fr_tilda
 
-            vt(i,RECALC_INDEX) = fis-vt(i,FACILE_INDEX)
+	    fg_is(i)=vt(i,FACILE_INDEX)+vt(i,RECALC_INDEX)
+            fx_is(i)=1.0-vt(i,FACILE_INDEX)-vt(i,RECALC_INDEX)
 
             cg(i) = vt(i,PS_GLUCOSE)
             vt(i,GLUC_INDEX) = cg(i)/rhoT*epsl*MwGse
@@ -1546,12 +1540,12 @@ c-----------------------------------------------------------------------
          
           ! compute average enzyme over volume; should be constant
           CETbar  = glsc2(CET,bm1,ntot1) / voltm1
-          f_isbar = glsc2(f_is,bm1,ntot1) / voltm1
+          fg_isbar = glsc2(fg_is,bm1,ntot1) / voltm1
 
           ! write the average to a file
           if (nid .eq. 0) then
              write(*,*) time, " CETavg: ", CETbar
-             write(*,*) time, " f_isbar: ", f_isbar
+             write(*,*) time, " fg_isbar: ", fg_isbar
           end if
 
           if(nid .eq. 0) print *,"ENTERED RK4",ldimt
@@ -1663,9 +1657,9 @@ c-----------------------------------------------------------------------
           if (nid .eq. 0) then
            write(*,*) "avg mass fraction:", total_mass_s
            write(*,*) "relative error:", 
-     &              abs(total_mass_s-f_isbar)/f_isbar
+     &              abs(total_mass_s-fg_isbar)/fg_isbar
            write(431,*) t_react, 
-     &     abs(total_mass_s-f_isbar)/f_isbar, f_isbar, fGan0
+     &     abs(total_mass_s-fg_isbar)/fg_isbar, fg_isbar, fGan0
            flush(431)
           end if
  
@@ -1678,7 +1672,7 @@ c-----------------------------------------------------------------------
           do i=1,ntot1
             
 	    fGT = vt(i,FACILE_INDEX) + vt(i,RECALC_INDEX)
-            fis = fGT
+            fis = fGT+fx_is(i) !add xylan
             fliq = 1.0 - fis
 
             !fraction of solids that is facile
@@ -1700,9 +1694,6 @@ c-----------------------------------------------------------------------
 
             ! compute phi_s
             vt(i,PS_SOLIDS) = rhol * fis/(rhos - fis*(rhos - rhol))  
-            
-            ! compute phi_s
-            vt(i,1) = rhol * fis/(rhos - fis*(rhos - rhol))  
             
             ! compute CEGF and CEGR
             CGF = vt(i,FACILE_INDEX) / mwGrho ! rhoT/MwGan * fGF
@@ -1751,6 +1742,7 @@ c-----------------------------------------------------------------------
              !write(*,*) "time: ", time, " mass solids: ", mass_s
              !write(*,*) " total mass: ", total_mass_s
      	     write(44,*) time, cgbar
+             call flush(44)
           end if
           
 
@@ -1782,11 +1774,12 @@ c-----------------------------------------------------------------------
           common /fixed/ MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
           common /chemconstants/ kF, kR, KdF, KdR, KI
           common /initial/ phi_s_i, tbar_i(5), fGan0, 
+     &                 phi_facile, phi_recalc, 
      &                 CEF0, CEB0, CG0, fET, CET0
 
-      	  common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, 
+      	  common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
-      	  integer ::  PS_SOLIDS, PS_FACILE, 
+      	  integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
      &        PS_ENZB, PS_ENZF, PS_GLUCOSE
           common /react_ids/ FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
           integer :: FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
