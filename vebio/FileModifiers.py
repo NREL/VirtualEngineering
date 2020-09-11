@@ -1,6 +1,6 @@
 from shutil import copyfile
 
-def write_file_with_replacements(filename, replacements):
+def write_file_with_replacements(filename, replacements, full_overwrite=False):
 
     # Provide the name of an unchanging backup file to read options from
     backup_filename = 'bkup_%s' % (filename)
@@ -32,27 +32,34 @@ def write_file_with_replacements(filename, replacements):
                 break;
 
         if new_value is not None:
-            # Split on whichever separator/assignment operator is found, and 
-            # preserve the left-hand side variable name while adding the
-            # new value on the right-hand side
-            if '=' in line:
-                lhs = line.split('=')[0]
-                new_line = '%s= %s' % (lhs, str(new_value))
-
-            elif ':' in line:
-                lhs = line.split(':')[0]
-                new_line = '%s: %s' % (lhs, str(new_value))
+            if full_overwrite:
+                # If full_overwrite == True, the user must specify a formatted 
+                # string that can entirely replace the old line, no error checking
+                # on values is done here
+                new_line = value
 
             else:
-                lhs = line.split()[0]
-                new_line = '%s %s' % (lhs, str(new_value))
+                # Split on whichever separator/assignment operator is found, and 
+                # preserve the left-hand side variable name while adding the
+                # new value on the right-hand side
+                if '=' in line:
+                    lhs = line.split('=')[0]
+                    new_line = '%s= %s' % (lhs, str(new_value))
 
-            # If the original line terminated with a semicolon, add one
-            # to the new line as well
-            if ';' in line:
-                new_line = '%s;\n' % (new_line)
-            else:
-                new_line = '%s\n' % (new_line)
+                elif ':' in line:
+                    lhs = line.split(':')[0]
+                    new_line = '%s: %s' % (lhs, str(new_value))
+
+                else:
+                    lhs = line.split()[0]
+                    new_line = '%s %s' % (lhs, str(new_value))
+
+                # If the original line terminated with a semicolon, add one
+                # to the new line as well
+                if ';' in line:
+                    new_line = '%s;\n' % (new_line)
+                else:
+                    new_line = '%s\n' % (new_line)
 
             # Replace the current line with the modified line
             line = new_line

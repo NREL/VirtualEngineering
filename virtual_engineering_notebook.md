@@ -310,14 +310,33 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
         enzdata_replacements = {}
         enzdata_replacements['lmbde'] = ve_params['enzymatic_input']['lambda_e']
         enzdata_replacements['fis0'] = ve_params['enzymatic_input']['fis_0']
-        # FIXME: dt_ss value in enzdata isn't correct interpretation of simulation time
-        # need to change the correct value in a different file
-        enzdata_replacements['dt_ss'] = ve_params['enzymatic_input']['t_final']
         enzdata_replacements['yF0'] = 0.2 + 0.6*ve_params['pretreatment_output']['conv']
+        enzdata_replacements['fGl0'] = ve_params['pretreatment_output']['X_G']
         
         os.chdir('EH_CFD/')
         write_file_with_replacements('enzdata', enzdata_replacements)
         
+        # Get dt_ss, dt_react, and dt_fr from enzdata to calculate FINTIME
+        fp = open('enzdata', 'r')
+        dt_ss = 0.0
+        dt_react = 0.0
+        dt_fr = 0.0
+        for line in fp:
+            if '#' not in line:
+                if 'dt_ss' in line:
+                    dt_ss = float(line.split('=')[1])
+                elif 'dt_react' in line:
+                    dt_react = float(line.split('=')[1])
+                elif 'dt_fr' in line:
+                    dt_fr = float(line.split('=')[1])
+        fp.close()
+        
+        fintime = dt_ss + (ve_params['enzymatic_input']['t_final']/dt_react)*dt_fr
+
+        paddle_rea_replacements = {}
+        paddle_rea_replacements['FINTIME'] = '   %.5f     p010 FINTIME 480\n' % (fintime)
+        write_file_with_replacements('paddle.rea', paddle_rea_replacements, full_overwrite=True)
+
         if hpc_run:
             host_list = !srun hostname
             num_nodes = len(host_list)
@@ -331,17 +350,24 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
             
         # Prepare output values from EH CFD operations
         # FIXME: rho_g should be value taken from CFD output
-        rho_g = 1.0
+        
+        rho_g_output = np.genfromtxt('fort.44')
+        rho_g_final = float(rho_g_output[-1, 1])
+        
+#         fis_output = np.genfromtxt('fort.XX')
+#         fis_final = fis_output[-1, 1]
+#         dilution_factor_final = fis_final/ve_params['enzymatic_input']['fis_0']
+        
         # FIXME: dilution_factor_final should be (fis_final)/(ve_params['enzymatic_input']['fis_0'])
         # where fis_final is taken from CFD output
         dilution_factor_final = 1.0
-        rho_x = rho_x0*dilution_factor_final
-        rho_f = rho_f0*dilution_factor_final
+        rho_x_final = rho_x0*dilution_factor_final
+        rho_f_final = rho_f0*dilution_factor_final
         
         output_dict = {'enzymatic_output': {}}
-        output_dict['enzymatic_output']['rho_g'] = rho_g
-        output_dict['enzymatic_output']['rho_x'] = rho_x
-        output_dict['enzymatic_output']['rho_f'] = rho_f
+        output_dict['enzymatic_output']['rho_g'] = rho_g_final
+        output_dict['enzymatic_output']['rho_x'] = rho_x_final
+        output_dict['enzymatic_output']['rho_f'] = rho_f_final
         
         os.chdir(root_dir)
 
