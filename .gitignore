@@ -21,5 +21,22 @@ scratch/
 # ignore data files--can add specific files for tracking
 *.dat
 
-# specific files to ignore
+# specific files or file types to ignore, related to this project
 pretreat_defs_updated.inp
+bkup*
+equationsDoc.pdf
+
+# latex
+*.bbl
+*.blg
+*.ilg
+*.nlo
+*.nls
+auto/
+*.log
+*.lof
+*.aux
+*.fff
+*.synctex.gz
+*.spl
+*.out
