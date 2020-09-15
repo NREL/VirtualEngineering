@@ -349,14 +349,22 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
             print(os.getcwd())
             
         # Prepare output values from EH CFD operations
-        # FIXME: rho_g should be value taken from CFD output
+        # FIXME: rho_g should be value taken from CFD output - should be good now, please check, JJS 9/15/20
         
-        rho_g_output = np.genfromtxt('fort.44')
-        rho_g_final = float(rho_g_output[-1, 1])
+        # per Hari's email, glucose concentration in fort.44 is mol/L
+        c_g_output = np.genfromtxt('fort.44') # mol/L
+        rho_g_final = float(c_g_output[-1, 1])*180 # g/L
         
-#         fis_output = np.genfromtxt('fort.XX')
-#         fis_final = fis_output[-1, 1]
-#         dilution_factor_final = fis_final/ve_params['enzymatic_input']['fis_0']
+        # back-calculate fis from conversion value
+        conv_output = np.genfromtxt('fort.42')
+        conversion = float(conversion[-1,1]))
+        fis_final = ve_params['enzymatic_input']['fis_0']*(1 - conversion)
+        ## if have non-glucan solids, e.g. lignin, then the calculation will be:
+        # fis = fis_0*(1 - XG0*conversion)
+        ## where XG0 is initial fraction of solids that is glucan
+        
+        # this dilution calculation is not correct and needs fixing, JJS 9/15/20
+        #dilution_factor_final = fis_final/ve_params['enzymatic_input']['fis_0']
         
         # FIXME: dilution_factor_final should be (fis_final)/(ve_params['enzymatic_input']['fis_0'])
         # where fis_final is taken from CFD output

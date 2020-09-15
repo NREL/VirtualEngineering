@@ -198,9 +198,12 @@ mb = 1 - mG/mG0
 # Save the outputs into a dictionary for use as inputs for bioreactor sims
 output_dict = {'enzymatic_output': {}}
 output_dict['enzymatic_output']['rho_g'] = float(rhog[-1])
-dilution_EH = fis[-1]/fis0
-output_dict['enzymatic_output']['rho_x'] = float(rhox0*dilution_EH)
-output_dict['enzymatic_output']['rho_f'] = float(rhof0*dilution_EH)
+# this dilution calculation is not correct and needs fixing, JJS 9/15/20
+#dilution_EH = fis[-1]/fis0
+#output_dict['enzymatic_output']['rho_x'] = float(rhox0*dilution_EH)
+#output_dict['enzymatic_output']['rho_f'] = float(rhof0*dilution_EH)
+output_dict['enzymatic_output']['rho_x'] = float(rhox0)
+output_dict['enzymatic_output']['rho_f'] = float(rhof0)
 
 if len(sys.argv) > 1:
     dict_to_yaml([ve_params, output_dict], params_filename)
