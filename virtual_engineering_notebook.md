@@ -357,7 +357,7 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
         
         # back-calculate fis from conversion value
         conv_output = np.genfromtxt('fort.42')
-        conversion = float(conversion[-1,1]))
+        conversion = float(conversion[-1,1])
         fis_final = ve_params['enzymatic_input']['fis_0']*(1 - conversion)
         ## if have non-glucan solids, e.g. lignin, then the calculation will be:
         # fis = fis_0*(1 - XG0*conversion)
