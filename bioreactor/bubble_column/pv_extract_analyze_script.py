@@ -6,7 +6,7 @@ the liquid phase
 
 """ 
 
-# H Sitaraman, 2017
+# H Sitaraman and J Stickel, 2017
 
 
 import numpy as np
