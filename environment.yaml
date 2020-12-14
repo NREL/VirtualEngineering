@@ -1,16 +1,18 @@
-name: virteng
+name: virteng-env
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - matplotlib
-  - python=3.7
-  - scipy
-  - xlrd
-  - fortran-compiler
-  - jupyter
-  - numpy
-  - pyyaml
-  - jupytext
+  - python=3.7.9
+  - fortran-compiler=1.0.4
+  - matplotlib=3.3.3
+  - jupyter=1.0.0
+  - jupytext=1.7.1
+  - scipy=1.5.3
+  - pyyaml=5.3.1
+  - numpy=1.19.4
+  - xlrd=1.2.0
+  - pip
+  - pip:
+    - -e .
 prefix: /opt/anaconda3/envs/virteng
-
