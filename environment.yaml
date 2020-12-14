@@ -15,4 +15,4 @@ dependencies:
   - pip
   - pip:
     - -e .
-prefix: /opt/anaconda3/envs/virteng
+prefix: /opt/anaconda3/envs/virteng-env
