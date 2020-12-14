@@ -26,7 +26,7 @@ When the Notebook landing page opens, you'll be able to open the [virtual_engine
 
 ### HPC Connection Guide
 
-The process to run these Notebooks on the NREL HPC looks almost identical to the process outlined above.  To begin with, request an interactive node by running the following command from a login node
+The process to run these Notebooks on the NREL HPC follows a similar set of steps to the process outlined above.  To begin with, request an interactive node by running the following command from a login node
 
 `srun -A <allocation> -t <time> --pty $SHELL`
 
