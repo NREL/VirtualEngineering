@@ -3,25 +3,25 @@ import yaml
 
 def get_host_computer():
 
-    found_hostname_command = True
-
-    try:
-        process = subprocess.Popen(['hostnamectl'], stdout=subprocess.PIPE)
-    except:
-        process = subprocess.Popen(['echo'], stdout=subprocess.PIPE)
-        found_hostname_command = False
-
-
     hpc_run = False
 
-    if found_hostname_command:
-        command_line_output, error = process.communicate()
+    filename = 'hostname_info.txt'
+    bash_command = 'hostnamectl'
 
-        hpc_test = [line for line in command_line_output if 'computer-server' in line]
+    output_file = open(filename, 'w')
+    try:
+        process = subprocess.run(bash_command.split(), stdout=output_file)
+    except:
+        output_file.write('No hostname command found.')
+    output_file.close()
 
-        if len(hpc_test) > 0:
+
+    input_file = open(filename, 'r')
+    for line in input_file:
+        if 'computer-server' in line:
             hpc_run = True
-
+            break
+    input_file.close()
 
     if not hpc_run:
         print('It looks like you\'re running this notebook on a laptop.')
