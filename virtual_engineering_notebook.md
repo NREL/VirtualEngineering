@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.2'
-      jupytext_version: 1.4.0
+      jupytext_version: 1.7.1
   kernelspec:
     display_name: Python 3
     language: python
@@ -138,7 +138,7 @@ pt_options.initial_solid_fraction = widgets.BoundedFloatText(
 )
 
 pt_options.final_time = widgets.BoundedFloatText(
-    value = 100, #2400
+    value = 2400, #100, #2400
     max = 1e16,
     min = 1,
     description = 'Final Time',
@@ -164,7 +164,7 @@ pt_options.display_all_widgets()
 
 ### 2. Enzymatic Hydrolysis Operation
 
-Set the options for the enzymatic hydrolysis operation using a two-phase reaction rate model below.
+Set the options for the enzymatic hydrolysis operation using either a two-phase reaction rate model or high-fidelity CFD below.
 
 
 ```python
@@ -242,7 +242,7 @@ Set the options for the bubble column bioreaction operation below.
 br_options = wf.WidgetCollection()
 
 br_options.t_final = widgets.BoundedFloatText(
-    value = 100.0,
+    value = 100.0, # default 500
     min = 1.0,
     max = 1e16,
     description = 'Final Time',
@@ -256,7 +256,7 @@ br_options.t_final = widgets.BoundedFloatText(
 br_options.display_all_widgets()
 
 #================================================================
-
+my_dict = {'test': 0.123}
 ```
 
 ---
@@ -278,6 +278,17 @@ def run_pretreatment(root_dir, params_filename):
     # Move into the pretreatment directory
     os.chdir('pretreatment_model/test/')
     
+    # See if the pretreatment module exists, if not, we need to build it
+    try:
+        import pt
+    except:
+        print('Could not load PT module, building module from source.')
+        print('(This will only happen the first time the notebook is run.)')
+        os.chdir('../bld/')
+        !./build_first_time.sh
+        os.chdir('../test/')
+        print('Finished building PT module.')
+              
     # Run pretreatment code specifying location of input file
     path_to_input_file = '%s/%s' % (root_dir, params_filename)
     %run ptrun.py $path_to_input_file
@@ -357,7 +368,7 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
         
         # back-calculate fis from conversion value
         conv_output = np.genfromtxt('fort.42')
-        conversion = float(conversion[-1,1])
+        conversion = float(conv_output[-1,1])
         fis_final = ve_params['enzymatic_input']['fis_0']*(1 - conversion)
         ## if have non-glucan solids, e.g. lignin, then the calculation will be:
         # fis = fis_0*(1 - XG0*conversion)
@@ -495,6 +506,10 @@ $( document ).ready(code_toggle);
 value="Toggle code visibility (hidden by default)."></form>''')
 
 display(a)
+```
+
+```python
+
 ```
 
 ```python
