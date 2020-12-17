@@ -7,30 +7,30 @@ from sys import argv
 import glob
 #======================================================================
 def readtimehist(filename):
-	it=0
-	infile=open(filename,'r')
+    it=0
+    infile=open(filename,'r')
 
-	t        = np.array([])
-	xylose   = np.array([])
-	xylog    = np.array([])
-	furfural = np.array([])
-	liquid   = np.array([])
-	xylan    = np.array([])
-	FIS      = np.array([])
+    t        = np.array([])
+    xylose   = np.array([])
+    xylog    = np.array([])
+    furfural = np.array([])
+    liquid   = np.array([])
+    xylan    = np.array([])
+    FIS      = np.array([])
 
-	for line in infile:
-	
-		values=line.split()
-		t         =  np.append(t,float(values[0]))
-		xylose    =  np.append(xylose,float(values[1]))
-		xylog     =  np.append(xylog,float(values[2]))
-		furfural  =  np.append(furfural,float(values[3]))
-		liquid    =  np.append(liquid,float(values[4]))
-		xylan     =  np.append(xylan,float(values[5]))
-		FIS       =  np.append(FIS,float(values[6]))
-	
-	infile.close()
-	return(t,xylose,xylog,furfural,liquid,xylan,FIS)
+    for line in infile:
+
+        values=line.split()
+        t         =  np.append(t,float(values[0]))
+        xylose    =  np.append(xylose,float(values[1]))
+        xylog     =  np.append(xylog,float(values[2]))
+        furfural  =  np.append(furfural,float(values[3]))
+        liquid    =  np.append(liquid,float(values[4]))
+        xylan     =  np.append(xylan,float(values[5]))
+        FIS       =  np.append(FIS,float(values[6]))
+
+    infile.close()
+    return(t,xylose,xylog,furfural,liquid,xylan,FIS)
 #======================================================================
 def findporosity(fX0,ep0,fXtilde):
 

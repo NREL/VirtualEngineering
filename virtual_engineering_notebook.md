@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.2'
-      jupytext_version: 1.7.1
+      jupytext_version: 1.4.0
   kernelspec:
     display_name: Python 3
     language: python
@@ -30,7 +30,17 @@ import os
 
 import vebio.WidgetFunctions as wf
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
+from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml, run_script
+
+#================================================================
+
+# attempt to capture the parent directory in case of errors
+if not 'notebookDir' in globals():
+    notebookDir = os.getcwd()
+#os.chdir(notebookDir)  # If you changed the current working dir, this will take you back to the workbook dir.
+
+#================================================================
+
 
 #================================================================
 
@@ -267,7 +277,7 @@ When finished setting options for all unit operations, press the button below to
 
 
 ```python
-def run_pretreatment(root_dir, params_filename):
+def run_pretreatment(notebookDir, params_filename):
     print('Running Pretreatment Model')
     
     # Export the feedstock and pretreatment options to a global yaml file
@@ -290,17 +300,17 @@ def run_pretreatment(root_dir, params_filename):
         print('Finished building PT module.')
               
     # Run pretreatment code specifying location of input file
-    path_to_input_file = '%s/%s' % (root_dir, params_filename)
-    %run ptrun.py $path_to_input_file
+    path_to_input_file = os.path.join(notebookDir, params_filename)
+    run_script("ptrun.py", path_to_input_file)
     
     if pt_options.show_plots.value:
-        %run postprocess.py 'out_\*.dat' exptdata_150C_1acid.dat
+        run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat")
 
-    os.chdir(root_dir)
+    os.chdir(notebookDir)
     print('\nFinished Pretreatment')
 
     
-def run_enzymatic_hydrolysis(root_dir, params_filename):
+def run_enzymatic_hydrolysis(notebookDir, params_filename):
     print('\nRunning Enzymatic Hydrolysis Model')
 
     # Export the enzymatic hydrolysis options to a global yaml file
@@ -388,20 +398,22 @@ def run_enzymatic_hydrolysis(root_dir, params_filename):
         output_dict['enzymatic_output']['rho_x'] = rho_x_final
         output_dict['enzymatic_output']['rho_f'] = rho_f_final
         
-        os.chdir(root_dir)
+        os.chdir(notebookDir)
 
         dict_to_yaml([ve_params, output_dict], params_filename)
         
     else:
         os.chdir('two_phase_batch_model/')
-        path_to_input_file = '%s/%s' % (root_dir, params_filename)
-        %run two_phase_batch_model.py $path_to_input_file
-        os.chdir(root_dir)
+        path_to_input_file = os.path.join(notebookDir, params_filename)
+        # this works in notebooks but wouldn't elsehwere
+        #%run two_phase_batch_model.py $path_to_input_file 
+        run_script("two_phase_batch_model.py", path_to_input_file)
+        os.chdir(notebookDir)
 
     print('\nFinished Enzymatic Hydrolysis')
 
     
-def run_bioreactor(root_dir, params_filename):
+def run_bioreactor(notebookDir, params_filename):
     print('\nRunning Bioreactor Model')
 
     # Export the bioreactor options to a global yaml file
@@ -418,7 +430,7 @@ def run_bioreactor(root_dir, params_filename):
 
     os.chdir('bioreactor/bubble_column/constant/')
     write_file_with_replacements('fvOptions', fvOptions_replacements)
-    os.chdir(root_dir)
+    os.chdir(notebookDir)
     
     # Make changes to the controlDict file based on replacement options
     controlDict_replacements = {}
@@ -426,7 +438,7 @@ def run_bioreactor(root_dir, params_filename):
     
     os.chdir('bioreactor/bubble_column/system/')
     write_file_with_replacements('controlDict', controlDict_replacements)
-    os.chdir(root_dir)
+    os.chdir(notebookDir)
 
     # Run the bioreactor model
     os.chdir('bioreactor/bubble_column/')
@@ -441,7 +453,7 @@ def run_bioreactor(root_dir, params_filename):
     output_dict = {'bioreactor_output': {}}
     output_dict['bioreactor_output']['placeholder'] = 123
 
-    os.chdir(root_dir)
+    os.chdir(notebookDir)
 
     dict_to_yaml([ve_params, output_dict], params_filename)
 
@@ -469,17 +481,17 @@ def run_button_action(b):
     display(run_button)
     
     # Set global paths and files for communication between operations
-    root_dir = os.getcwd()
+    os.chdir(notebookDir)
     params_filename = 'virteng_params.yaml'
     
     # Run the pretreatment model
-    run_pretreatment(root_dir, params_filename)
+    run_pretreatment(notebookDir, params_filename)
     
     # Run the enzymatic hydrolysis model
-    run_enzymatic_hydrolysis(root_dir, params_filename)
+    run_enzymatic_hydrolysis(notebookDir, params_filename)
     
     # Run the bioreactor model
-    run_bioreactor(root_dir, params_filename)
+    run_bioreactor(notebookDir, params_filename)
     
 run_button.on_click(run_button_action)
 
@@ -506,14 +518,6 @@ $( document ).ready(code_toggle);
 value="Toggle code visibility (hidden by default)."></form>''')
 
 display(a)
-```
-
-```python
-
-```
-
-```python
-
 ```
 
 ```python
