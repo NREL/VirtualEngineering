@@ -229,7 +229,7 @@ if False:
         outfile.write("%e\t%e\n"%(t[i],conv[i]))
     outfile.close()
 
-if ve_params.get('show_plots', False):
+if ve_params['enzymatic_input']['show_plots']:
     figure(1)
     clf()
     xlim((-5,50))
