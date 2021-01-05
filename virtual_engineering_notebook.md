@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.2'
-      jupytext_version: 1.4.0
+      jupytext_version: 1.7.1
   kernelspec:
     display_name: Python 3
     language: python
@@ -260,13 +260,15 @@ br_options.t_final = widgets.BoundedFloatText(
                                     # is this really 'h'? current quasi-steady simulations only run 10s of seconds
 )
 
+br_options.use_cfd = widgets.Checkbox(
+    value = False,
+    description_tooltip = 'Use High-Fidelity CFD (Requires HPC Resources)',
+)
+
 #================================================================
 
 # Display the widgets
 br_options.display_all_widgets()
-
-#================================================================
-my_dict = {'test': 0.123}
 ```
 
 ---
@@ -415,47 +417,56 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename):
     
 def run_bioreactor(notebookDir, params_filename):
     print('\nRunning Bioreactor Model')
-
+    
     # Export the bioreactor options to a global yaml file
     br_dict = br_options.export_widgets_to_dict('bioreactor_input')
     dict_to_yaml(br_dict, params_filename, merge_with_existing=True)
-
-    # Convert the current parameters file to a dictionary
-    ve_params = yaml_to_dict(params_filename)        
-
-    # Make changes to the fvOptions file based on replacement options
-    fvOptions_replacements = {}
-    for key, value in ve_params['enzymatic_output'].items():
-        fvOptions_replacements['double %s' % (key)] = value
-
-    os.chdir('bioreactor/bubble_column/constant/')
-    write_file_with_replacements('fvOptions', fvOptions_replacements)
-    os.chdir(notebookDir)
     
-    # Make changes to the controlDict file based on replacement options
-    controlDict_replacements = {}
-    controlDict_replacements['endTime '] = ve_params['bioreactor_input']['t_final']
-    
-    os.chdir('bioreactor/bubble_column/system/')
-    write_file_with_replacements('controlDict', controlDict_replacements)
-    os.chdir(notebookDir)
+    # Run the selected enzymatic hydrolysis model
+    if br_options.use_cfd.value:
+        # Convert the current parameters file to a dictionary
+        ve_params = yaml_to_dict(params_filename)        
 
-    # Run the bioreactor model
-    os.chdir('bioreactor/bubble_column/')
-    if hpc_run:
-        # call function to update ovOptions # fvOptions?
-        !sbatch ofoamjob
+        # Make changes to the fvOptions file based on replacement options
+        fvOptions_replacements = {}
+        for key, value in ve_params['enzymatic_output'].items():
+            fvOptions_replacements['double %s' % (key)] = value
+
+        os.chdir('bioreactor/bubble_column/constant/')
+        write_file_with_replacements('fvOptions', fvOptions_replacements)
+        os.chdir(notebookDir)
+
+        # Make changes to the controlDict file based on replacement options
+        controlDict_replacements = {}
+        controlDict_replacements['endTime '] = ve_params['bioreactor_input']['t_final']
+
+        os.chdir('bioreactor/bubble_column/system/')
+        write_file_with_replacements('controlDict', controlDict_replacements)
+        os.chdir(notebookDir)
+
+        # Run the bioreactor model
+        os.chdir('bioreactor/bubble_column/')
+        if hpc_run:
+            # call function to update ovOptions # fvOptions?
+            !sbatch ofoamjob
+        else:
+            print('Cannot run bioreactor without HPC resources.')
+            print('$ sbatch ofoamjob')
+            print(os.getcwd())
+
+        output_dict = {'bioreactor_output': {}}
+        output_dict['bioreactor_output']['placeholder'] = 123
+
+        os.chdir(notebookDir)
+
+        dict_to_yaml([ve_params, output_dict], params_filename)
+
     else:
-        print('Cannot run bioreactor without HPC resources.')
-        print('$ sbatch ofoamjob')
-        print(os.getcwd())
-        
-    output_dict = {'bioreactor_output': {}}
-    output_dict['bioreactor_output']['placeholder'] = 123
-
-    os.chdir(notebookDir)
-
-    dict_to_yaml([ve_params, output_dict], params_filename)
+        os.chdir('bioreactor/bubble_column/surrogate_model')
+        path_to_input_file = '%s/%s' % (notebookDir, params_filename)
+        # %run bcolumn_surrogate.py $path_to_input_file
+        run_script("bcolumn_surrogate.py", path_to_input_file)
+        os.chdir(notebookDir)
 
     print('\nFinished Bioreactor')
 
