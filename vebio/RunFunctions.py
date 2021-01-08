@@ -2,7 +2,7 @@ import os
 import subprocess
 
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml, run_script
+from vebio.Utilities import yaml_to_dict, dict_to_yaml, run_script
 
 def run_pretreatment(notebookDir, params_filename, fs_options, pt_options):
     print('Running Pretreatment Model')
