@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.2'
-      jupytext_version: 1.8.0
+      jupytext_version: 1.7.1
   kernelspec:
     display_name: Python 3
     language: python
@@ -262,13 +262,15 @@ br_options.t_final = widgets.BoundedFloatText(
                                     # is this really 'h'? current quasi-steady simulations only run 10s of seconds
 )
 
+br_options.use_cfd = widgets.Checkbox(
+    value = False,
+    description_tooltip = 'Use High-Fidelity CFD (Requires HPC Resources)',
+)
+
 #================================================================
 
 # Display the widgets
 br_options.display_all_widgets()
-
-#================================================================
-my_dict = {'test': 0.123}
 ```
 
 ---
