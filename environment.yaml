@@ -13,7 +13,7 @@ dependencies:
   - numpy=1.19.4
   - xlrd=1.2.0
   - joblib=1.0.0
-  - scikit-learn=0.23.2
+  - scikit-learn=0.22.1
   - pip
   - pip:
     - -e .
