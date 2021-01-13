@@ -4,6 +4,7 @@ scratch/
 *~
 *.pyc
 *.egg-info/
+*.bak
 
 # fortran/f2py compiler output
 *.o
@@ -25,6 +26,7 @@ scratch/
 pretreat_defs_updated.inp
 bkup*
 equationsDoc.pdf
+hostname_info.txt
 
 # latex
 *.bbl
