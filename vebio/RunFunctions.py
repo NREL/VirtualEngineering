@@ -1,5 +1,6 @@
 import os
 import subprocess
+import glob
 
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml, run_script
@@ -26,13 +27,20 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options):
         subprocess.run(command.split())
         os.chdir('../test/')
         print('Finished building PT module.')
-              
+
+    # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
+    outfiles = glob.glob("out*.dat")
+    for outfile in outfiles:
+        os.remove(outfile)
     # Run pretreatment code specifying location of input file
     path_to_input_file = os.path.join(notebookDir, params_filename)
-    # run_script("ptrun.py", path_to_input_file)
-    pt_run_command = 'python ptrun.py %s' % (path_to_input_file)
-    pt_cli = subprocess.run(pt_run_command.split(), capture_output=True, text=True)
-    print(pt_cli.stdout[-1394:])
+    run_script("ptrun.py", path_to_input_file)
+    # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
+    # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
+    # 1/13/21
+    #pt_run_command = 'python ptrun.py %s' % (path_to_input_file)
+    #pt_cli = subprocess.run(pt_run_command.split(), capture_output=True, text=True)
+    #print(pt_cli.stdout[-1394:])
 
     if pt_options.show_plots.value:
         run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat")

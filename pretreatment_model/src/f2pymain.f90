@@ -65,6 +65,9 @@ subroutine main(interpsolnout,m,n, inputfilename)
    ! put values in output array
    interpsolnout = interpsoln
 
+   ! deallocate `elementarray` to prevent python crash?  JJS 1/13/21
+   deallocate(elementarray)
+   
    return
 end subroutine main
 

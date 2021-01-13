@@ -54,9 +54,9 @@ def findporosity(fX0,ep0,fXtilde):
 #======================================================================
 
 
-inputfilename='pretreat_defs.inp'
+inputfilename='pretreat_defs_updated.inp'
 meshp, scales, IBCs, rrates, Egtcs, deto =\
-        pt_input.readinpfile('pretreat_defs.inp')
+        pt_input.readinpfile(inputfilename)
 
 l = meshp['maxx']
 nelem = meshp['enum']
