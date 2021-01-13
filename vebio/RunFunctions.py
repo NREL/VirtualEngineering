@@ -29,8 +29,11 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options):
               
     # Run pretreatment code specifying location of input file
     path_to_input_file = os.path.join(notebookDir, params_filename)
-    run_script("ptrun.py", path_to_input_file)
-    
+    # run_script("ptrun.py", path_to_input_file)
+    pt_run_command = 'python ptrun.py %s' % (path_to_input_file)
+    pt_cli = subprocess.run(pt_run_command.split(), capture_output=True, text=True)
+    print(pt_cli.stdout[-1394:])
+
     if pt_options.show_plots.value:
         run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat")
 
