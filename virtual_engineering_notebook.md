@@ -32,7 +32,7 @@ import os
 
 import vebio.WidgetFunctions as wf
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml, run_script
+from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
 from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 #================================================================
 

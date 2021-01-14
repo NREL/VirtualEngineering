@@ -1,6 +1,5 @@
 import subprocess
 import yaml
-import sys
 
 def get_host_computer():
 
@@ -84,13 +83,3 @@ def yaml_to_dict(yaml_filename, verbose=False):
         print('From the File: %s\n' % (yaml_filename))
 
     return output_dictionary
-
-
-def run_script(filename, *args):
-    """ Execute the contents of a file (`filename`). Optional arguments may be provided. """
-    sys.argv = [filename]
-    sys.argv.extend(args)
-    file = open(filename)
-    exec(file.read(), globals())
-    file.close()
-    return

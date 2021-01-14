@@ -1,11 +1,34 @@
+import sys
 import os
+import contextlib
 import subprocess
 import glob
 
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import yaml_to_dict, dict_to_yaml, run_script
+from vebio.Utilities import yaml_to_dict, dict_to_yaml
 
-def run_pretreatment(notebookDir, params_filename, fs_options, pt_options):
+def run_script(filename, *args, verbose=True):
+    """ Execute the contents of a file (`filename`). Optional arguments may be provided. """
+    sys.argv = [filename]
+    sys.argv.extend(args)
+    exec_file = open(filename)
+
+    if verbose:
+        # Execute the file as usual
+        exec(exec_file.read(), globals())
+
+    else:
+        # Execute the file, redirecting all output to devnull
+        # This suppresses any print statements within `filename`
+        with open(os.devnull, 'w') as fp:
+            with contextlib.redirect_stdout(fp):
+                exec(exec_file.read(), globals())
+
+    exec_file.close()
+
+    return
+
+def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbose=True):
     print('Running Pretreatment Model')
     
     # Export the feedstock and pretreatment options to a global yaml file
@@ -34,7 +57,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options):
         os.remove(outfile)
     # Run pretreatment code specifying location of input file
     path_to_input_file = os.path.join(notebookDir, params_filename)
-    run_script("ptrun.py", path_to_input_file)
+    run_script("ptrun.py", path_to_input_file, verbose=verbose)
     # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
     # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
     # 1/13/21
@@ -43,13 +66,13 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options):
     #print(pt_cli.stdout[-1394:])
 
     if pt_options.show_plots.value:
-        run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat")
+        run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
     os.chdir(notebookDir)
     print('\nFinished Pretreatment')
 
     
-def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run):
+def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run, verbose=True):
     print('\nRunning Enzymatic Hydrolysis Model')
 
     # Export the enzymatic hydrolysis options to a global yaml file
@@ -148,13 +171,13 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run):
         path_to_input_file = os.path.join(notebookDir, params_filename)
         # this works in notebooks but wouldn't elsehwere
         #%run two_phase_batch_model.py $path_to_input_file 
-        run_script("two_phase_batch_model.py", path_to_input_file)
+        run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
         os.chdir(notebookDir)
 
     print('\nFinished Enzymatic Hydrolysis')
 
     
-def run_bioreactor(notebookDir, params_filename, br_options, hpc_run):
+def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=True):
     print('\nRunning Bioreactor Model')
 
     # Export the bioreactor options to a global yaml file
@@ -205,7 +228,7 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run):
         os.chdir('bioreactor/bubble_column/surrogate_model')
         path_to_input_file = '%s/%s' % (notebookDir, params_filename)
         # %run bcolumn_surrogate.py $path_to_input_file
-        run_script("bcolumn_surrogate.py", path_to_input_file)
+        run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
         os.chdir(notebookDir)
 
     print('\nFinished Bioreactor')
