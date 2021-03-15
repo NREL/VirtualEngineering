@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.2'
-      jupytext_version: 1.7.1
+      jupytext_version: 1.8.0
   kernelspec:
     display_name: Python 3
     language: python
@@ -29,28 +29,27 @@ The first step is to select "Cell" > "Run All" from the toolbar.  This will init
 from ipywidgets import *
 from IPython.display import HTML, clear_output
 import os
+import sys
 
-import vebio.WidgetFunctions as wf
-from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
-from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 #================================================================
-
 # attempt to capture the parent directory in case of errors
 if not 'notebookDir' in globals():
     notebookDir = os.getcwd()
 #os.chdir(notebookDir)  # If you changed the current working dir, this will take you back to the workbook dir.
-
 #================================================================
 
+# imports from vebio modules
+import vebio.WidgetFunctions as wf
+from vebio.FileModifiers import write_file_with_replacements
+from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
+from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
+# add path for no-CFD EH model
+sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
 
 #================================================================
-
 # See if we're running on Eagle or on a laptop
 hpc_run = get_host_computer()
-
 #================================================================
-
 ```
 
 <!-- #region -->
@@ -150,7 +149,7 @@ pt_options.initial_solid_fraction = widgets.BoundedFloatText(
 )
 
 pt_options.final_time = widgets.BoundedFloatText(
-    value = 2400, #100, #2400
+    value = 500, #100, #2400
     max = 1e16,
     min = 1,
     description = 'Final Time',
@@ -187,10 +186,10 @@ eh_options = wf.WidgetCollection()
 
 eh_options.lambda_e = widgets.BoundedFloatText(
     value = 0.03,
-    max = 1.0,
+    max = 0.1,
     min = 0.0,
     description = 'Enzymatic Load',
-    description_tooltip = 'Ratio of the enzyme mass to the total solution mass (kg/kg).  Must be in the range [0, 1]'
+    description_tooltip = 'Ratio of the enzyme mass to the total solution mass (kg/kg).  Must be in the range [0, 0.1]'
 )
 
 eh_options.fis_0 = widgets.BoundedFloatText(
@@ -259,7 +258,7 @@ br_options.t_final = widgets.BoundedFloatText(
     max = 1e16,
     description = 'Final Time',
     description_tooltip = r'The total time of the simulation (h).  Must be $\geq 1$'
-                                    # is this really 'h'? current quasi-steady simulations only run 10s of seconds
+                                    # is this really 'h'? current quasi-steady simulations only run tens of seconds
 )
 
 br_options.use_cfd = widgets.Checkbox(
@@ -340,6 +339,15 @@ $( document ).ready(code_toggle);
 value="Toggle code visibility (hidden by default)."></form>''')
 
 display(a)
+```
+
+```python
+# reload "run functions" code if needed
+if False:
+    from importlib import reload
+    import vebio.RunFunctions
+    reload(vebio.RunFunctions)
+    from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 ```
 
 ```python

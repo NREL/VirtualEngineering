@@ -72,7 +72,8 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     print('\nFinished Pretreatment')
 
     
-def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run, verbose=True):
+def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
+                             verbose=True):
     print('\nRunning Enzymatic Hydrolysis Model')
 
     # Export the enzymatic hydrolysis options to a global yaml file
@@ -167,11 +168,13 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run, 
         dict_to_yaml([ve_params, output_dict], params_filename)
         
     else:
-        os.chdir('two_phase_batch_model/')
         path_to_input_file = os.path.join(notebookDir, params_filename)
-        # this works in notebooks but wouldn't elsehwere
-        #%run two_phase_batch_model.py $path_to_input_file 
-        run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
+        os.chdir('two_phase_batch_model/')
+        # Commenting out cellulose-only two-phase model to use lignocellulose
+        # model, just in case we want to switch back or make both an
+        # option. The lignocellulose model is superior.
+        #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
+        run_script("driver_batch_lignocell_EH_VE.py", path_to_input_file, verbose=verbose)
         os.chdir(notebookDir)
 
     print('\nFinished Enzymatic Hydrolysis')
@@ -227,7 +230,6 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
     else:
         os.chdir('bioreactor/bubble_column/surrogate_model')
         path_to_input_file = '%s/%s' % (notebookDir, params_filename)
-        # %run bcolumn_surrogate.py $path_to_input_file
         run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
         os.chdir(notebookDir)
 

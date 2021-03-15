@@ -123,7 +123,8 @@ print( "reacted xylan mass   (density =  1 g/ml):",    fx0*(1-ep0)*l-xylanweight
 
 prodmass = liquid_bulk*(xylose_bulk*M_xylose + xylog_bulk*M_xylog + furfural_bulk*M_furf)
 reactmass = xylanweight0 - xylanweight
-conv = reactmass/xylanweight0
+conv = reactmass/xylanweight0  # I _think_ this is correct now, but should be
+                               # double-checked, JJS 3/14/21
 
 print( "liquid weight (density = 1 g/ml):", liquid_bulk)
 print( "liquid volume (density = 1 g/ml):", liquid_bulk)

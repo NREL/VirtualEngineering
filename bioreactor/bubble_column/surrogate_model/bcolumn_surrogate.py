@@ -2,6 +2,7 @@ import sys
 import numpy as np
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 from joblib import dump, load
+import matplotlib as mpl
 
 if len(sys.argv) > 1:
     params_filename = sys.argv[1]
