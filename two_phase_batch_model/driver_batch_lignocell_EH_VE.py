@@ -143,7 +143,8 @@ if ve_params['enzymatic_input']['show_plots']:
     plt.ylabel('mass balance')
     plt.legend(loc='best')
 
-
+    plt.show()
+    
     # plt.figure(4)
     # plt.clf()
     # plt.plot(result['Tconv'], result['fis'])
