@@ -33,7 +33,7 @@ if len(sys.argv) > 1:
     ve_params = yaml_to_dict(params_filename)
 
 else:
-    ve_params = {}
+    ve_params = {} # won't this just cause errors? JJS 3/14/21
 
 
 font={'family':'Helvetica', 'size':'15'}
@@ -94,7 +94,6 @@ rhox0 = ve_params['pretreatment_output']['rho_x']*dilution_factor
 rhof0 = ve_params['pretreatment_output']['rho_f']*dilution_factor # furfural
 
 #yF0 = 0.4 # fraction of glucan that is "facile" -- best fit (constrained)
-# there is something wrong with this conversion calculation, JJS 3/22/20
 conversion_xylan = ve_params['pretreatment_output']['conv']
 yF0 = 0.2 + 0.6*conversion_xylan
 # yF0 = 1.0*conversion_xylan
@@ -198,12 +197,11 @@ mb = 1 - mG/mG0
 # Save the outputs into a dictionary for use as inputs for bioreactor sims
 output_dict = {'enzymatic_output': {}}
 output_dict['enzymatic_output']['rho_g'] = float(rhog[-1])
-# this dilution calculation is not correct and needs fixing, JJS 9/15/20
-#dilution_EH = fis[-1]/fis0
-#output_dict['enzymatic_output']['rho_x'] = float(rhox0*dilution_EH)
-#output_dict['enzymatic_output']['rho_f'] = float(rhof0*dilution_EH)
-output_dict['enzymatic_output']['rho_x'] = float(rhox0)
-output_dict['enzymatic_output']['rho_f'] = float(rhof0)
+
+# fixed dilution_EH factor, JJS 3/14/21
+dilution_EH = fliq[0]/fliq[-1]
+output_dict['enzymatic_output']['rho_x'] = float(rhox0*dilution_EH)
+output_dict['enzymatic_output']['rho_f'] = float(rhof0*dilution_EH)
 
 if len(sys.argv) > 1:
     dict_to_yaml([ve_params, output_dict], params_filename)
