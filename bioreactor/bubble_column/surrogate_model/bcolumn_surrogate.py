@@ -16,6 +16,8 @@ mpl.rc('font',**font)
 mpl.rc('xtick',labelsize=14)
 mpl.rc('ytick',labelsize=14)
 
+dt = 4
+
 our_base = 100.0
 r = 0.75
 
@@ -43,13 +45,25 @@ lb, ub = np.array([0.01, 10., 1., 5., 0.003]), np.array([0.1, 50., 6., 100., 0.0
 X = np.array([[gas_velocity, column_height, column_diameter, our_max, bubble_diameter]])
 X = 2.*(X - lb)/(ub - lb) - 1.
 
-load_model = 'gp_model/gp_T{0:03d}.pkl'.format(int(T))
 W1 = np.load('W1.npy')
 
-gp = load(load_model)
+idx = T/dt
+if (idx%1 == 0):
+    idx, s = int(idx), -1
+else:
+    idx, s = int(idx+1), idx%1
 
-ff = gp.predict(X@W1, return_std=False)
-ff = np.power(10., ff[0, 0])
+with open('gp_bub_col.pkl', 'rb') as f_id:
+    for i in range(idx+1):
+        gp = load(f_id)
+        if (s > 0) and (i == idx-1):
+            f_0 = gp.predict(X@W1, return_std=False)[0]
+
+    if (s == -1):
+        ff = np.power(10., gp.predict(X@W1, return_std=False)[0])
+    else:
+        f_1 = gp.predict(X@W1, return_std=False)[0]
+        ff = np.power(10., f_0*(1-s) + f_1*s)
 
 print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
 print('OUR = %.4f' % (ff))
