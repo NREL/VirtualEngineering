@@ -22,17 +22,34 @@ meshp, scales, IBCs, rrates, Egtcs, deto =\
 if len(sys.argv) > 1:
     params_filename = sys.argv[1]
     ve_params = yaml_to_dict(params_filename)
-
     # print(ve_params)
+
+    # read in final time in order to calculate a "print time"
+    finaltime = ve_params['pretreatment_input']['final_time']
+    N = 10 # could make this a user preference
+    prnttime = finaltime/(N-1) + 0.001*finaltime
 
     # Override pretreat_defs.inp definitions with those from the pretreatment widgets
     IBCs['acid'] = ve_params['pretreatment_input']['initial_acid_conc']
     IBCs['stmT'] = ve_params['pretreatment_input']['steam_temperature']
     IBCs['bkst'] = ve_params['pretreatment_input']['bulk_steam_conc']
-    meshp['ftime'] = ve_params['pretreatment_input']['final_time']
+    meshp['ftime'] = finaltime
+    meshp['ptime'] = prnttime
     IBCs['xyfr'] = ve_params['feedstock']['xylan_solid_fraction']
     IBCs['lifr'] = 1.0 - ve_params['pretreatment_input']['initial_solid_fraction']
     IBCs['poro'] = ve_params['feedstock']['initial_porosity']
+    # trial-and-error adjustment to model parameters to account for auger
+    # reactor rather than steam-explosion reactor
+    #Egtcs['chtr'] = 0.01 # "convective heat transfer", original: 0.5
+    #deto['togs'] = 5.0 # "tortuosity gas", original:  1.0
+    #deto['toli'] = 5.0 # "turtuosity liquid", original:  1.0
+    #rrates['stdf'][0] = 5 # "pore diameter", original:  15
+    #scales['xscl'] = 5.0 # "length scale", original:  1.0
+    ratemult = 0.1 
+    rrates['kxylog'][0] = ratemult*rrates['kxylog'][0]
+    rrates['kxyl1'][0] = ratemult*rrates['kxyl1'][0]
+    rrates['kxyl2'][0] = ratemult*rrates['kxyl2'][0]
+    rrates['kfurf'][0] = ratemult*rrates['kfurf'][0]
 else:
     ve_params = {}
 
@@ -47,8 +64,6 @@ gneq = 7
 m = nelem*(ppelem - 1) + 1
 n = gneq + 1
 
-# read in final time
-finaltime = meshp['ftime']
 
 #establish parameters for porosity and time dependent [acid] calcs
 fx0 = IBCs['xyfr'] # initial fraction of xylan in the solids, a.k.a., X_X0 
@@ -98,42 +113,43 @@ M_furf   = 100.0
 M_xylog  = 450.0
 
 print( "\n**************************************************************************")
-print( "xylan weight:",        xylanweight)
-print( "solid weight:",        solidweight)
-print( "[Xylan] (w/w) ",       xylan_bulk)
-print( "[xylose] (M/ml) =" ,   xylose_bulk)
-print( "[xylose] (g/L) =" ,    xylose_bulk*1000*M_xylose)
-print( "[xylog] (M/ml) =" ,    xylog_bulk)
-print( "[xylog] (g/L) =" ,     xylog_bulk*1000*M_xylog)
-print( "[furfural] (M/ml) =" , furfural_bulk)
-print( "[furfural] (g/L) =" ,  furfural_bulk*1000*M_furf)
-print( "Avg. liquid = ",       liquid_bulk)
-print( "Avg. gas    = ",       gas_bulk)
-print( "weight of steam added per 1g of initial liquid:",(liquid_bulk-eL0*l)/(eL0*l))
-print( "Fraction of Insoluble solids:", solidweight/(solidweight+liquid_bulk))
-print( "simulation time: %f seconds"%(simtime))
+#print( "xylan weight: %4.4g" %       xylanweight) # again, what are the units?
+#print( "solid weight: %4.4g" %       solidweight)
+print( "[Xylan] (w/w) %4.4g" %       xylan_bulk)
+#print( "[xylose] (M/ml) =%4.4g" %   xylose_bulk)
+print( "[xylose] (g/L) =%4.4g" %    (xylose_bulk*1000*M_xylose))
+#print( "[xylog] (M/ml) =%4.4g" %    xylog_bulk)
+print( "[xylog] (g/L) =%4.4g" %     (xylog_bulk*1000*M_xylog))
+#print( "[furfural] (M/ml) =%4.4g" % furfural_bulk)
+print( "[furfural] (g/L) =%4.4g" %  (furfural_bulk*1000*M_furf))
+#print( "Avg. liquid = %4.4g" %       liquid_bulk)
+#print( "Avg. gas    = %4.4g" %       gas_bulk)
+#print( "weight of steam added per 1g of initial liquid: %4.4g" % ((liquid_bulk-eL0*l)/(eL0*l)))
+print( "Fraction of Insoluble solids: %4.4g" % (solidweight/(solidweight+liquid_bulk)))
+print( "simulation time: %4.4g seconds" %(simtime))
 print( "**************************************************************************\n\n")
 print( "Mass balance calculations")
 print( "*************************")
 
 xylanweight0 = fx0*(1-ep0)*l
-print( "initial xylan mass   (density =  1 g/ml):",    xylanweight0)
-print( "final xylan mass     (density =  1 g/ml):",    xylanweight)
-print( "reacted xylan mass   (density =  1 g/ml):",    fx0*(1-ep0)*l-xylanweight)
+#print( "initial xylan mass   (density =  1 g/ml):%4.4g" %    xylanweight0)
+#print( "final xylan mass     (density =  1 g/ml):%4.4g" %    xylanweight)
+#print( "reacted xylan mass   (density =  1 g/ml):%4.4g" %    (fx0*(1-ep0)*l-xylanweight))
 
 prodmass = liquid_bulk*(xylose_bulk*M_xylose + xylog_bulk*M_xylog + furfural_bulk*M_furf)
 reactmass = xylanweight0 - xylanweight
 conv = reactmass/xylanweight0  # I _think_ this is correct now, but should be
                                # double-checked, JJS 3/14/21
 
-print( "liquid weight (density = 1 g/ml):", liquid_bulk)
-print( "liquid volume (density = 1 g/ml):", liquid_bulk)
-print( "xylose mass                     :", liquid_bulk*xylose_bulk*M_xylose)
-print( "xylooligomer mass               :", liquid_bulk*xylog_bulk*M_xylog)
-print( "furfural mass                   :", liquid_bulk*furfural_bulk*M_furf)
-print( "total mass of products          :", prodmass)
-print( "total xylan conversion (%)      :", 100*conv)
-print( "% mass balance                  :", 100*(1.0-(prodmass-reactmass)/reactmass))
+#print( "liquid weight (density = 1 g/ml): %4.4g" % liquid_bulk)
+#print( "liquid volume (density = 1 g/ml): %4.4g" % liquid_bulk)
+#print( "xylose mass                     : %4.4g" % (liquid_bulk*xylose_bulk*M_xylose))
+#print( "xylooligomer mass               : %4.4g" % (liquid_bulk*xylog_bulk*M_xylog))
+#print( "furfural mass                   : %4.4g" % (liquid_bulk*furfural_bulk*M_furf))
+#print( "total mass of products          : %4.4g" % prodmass)
+print( "total xylan conversion (%%)      : %4.4g" % (100*conv))
+print( "%% mass balance                  : %4.4g" % (100*(1.0-(prodmass-reactmass)/reactmass)))
+
 
 # compute an updated glucan fraction based on xylan conversion
 X_G = ve_params['feedstock']['glucan_solid_fraction']/(1 - ve_params['feedstock']['xylan_solid_fraction']*conv)
@@ -144,7 +160,11 @@ output_dict['pretreatment_output']['fis_0'] = float(solidweight/(solidweight+liq
 output_dict['pretreatment_output']['conv'] = float(conv)
 output_dict['pretreatment_output']['X_X'] = float(xylan_bulk) # is this correct? JJS 3/22/20
 output_dict['pretreatment_output']['X_G'] = float(X_G)
-output_dict['pretreatment_output']['rho_x'] = float(xylose_bulk*1000*M_xylose)
+# adding xylo-oligomers to xylose, based on the assumption that these will be
+# converted to xylose during enzymatic hydrolysis (otherwise, these sugars are
+# "lost"), JJS 3/21/21
+output_dict['pretreatment_output']['rho_x'] = float(xylose_bulk*1000*M_xylose
+                                                    + xylog_bulk*1000*M_xylog)
 output_dict['pretreatment_output']['rho_f'] = float(furfural_bulk*1000*M_furf)
 
 if len(sys.argv) > 1:

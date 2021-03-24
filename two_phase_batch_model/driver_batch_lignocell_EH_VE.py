@@ -8,6 +8,9 @@ Virtual Engineering.
 # Jim Lischeske and Jonathan Stickel, 2017-2021
 
 
+# TODO:
+# - presume soluble lignin was produced during pretreatment in proportion to fufural?
+
 import numpy as np
 import sys
 import matplotlib as mpl
@@ -97,12 +100,15 @@ dict_to_yaml([ve_params, output_dict], params_filename)
 
 
 print('\nFINAL OUTPUTS (at t = %4.4g hours)' % (tfin))
-print('rho_g = %4.4g' % (result["rhog"].iloc[-1]))
-print('rho_x = %4.4g' % (result["rhox"].iloc[-1]))
-print('rho_f = %4.4g' % rhof)
+print('rho_g = %4.4g g/L' % (result["rhog"].iloc[-1]))
+print('rho_x = %4.4g g/L' % (result["rhox"].iloc[-1]))
+print('rho_f = %4.4g g/L' % rhof)
 # print('Facile Conversion = ', convF[-1])
 # print('Recalcitrant Conversion = ', convR[-1])
 print('Total carbohydrate conversion = %4.4g' % (result["Tconv"].iloc[-1]))
+mbmax = max(result['mbG'].max(), result['mbX'].max(), result['mbL'].max(),
+            result['mbE'].max())
+print("Max mass balance error:  %4.4g" % mbmax)
 print()
 
 
@@ -133,15 +139,15 @@ if ve_params['enzymatic_input']['show_plots']:
     plt.ylabel(r'$\rho_i$ [g/L]')
     plt.legend(loc='best')
 
-    plt.figure(3)
-    plt.clf()
-    plt.plot(t, result['mbG'], label='glucan')
-    plt.plot(t, result['mbX'], label='xylan')
-    plt.plot(t, result['mbL'], label='lignin')
-    plt.plot(t, result['mbE'], label='enzyme')
-    plt.xlabel('t [h]')
-    plt.ylabel('mass balance')
-    plt.legend(loc='best')
+    # plt.figure(3)
+    # plt.clf()
+    # plt.plot(t, result['mbG'], label='glucan')
+    # plt.plot(t, result['mbX'], label='xylan')
+    # plt.plot(t, result['mbL'], label='lignin')
+    # plt.plot(t, result['mbE'], label='enzyme')
+    # plt.xlabel('t [h]')
+    # plt.ylabel('mass balance')
+    # plt.legend(loc='best')
 
     plt.show()
     

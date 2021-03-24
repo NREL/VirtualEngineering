@@ -74,7 +74,7 @@ rho_l = deto['lide']
 M_xylose = deto['xsmw'] 
 M_furf   = deto['fumw']
 M_xylog  = deto['xomw']
-print(M_xylose,M_furf,M_xylog)
+#print(M_xylose,M_furf,M_xylog) % what are these? JJS 3/21/21
 
 filenames = sorted(glob.glob(argv[1]), key=lambda f: int(f.split(".")[0].split("_")[1]))
 numfiles=len(filenames)
@@ -159,32 +159,32 @@ plt.ticklabel_format(style='sci', axis='y')
 
 ax[0,0].plot(tsim,xysim,label='sim',color='red',linewidth=2)
 #ax[0,0].plot(texp,xyexp,label='exp',color='blue',linewidth=2)
-ax[0,0].axis([0,1.2*max(texp),0,2.5*max(xyexp)])
+#ax[0,0].axis([0,1.2*max(texp),0,2.5*max(xyexp)])
 ax[0,0].set_title("Xylose (g/L)")
 
 ax[0,1].plot(tsim,xosim,label='sim',color='red',linewidth=2)
 #ax[0,1].plot(texp,xoexp,label='exp',color='blue',linewidth=2)
-ax[0,1].axis([0,1.2*max(texp),0,2.5*max(xosim)])
+#ax[0,1].axis([0,1.2*max(texp),0,2.5*max(xosim)])
 ax[0,1].set_title("Xylog (g/L)")
 
 ax[0,2].plot(tsim,fsim,label='sim',color='red',linewidth=2)
 #ax[0,2].plot(texp,fexp,label='exp',color='blue',linewidth=2)
-ax[0,2].axis([0,1.2*max(texp),0,2.5*max(fexp)])
+#ax[0,2].axis([0,1.2*max(texp),0,2.5*max(fexp)])
 ax[0,2].set_title("Furfural (g/L)")
 
 ax[1,0].plot(tsim,liqsim,label='sim',color='red',linewidth=2)
 #ax[1,0].plot(texp,liqexp,label='exp',color='blue',linewidth=2)
-ax[1,0].axis([0,1.2*max(texp),0,2.5*max(liqexp)])
+#ax[1,0].axis([0,1.2*max(texp),0,2.5*max(liqexp)])
 ax[1,0].set_title("Dilution (g/g)")
 
 ax[1,1].plot(tsim,xylsim,label='sim',color='red',linewidth=2)
 #ax[1,1].plot(texp,xylexp,label='exp',color='blue',linewidth=2)
-ax[1,1].axis([0,1.2*max(texp),0,2.5*max(xylexp)])
+#ax[1,1].axis([0,1.2*max(texp),0,2.5*max(xylexp)])
 ax[1,1].set_title("Xylan fraction (%)")
 
 ax[1,2].plot(tsim,FISsim,label='sim',color='red',linewidth=2)
 #ax[1,2].plot(texp,FISexp,label='exp',color='blue',linewidth=2)
-ax[1,2].axis([0,1.2*max(texp),0,2.5*max(FISexp)])
+#ax[1,2].axis([0,1.2*max(texp),0,2.5*max(FISexp)])
 ax[1,2].set_title("FIS")
 
 #plt.legend(loc=1)
