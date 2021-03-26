@@ -74,7 +74,7 @@ rho_l = deto['lide']
 M_xylose = deto['xsmw'] 
 M_furf   = deto['fumw']
 M_xylog  = deto['xomw']
-#print(M_xylose,M_furf,M_xylog) % what are these? JJS 3/21/21
+#print(M_xylose,M_furf,M_xylog) % molecular weights? JJS 3/21/21
 
 filenames = sorted(glob.glob(argv[1]), key=lambda f: int(f.split(".")[0].split("_")[1]))
 numfiles=len(filenames)

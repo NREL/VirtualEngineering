@@ -39,7 +39,8 @@ if len(sys.argv) > 1:
     IBCs['lifr'] = 1.0 - ve_params['pretreatment_input']['initial_solid_fraction']
     IBCs['poro'] = ve_params['feedstock']['initial_porosity']
     # trial-and-error adjustment to model parameters to account for auger
-    # reactor rather than steam-explosion reactor
+    # reactor rather than steam-explosion reactor -- didn't end up using any
+    # adjustments, but keeping in case we want to try in the future
     #Egtcs['chtr'] = 0.01 # "convective heat transfer", original: 0.5
     #deto['togs'] = 5.0 # "tortuosity gas", original:  1.0
     #deto['toli'] = 5.0 # "turtuosity liquid", original:  1.0
