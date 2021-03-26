@@ -45,11 +45,11 @@ if len(sys.argv) > 1:
     #deto['toli'] = 5.0 # "turtuosity liquid", original:  1.0
     #rrates['stdf'][0] = 5 # "pore diameter", original:  15
     #scales['xscl'] = 5.0 # "length scale", original:  1.0
-    ratemult = 0.1 
-    rrates['kxylog'][0] = ratemult*rrates['kxylog'][0]
-    rrates['kxyl1'][0] = ratemult*rrates['kxyl1'][0]
-    rrates['kxyl2'][0] = ratemult*rrates['kxyl2'][0]
-    rrates['kfurf'][0] = ratemult*rrates['kfurf'][0]
+    # ratemult = 0.1 
+    # rrates['kxylog'][0] = ratemult*rrates['kxylog'][0]
+    # rrates['kxyl1'][0] = ratemult*rrates['kxyl1'][0]
+    # rrates['kxyl2'][0] = ratemult*rrates['kxyl2'][0]
+    # rrates['kfurf'][0] = ratemult*rrates['kfurf'][0]
 else:
     ve_params = {}
 
@@ -112,10 +112,25 @@ M_xylose = 150.0
 M_furf   = 100.0
 M_xylog  = 450.0
 
+
+xylanweight0 = fx0*(1-ep0)*l
+#print( "initial xylan mass   (density =  1 g/ml):%4.4g" %    xylanweight0)
+#print( "final xylan mass     (density =  1 g/ml):%4.4g" %    xylanweight)
+#print( "reacted xylan mass   (density =  1 g/ml):%4.4g" %    (fx0*(1-ep0)*l-xylanweight))
+
+prodmass = liquid_bulk*(xylose_bulk*M_xylose + xylog_bulk*M_xylog + furfural_bulk*M_furf)
+reactmass = xylanweight0 - xylanweight
+conv = reactmass/xylanweight0  # I _think_ this is correct now, but should be
+                               # double-checked, JJS 3/14/21
+# compute an updated glucan fraction based on xylan conversion
+X_G = ve_params['feedstock']['glucan_solid_fraction']/(1 - ve_params['feedstock']['xylan_solid_fraction']*conv)
+
+
 print( "\n**************************************************************************")
 #print( "xylan weight: %4.4g" %       xylanweight) # again, what are the units?
 #print( "solid weight: %4.4g" %       solidweight)
 print( "[Xylan] (w/w) %4.4g" %       xylan_bulk)
+print( "[Glucan] (w/w) %4.4g" %       X_G)
 #print( "[xylose] (M/ml) =%4.4g" %   xylose_bulk)
 print( "[xylose] (g/L) =%4.4g" %    (xylose_bulk*1000*M_xylose))
 #print( "[xylog] (M/ml) =%4.4g" %    xylog_bulk)
@@ -131,16 +146,6 @@ print( "************************************************************************
 print( "Mass balance calculations")
 print( "*************************")
 
-xylanweight0 = fx0*(1-ep0)*l
-#print( "initial xylan mass   (density =  1 g/ml):%4.4g" %    xylanweight0)
-#print( "final xylan mass     (density =  1 g/ml):%4.4g" %    xylanweight)
-#print( "reacted xylan mass   (density =  1 g/ml):%4.4g" %    (fx0*(1-ep0)*l-xylanweight))
-
-prodmass = liquid_bulk*(xylose_bulk*M_xylose + xylog_bulk*M_xylog + furfural_bulk*M_furf)
-reactmass = xylanweight0 - xylanweight
-conv = reactmass/xylanweight0  # I _think_ this is correct now, but should be
-                               # double-checked, JJS 3/14/21
-
 #print( "liquid weight (density = 1 g/ml): %4.4g" % liquid_bulk)
 #print( "liquid volume (density = 1 g/ml): %4.4g" % liquid_bulk)
 #print( "xylose mass                     : %4.4g" % (liquid_bulk*xylose_bulk*M_xylose))
@@ -149,10 +154,6 @@ conv = reactmass/xylanweight0  # I _think_ this is correct now, but should be
 #print( "total mass of products          : %4.4g" % prodmass)
 print( "total xylan conversion (%%)      : %4.4g" % (100*conv))
 print( "%% mass balance                  : %4.4g" % (100*(1.0-(prodmass-reactmass)/reactmass)))
-
-
-# compute an updated glucan fraction based on xylan conversion
-X_G = ve_params['feedstock']['glucan_solid_fraction']/(1 - ve_params['feedstock']['xylan_solid_fraction']*conv)
 
 # Save the outputs into a dictionary
 output_dict = {'pretreatment_output': {}}

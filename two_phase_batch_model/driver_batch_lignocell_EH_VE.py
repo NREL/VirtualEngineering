@@ -105,6 +105,8 @@ print('rho_x = %4.4g g/L' % (result["rhox"].iloc[-1]))
 print('rho_f = %4.4g g/L' % rhof)
 # print('Facile Conversion = ', convF[-1])
 # print('Recalcitrant Conversion = ', convR[-1])
+print("Final FIS = %4.4g" % (result['fis'].iloc[-1]))
+print("Glucan conversion = %4.4g" % result["Gconv"].iloc[-1])
 print('Total carbohydrate conversion = %4.4g' % (result["Tconv"].iloc[-1]))
 mbmax = max(result['mbG'].max(), result['mbX'].max(), result['mbL'].max(),
             result['mbE'].max())
