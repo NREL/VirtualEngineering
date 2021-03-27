@@ -19,8 +19,7 @@ jupyter:
 
 The first step is to select "Cell" > "Run All" from the toolbar.  This will initialize all the widgets and allow you to interact with the unit operation options via the GUI controls.
 
-![flowchart](three_unit_flow.png)
-
+<img src="three_unit_flow.png" alt="flowchart" width="800"/>
 
 ```python
 # I'm not sure `%reset` is necessary; it also messes up the notebookdir variable if we end up in a
@@ -116,14 +115,16 @@ Set the options for the pretreatment operation below.
 # Create the collection of widgets
 pt_options = wf.WidgetCollection()
 
+#### this needs to be changed to g acid / g bone-dry biomass (then converted in the run function) ####
 pt_options.initial_acid_conc = widgets.BoundedFloatText(
     value = 0.0001,
     max = 1.0,
     min = 0.0,
     description = 'Acid Loading',
-    description_tooltip = 'The initial concentration of acid (g/g).  Must be in the range [0, 1]'
+    description_tooltip = 'The initial concentration of acid (mol/mL).  Must be in the range [0, 1]'
 )
 
+#### this should be oC and then converted to K in the run function ####
 pt_options.steam_temperature = widgets.BoundedFloatText(
     value = 423,
     max = 1000,
@@ -132,12 +133,13 @@ pt_options.steam_temperature = widgets.BoundedFloatText(
     description_tooltip = r'The fixed temperature of the steam (K).'
 )
 
+#### this would better as steam density, kg/m^3, OR pulled from a saturated steam table #### 
 pt_options.bulk_steam_conc = widgets.BoundedFloatText(
     value = 0.0001,
     max = 1.0,
     min = 0.0,
     description = 'Bulk Steam Concentration',
-    description_tooltip = 'The ambient steam concentration.  Must be in the range [0, 1]'
+    description_tooltip = 'The ambient steam concentration (mol/mL).  Must be in the range [0, 1]'
 )
 
 pt_options.initial_solid_fraction = widgets.BoundedFloatText(
@@ -148,6 +150,7 @@ pt_options.initial_solid_fraction = widgets.BoundedFloatText(
     description_tooltip = 'The initial fraction of insoluble solids (kg/kg).  Must be in the range [0, 1]'
 )
 
+#### this should be minutes and then converted to seconds in the run function ####
 pt_options.final_time = widgets.BoundedFloatText(
     value = 500, #100, #2400
     max = 1e16,
@@ -184,6 +187,7 @@ Set the options for the enzymatic hydrolysis operation using either a two-phase 
 # Create the collection of widgets
 eh_options = wf.WidgetCollection()
 
+#### this should be mg/g and then converted in the run function ####
 eh_options.lambda_e = widgets.BoundedFloatText(
     value = 0.03,
     max = 0.1,
