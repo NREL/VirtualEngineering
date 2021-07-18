@@ -45,6 +45,7 @@
         fvScalarMatrix p_rghEqn
         (
             fvm::laplacian(rhorAUf, p_rgh) == fvc::div(rhof*phiHbyA)
+            //fvm::laplacian(rAUf, p_rgh) == fvc::div(phiHbyA)
         );
 
         p_rghEqn.setReference(pRefCell, getRefCellValue(p_rgh, pRefCell));
@@ -54,10 +55,12 @@
         if (pimple.finalNonOrthogonalIter())
         {
             phi = phiHbyA - p_rghEqn.flux()/rhof;
+            //phi = phiHbyA - p_rghEqn.flux();
 
             p_rgh.relax();
 
             U = HbyA + rAU()*fvc::reconstruct( (phig - p_rghEqn.flux()/rhof) /rAUf);
+            //U = HbyA + rAU()*fvc::reconstruct((phig - p_rghEqn.flux())/rAUf);
             U.correctBoundaryConditions();
             fvOptions.correct(U);
         }

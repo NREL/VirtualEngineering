@@ -104,10 +104,10 @@ int main(int argc, char *argv[])
 
             #include "specEqns.H"
 
-            visc = mu_l*pow((1.0-phis/phi_inf),-n_mu);
+            visc == mu_l*pow((1.0-phis/phi_inf),-n_mu);
             visc.max(minvisc);
             visc.min(maxvisc);
-            rho  = phis*rhos + (1.0-phis)*rhol;
+            rho  == phis*rhos + (1.0-phis)*rhol;
             rhoPhi = fvc::interpolate(rho)*phi; 
             
             if(solveNavierStokesFlag)
