@@ -187,7 +187,7 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
     br_dict = br_options.export_widgets_to_dict('bioreactor_input')
     dict_to_yaml(br_dict, params_filename, merge_with_existing=True)
 
-    # Run the selected enzymatic hydrolysis model
+    # Run the selected CFD or surrogate model
     if br_options.use_cfd.value:
         # Convert the current parameters file to a dictionary
         ve_params = yaml_to_dict(params_filename)        
