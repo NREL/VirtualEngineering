@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
                 }
             }
 
+            setlvel==C1*(exp(-C2*phis/phi_max) - exp(-C2))/(1.0-exp(-C2))*pos(phi_max-phis)*g/mag(g);
             #include "specEqns.H"
 
             visc == mu_l*pow((1.0-phis/phi_inf),-n_mu);

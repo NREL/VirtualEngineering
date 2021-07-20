@@ -125,6 +125,20 @@ volScalarField cg
     mesh
 );
 
+volVectorField setlvel
+(
+    IOobject
+    (
+        "setlvel",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedVector("setvel", dimVelocity, vector(0.0,0.0,0.0))
+);
+
 #include "createPhi.H"
 
 IOdictionary EHprops
@@ -279,6 +293,8 @@ if (p_rgh.needReference())
 mesh.setFluxRequired(p_rgh.name());
 dimensionedScalar maxvisc=mu_l*pow((1.0-phi_max/phi_inf),-n_mu);
 dimensionedScalar minvisc=mu_l;
+
+setlvel==C1*(exp(-C2*phis/phi_max) - exp(-C2))/(1.0-exp(-C2))*pos(phi_max-phis)*g/mag(g);
 
 #include "createMRF.H"
 #include "createFvOptions.H"

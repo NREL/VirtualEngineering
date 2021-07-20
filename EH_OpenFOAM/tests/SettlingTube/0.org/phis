@@ -27,7 +27,7 @@ boundaryField
         refValue        uniform 0.034;
         refGradient     uniform 0;
         valueFraction   uniform 0;
-        name            noflux_phis;
+        name            noflux_phis_bot;
         code            
         #{
             const fvPatch& boundaryPatch = patch();
@@ -36,9 +36,6 @@ boundaryField
             const vectorField& Cf = boundaryPatch.Cf();
             const labelList& faceOwner = boundaryPatch.faceCells();
 
-            scalar C1 = 0.0034;
-            scalar C2 = 3.25;
-            scalar phi_max=0.07;
             scalar zvel=0.0;
             scalar vface=0.0;
 
@@ -49,6 +46,7 @@ boundaryField
             const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
             const volScalarField& ceb_cc   = db().lookupObject<volScalarField>("ceb");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
+            const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
             scalarField Dis = 1.0/mesh.deltaCoeffs().boundaryField()[boundaryPatch.index()];
 
@@ -61,8 +59,8 @@ boundaryField
                 cellid=faceOwner[faceI];
                 delta=Dis[faceI];
 
-                zvel = -C1*(exp(-C2*phis_cc[cellid]/phi_max) - exp(-C2))/(1.0 - exp(-C2))*pos(phi_max-phis_cc[cellid]);
-                vface = zvel*nhat[faceI][2];
+                zvel   = svel[faceI][2];
+                vface  = zvel*nhat[faceI][2];
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
@@ -85,20 +83,17 @@ boundaryField
             const vectorField& Cf = boundaryPatch.Cf();
             const labelList& faceOwner = boundaryPatch.faceCells();
 
-            scalar C1 = 0.0034;
-            scalar C2 = 3.25;
-            scalar phi_max=0.07;
             scalar zvel=0.0;
             scalar vface=0.0;
 
-            scalar fcx,cx,fcy,cy,fcz,cz;
-            scalar delta,delta_n;
+            scalar delta;
             scalar D=8.71e-7;
 
             const volScalarField& phis_cc  = db().lookupObject<volScalarField>("phis");
             const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
             const volScalarField& ceb_cc   = db().lookupObject<volScalarField>("ceb");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
+            const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
             scalarField Dis = 1.0/mesh.deltaCoeffs().boundaryField()[boundaryPatch.index()];
 
@@ -111,13 +106,13 @@ boundaryField
                 cellid=faceOwner[faceI];
                 delta=Dis[faceI];
 
-                zvel = -C1*(exp(-C2*phis_cc[cellid]/phi_max) - exp(-C2))/(1.0 - exp(-C2))*pos(phi_max-phis_cc[cellid]);
-                vface = zvel*nhat[faceI][2];
+                zvel   = svel[faceI][2];
+                vface  = zvel*nhat[faceI][2];
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
                 this->refValue()[faceI] = phis_cc[cellid]*exp(vface*delta/D);
-             }
+              }
         #};
     }
     lateralWall
@@ -135,20 +130,17 @@ boundaryField
             const vectorField& Cf = boundaryPatch.Cf();
             const labelList& faceOwner = boundaryPatch.faceCells();
 
-            scalar C1 = 0.0034;
-            scalar C2 = 3.25;
-            scalar phi_max=0.07;
             scalar zvel=0.0;
             scalar vface=0.0;
 
-            scalar fcx,cx,fcy,cy,fcz,cz;
-            scalar delta,delta_n;
+            scalar delta;
             scalar D=8.71e-7;
 
             const volScalarField& phis_cc  = db().lookupObject<volScalarField>("phis");
             const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
             const volScalarField& ceb_cc   = db().lookupObject<volScalarField>("ceb");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
+            const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
             scalarField Dis = 1.0/mesh.deltaCoeffs().boundaryField()[boundaryPatch.index()];
 
@@ -161,13 +153,13 @@ boundaryField
                 cellid=faceOwner[faceI];
                 delta=Dis[faceI];
 
-                zvel = -C1*(exp(-C2*phis_cc[cellid]/phi_max) - exp(-C2))/(1.0 - exp(-C2))*pos(phi_max-phis_cc[cellid]);
-                vface = zvel*nhat[faceI][2];
+                zvel   = svel[faceI][2];
+                vface  = zvel*nhat[faceI][2];
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
                 this->refValue()[faceI] = phis_cc[cellid]*exp(vface*delta/D);
-             }
+              }
         #};
     }
 }

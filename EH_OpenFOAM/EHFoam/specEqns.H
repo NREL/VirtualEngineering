@@ -1,15 +1,8 @@
 {
     volScalarField Kdeff("Kdeff",Kd*(1.0-phis));
 
-        //settling velocity
-        volVectorField setlvel
-        (
-         "setlvel",
-         C1*(exp(-C2*phis/phi_max) - exp(-C2))/(1.0-exp(-C2))*pos(phi_max-phis)*g/mag(g)
-        );
-
-        //std::cout<<"max settlevel:"<<max(mag(setlvel)).value()<<"\n";
-        //std::cout<<"min settlevel:"<<min(mag(setlvel)).value()<<"\n";
+    //std::cout<<"max settlevel:"<<max(mag(setlvel)).value()<<"\n";
+    //std::cout<<"min settlevel:"<<min(mag(setlvel)).value()<<"\n";
 
     // Solve solids equation
     fvScalarMatrix phisEqn
@@ -23,7 +16,7 @@
     phisEqn.relax();
     phisEqn.solve();
 
-     
+
     // Solve facile solids equation
     fvScalarMatrix phifsEqn
         (
