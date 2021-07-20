@@ -11,23 +11,23 @@ FoamFile
     format      ascii;
     class       volScalarField;
     location    "0";
-    object      phifs;
+    object      phils;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0.01;
+internalField   uniform 0.005;
 
 boundaryField
 {
     bottom
     {
         type            codedMixed;
-        refValue        uniform 0.01;
+        refValue        uniform 0.005;
         refGradient     uniform 0;
         valueFraction   uniform 0;
-        name            noflux_phifs_bot;
+        name            noflux_phils_bot;
         code            
         #{
             const fvPatch& boundaryPatch = patch();
@@ -42,7 +42,7 @@ boundaryField
             scalar delta;
             scalar D=8.71e-7;
 
-            const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
+            const volScalarField& phils_cc = db().lookupObject<volScalarField>("phils");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
@@ -62,17 +62,17 @@ boundaryField
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
-                this->refValue()[faceI] = phifs_cc[cellid]*exp(vface*delta/D);
+                this->refValue()[faceI] = phils_cc[cellid]*exp(vface*delta/D);
               }
         #};
     }
     top
     {
         type            codedMixed;
-        refValue        uniform 0.01;
+        refValue        uniform 0.005;
         refGradient     uniform 0;
         valueFraction   uniform 0;
-        name            noflux_phifs_top;
+        name            noflux_phils_top;
         code            
         #{
             const fvPatch& boundaryPatch = patch();
@@ -87,7 +87,7 @@ boundaryField
             scalar delta;
             scalar D=8.71e-7;
 
-            const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
+            const volScalarField& phils_cc  = db().lookupObject<volScalarField>("phils");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
@@ -107,17 +107,17 @@ boundaryField
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
-                this->refValue()[faceI] = phifs_cc[cellid]*exp(vface*delta/D);
+                this->refValue()[faceI] = phils_cc[cellid]*exp(vface*delta/D);
               }
         #};
     }
     lateralWall
     {
         type            codedMixed;
-        refValue        uniform 0.01;
+        refValue        uniform 0.005;
         refGradient     uniform 0;
         valueFraction   uniform 0;
-        name            noflux_phifs_l;
+        name            noflux_phils_l;
         code            
         #{
             const fvPatch& boundaryPatch = patch();
@@ -132,7 +132,7 @@ boundaryField
             scalar delta;
             scalar D=8.71e-7;
 
-            const volScalarField& phifs_cc  = db().lookupObject<volScalarField>("phifs");
+            const volScalarField& phils_cc  = db().lookupObject<volScalarField>("phils");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
@@ -152,7 +152,7 @@ boundaryField
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
-                this->refValue()[faceI] = phifs_cc[cellid]*exp(vface*delta/D);
+                this->refValue()[faceI] = phils_cc[cellid]*exp(vface*delta/D);
               }
         #};
     }

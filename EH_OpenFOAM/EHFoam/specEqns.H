@@ -1,15 +1,10 @@
 {
     volScalarField Kdeff("Kdeff",Kd*(1.0-phis));
 
-    //std::cout<<"max settlevel:"<<max(mag(setlvel)).value()<<"\n";
-    //std::cout<<"min settlevel:"<<min(mag(setlvel)).value()<<"\n";
-
     // Solve solids equation
     fvScalarMatrix phisEqn
         (
          fvm::ddt(phis) + fvm::div(phi,phis) + fvm::div(fvc::flux(setlvel), phis)
-         //fvm::ddt(phis) + fvm::div(phi,phis) + fvc::div(setlvel*phis)
-         //fvm::ddt(phis) + fvm::div(phi,phis) + phis*fvc::div(setlvel) + (setlvel & fvc::grad(phis))
          ==
          fvm::laplacian(Ks,phis)
         );
@@ -21,20 +16,36 @@
     fvScalarMatrix phifsEqn
         (
          fvm::ddt(phifs) + fvm::div(phi,phifs) + fvm::div(fvc::flux(setlvel), phifs)
-         //fvm::ddt(phifs) + fvm::div(phi,phifs) + fvc::div(setlvel*phifs)
-         //fvm::ddt(phifs) + fvm::div(phi,phifs) + phifs*fvc::div(setlvel) + (setlvel & fvc::grad(phifs))
          ==
          fvm::laplacian(Ks,phifs)
         );
     phifsEqn.relax();
     phifsEqn.solve();
+    
+    // Solve recalcitrant solids equation
+    fvScalarMatrix phirsEqn
+        (
+         fvm::ddt(phirs) + fvm::div(phi,phirs) + fvm::div(fvc::flux(setlvel), phirs)
+         ==
+         fvm::laplacian(Ks,phirs)
+        );
+    phirsEqn.relax();
+    phirsEqn.solve();
+    
+    // Solve lignin equation
+    fvScalarMatrix philsEqn
+        (
+         fvm::ddt(phils) + fvm::div(phi,phils) + fvm::div(fvc::flux(setlvel), phils)
+         ==
+         fvm::laplacian(Ks,phils)
+        );
+    philsEqn.relax();
+    philsEqn.solve();
 
     // Solve bound enzyme equation
     fvScalarMatrix cebEqn
         (
          fvm::ddt(ceb) + fvm::div(phi,ceb) + fvm::div(fvc::flux(setlvel), ceb)
-         //fvm::ddt(ceb) + fvm::div(phi,ceb) + fvc::div(setlvel*ceb)
-         //fvm::ddt(ceb) + fvm::div(phi,ceb) + fvc::div(setlvel*ceb) + ceb*fvc::div(setlvel) + (setlvel & fvc::grad(ceb))
          ==
          fvm::laplacian(Kdeff,ceb)
         );
@@ -61,5 +72,7 @@
         );
     cgEqn.relax();
     cgEqn.solve();
+
+    phixs==phis-phifs-phirs-phils;
 
 }

@@ -69,7 +69,7 @@ volScalarField phis
     mesh
 );
 
-Info<< "Reading field facile solids\n" << endl;
+Info<< "Reading field facile cellulose in solids\n" << endl;
 volScalarField phifs
 (
     IOobject
@@ -81,6 +81,48 @@ volScalarField phifs
         IOobject::AUTO_WRITE
     ),
     mesh
+);
+
+Info<< "Reading field recalcitrant cellulose in solids\n" << endl;
+volScalarField phirs
+(
+    IOobject
+    (
+        "phirs",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+Info<< "Reading field lignin in solids\n" << endl;
+volScalarField phils
+(
+    IOobject
+    (
+        "phils",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+Info<< "setting xylan in solids\n" << endl;
+volScalarField phixs
+(
+    IOobject
+    (
+        "phixs",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    phis-phifs-phirs-phils
 );
 
 Info<< "Reading field bound enzymes\n" << endl;
@@ -223,7 +265,7 @@ dimensionedScalar rhol
  EHprops.lookup("rhol")
 );
 
-rho=phis*rhos + (1.0-phis)*rhol;
+rho==phis*rhos + (1.0-phis)*rhol;
 
 bool solveNavierStokesFlag = EHprops.lookupOrDefault("solveNavierStokes",  true);
 
@@ -249,7 +291,7 @@ surfaceScalarField rhoPhi
     fvc::interpolate(rho)*phi
 );
 
-visc=mu_l*pow((1.0-phis/phi_inf),-n_mu);
+visc==mu_l*pow((1.0-phis/phi_inf),-n_mu);
 
 #include "readGravitationalAcceleration.H"
 #include "readhRef.H"

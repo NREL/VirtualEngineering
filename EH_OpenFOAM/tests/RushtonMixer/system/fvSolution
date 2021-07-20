@@ -47,7 +47,7 @@ solvers
         relTol          0;
     }
 
-    "(phis|phifs|ceb|cef|cg)"
+    "(phis|phifs|phirs|phils|ceb|cef|cg)"
     {
         solver          PBiCGStab;
         preconditioner  DILU;
@@ -55,7 +55,7 @@ solvers
         relTol          0.01;
     }
 
-    "(phis|phifs|ceb|cef|cg)Final"
+    "(phis|phifs|phirs|phils|ceb|cef|cg)Final"
     {
         $U;
         relTol          0;

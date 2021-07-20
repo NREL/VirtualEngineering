@@ -43,8 +43,6 @@ boundaryField
             scalar D=8.71e-7;
 
             const volScalarField& phis_cc  = db().lookupObject<volScalarField>("phis");
-            const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
-            const volScalarField& ceb_cc   = db().lookupObject<volScalarField>("ceb");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
@@ -90,8 +88,6 @@ boundaryField
             scalar D=8.71e-7;
 
             const volScalarField& phis_cc  = db().lookupObject<volScalarField>("phis");
-            const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
-            const volScalarField& ceb_cc   = db().lookupObject<volScalarField>("ceb");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
@@ -137,8 +133,6 @@ boundaryField
             scalar D=8.71e-7;
 
             const volScalarField& phis_cc  = db().lookupObject<volScalarField>("phis");
-            const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
-            const volScalarField& ceb_cc   = db().lookupObject<volScalarField>("ceb");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           

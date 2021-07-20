@@ -11,7 +11,7 @@ FoamFile
     format      ascii;
     class       volScalarField;
     location    "0";
-    object      phifs;
+    object      phirs;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -27,7 +27,7 @@ boundaryField
         refValue        uniform 0.01;
         refGradient     uniform 0;
         valueFraction   uniform 0;
-        name            noflux_phifs_bot;
+        name            noflux_phirs_bot;
         code            
         #{
             const fvPatch& boundaryPatch = patch();
@@ -42,7 +42,7 @@ boundaryField
             scalar delta;
             scalar D=8.71e-7;
 
-            const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
+            const volScalarField& phirs_cc  = db().lookupObject<volScalarField>("phirs");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
@@ -62,17 +62,17 @@ boundaryField
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
-                this->refValue()[faceI] = phifs_cc[cellid]*exp(vface*delta/D);
+                this->refValue()[faceI] = phirs_cc[cellid]*exp(vface*delta/D);
               }
         #};
     }
-    top
+    outlet
     {
         type            codedMixed;
         refValue        uniform 0.01;
         refGradient     uniform 0;
         valueFraction   uniform 0;
-        name            noflux_phifs_top;
+        name            noflux_phirs_outlet;
         code            
         #{
             const fvPatch& boundaryPatch = patch();
@@ -87,7 +87,7 @@ boundaryField
             scalar delta;
             scalar D=8.71e-7;
 
-            const volScalarField& phifs_cc = db().lookupObject<volScalarField>("phifs");
+            const volScalarField& phirs_cc  = db().lookupObject<volScalarField>("phirs");
             const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
             const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
           
@@ -107,54 +107,74 @@ boundaryField
 
                 this->refGrad()[faceI]  = 0.0;
                 this->valueFraction()[faceI] = 1.0;
-                this->refValue()[faceI] = phifs_cc[cellid]*exp(vface*delta/D);
+                this->refValue()[faceI] = phirs_cc[cellid]*exp(vface*delta/D);
+              }
+        #};
+    }
+    propeller
+    {
+        type            codedMixed;
+        refValue        uniform 0.01;
+        refGradient     uniform 0;
+        valueFraction   uniform 0;
+        name            noflux_phirs_prop;
+        code            
+        #{
+            const fvPatch& boundaryPatch = patch();
+            const fvBoundaryMesh& boundaryMesh = boundaryPatch.boundaryMesh();
+            const fvMesh& mesh = boundaryMesh.mesh();
+            const vectorField& Cf = boundaryPatch.Cf();
+            const labelList& faceOwner = boundaryPatch.faceCells();
+
+            scalar zvel=0.0;
+            scalar vface=0.0;
+
+            scalar delta;
+            scalar D=8.71e-7;
+
+            const volScalarField& phirs_cc  = db().lookupObject<volScalarField>("phirs");
+            const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
+            const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
+          
+            scalarField Dis = 1.0/mesh.deltaCoeffs().boundaryField()[boundaryPatch.index()];
+
+            vectorField nhat = this->patch().nf();
+            scalar t=db().time().value();
+            int cellid;
+
+            forAll(Cf, faceI)
+            {
+                cellid=faceOwner[faceI];
+                delta=Dis[faceI];
+
+                zvel   = svel[faceI][2];
+                vface  = zvel*nhat[faceI][2];
+
+                this->refGrad()[faceI]  = 0.0;
+                this->valueFraction()[faceI] = 1.0;
+                this->refValue()[faceI] = phirs_cc[cellid]*exp(vface*delta/D);
               }
         #};
     }
     lateralWall
     {
-        type            codedMixed;
-        refValue        uniform 0.01;
-        refGradient     uniform 0;
-        valueFraction   uniform 0;
-        name            noflux_phifs_l;
-        code            
-        #{
-            const fvPatch& boundaryPatch = patch();
-            const fvBoundaryMesh& boundaryMesh = boundaryPatch.boundaryMesh();
-            const fvMesh& mesh = boundaryMesh.mesh();
-            const vectorField& Cf = boundaryPatch.Cf();
-            const labelList& faceOwner = boundaryPatch.faceCells();
-
-            scalar zvel=0.0;
-            scalar vface=0.0;
-
-            scalar delta;
-            scalar D=8.71e-7;
-
-            const volScalarField& phifs_cc  = db().lookupObject<volScalarField>("phifs");
-            const fvPatchField<vector>& Uf = boundaryPatch.lookupPatchField<volVectorField,vector>("U");
-            const fvPatchField<vector>& svel = boundaryPatch.lookupPatchField<volVectorField,vector>("setlvel");
-          
-            scalarField Dis = 1.0/mesh.deltaCoeffs().boundaryField()[boundaryPatch.index()];
-
-            vectorField nhat = this->patch().nf();
-            scalar t=db().time().value();
-            int cellid;
-
-            forAll(Cf, faceI)
-            {
-                cellid=faceOwner[faceI];
-                delta=Dis[faceI];
-
-                zvel   = svel[faceI][2];
-                vface  = zvel*nhat[faceI][2];
-
-                this->refGrad()[faceI]  = 0.0;
-                this->valueFraction()[faceI] = 1.0;
-                this->refValue()[faceI] = phifs_cc[cellid]*exp(vface*delta/D);
-              }
-        #};
+        type            zeroGradient;
+    }
+    inside_to_hub
+    {
+        type            empty;
+    }
+    inside_to_hub_copy
+    {
+        type            empty;
+    }
+    hub_to_rotor
+    {
+        type            empty;
+    }
+    hub_to_rotor_copy
+    {
+        type            empty;
     }
 }
 
