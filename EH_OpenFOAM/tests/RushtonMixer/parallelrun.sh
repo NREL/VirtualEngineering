@@ -8,7 +8,7 @@ stitchMesh -perfect -overwrite hub_to_rotor hub_to_rotor_copy
 #convert to cms
 transformPoints -scale "(0.01 0.01 0.01)"
 decomposePar
-srun -n 32 EHFoam_new -parallel
+srun -n 32 EHFoam -parallel
 reconstructPar -newTimes
 EHFoam -postProcess -func "grad(U)"
 pvpython torq.py "lateralWall"
