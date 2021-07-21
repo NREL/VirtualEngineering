@@ -1,7 +1,6 @@
 #include<iostream>
 #include<vector>
 #include<fstream>
-#include <boost/math/special_functions/gamma.hpp>
 
 
 // parameters that are "fixed"
@@ -104,7 +103,7 @@ void advance_soln(std::vector<double>& solnvec, double fET, double fX0, double f
 
     get_rhs(k3, solnvec, fET, fX0, fL0);
 
-    // Calculate k2: the slope at the end of the interval following k3
+    // Calculate k4: the slope at the end of the interval following k3
     for(int i=0; i<nvars; i++) {
         solnvec[i] = solnvec_0[i] + dt*k3[i];            
     }
