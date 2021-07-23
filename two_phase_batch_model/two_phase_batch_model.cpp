@@ -162,7 +162,7 @@ int main() {
     outfile.precision(9);
 
     // Write header line
-    outfile<<"# time, fGF, fGR, fg0, rhog\n";
+    outfile<<"# time, fGF, fGR, fg, rhog\n";  
 
     // Save initial condition
     outfile<<0.0<<", ";

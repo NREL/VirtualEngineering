@@ -21,12 +21,17 @@ scratch/
 
 # ignore data files--can add specific files for tracking
 *.dat
+*.csv
 
 # specific files or file types to ignore, related to this project
 pretreat_defs_updated.inp
 bkup*
 equationsDoc.pdf
 hostname_info.txt
+
+# I'm suggesting a convention of `run_[name]` for direct executables; these
+#  should be ignored, JJS 7/23/21
+run_*
 
 # latex
 *.bbl
