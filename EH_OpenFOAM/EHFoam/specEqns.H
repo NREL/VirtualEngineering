@@ -72,7 +72,26 @@
         );
     cgEqn.relax();
     cgEqn.solve();
+    
+    // Solve xylose equation
+    fvScalarMatrix cxEqn
+        (
+         fvm::ddt(cx) + fvm::div(phi, cx)
+         ==
+         fvm::laplacian(Kdeff,cx)
+        );
+    cxEqn.relax();
+    cxEqn.solve();
+    
+    // Solve soluble lignin equation
+    fvScalarMatrix clEqn
+        (
+         fvm::ddt(cl) + fvm::div(phi, cl)
+         ==
+         fvm::laplacian(Kdeff,cl)
+        );
+    clEqn.relax();
+    clEqn.solve();
 
     phixs==phis-phifs-phirs-phils;
-
 }

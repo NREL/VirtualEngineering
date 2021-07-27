@@ -167,6 +167,34 @@ volScalarField cg
     mesh
 );
 
+Info<< "Reading field xylose\n" << endl;
+volScalarField cx
+(
+    IOobject
+    (
+        "cx",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+Info<< "Reading field soluble lignin\n" << endl;
+volScalarField cl
+(
+    IOobject
+    (
+        "cl",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
 volVectorField setlvel
 (
     IOobject
