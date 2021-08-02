@@ -93,5 +93,5 @@
     clEqn.relax();
     clEqn.solve();
 
-    phixs==phis-phifs-phirs-phils;
+
 }

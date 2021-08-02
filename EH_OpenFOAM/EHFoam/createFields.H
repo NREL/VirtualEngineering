@@ -293,9 +293,48 @@ dimensionedScalar rhol
  EHprops.lookup("rhol")
 );
 
+Info<< "reading subcycling parameters \n" << endl;
+
+dimensionedScalar reaction_update_time
+(
+ EHprops.lookup("reaction_update_time")
+);
+
+dimensionedScalar fluid_steadystate_time
+(
+ EHprops.lookup("fluid_steadystate_time")
+);
+
+dimensionedScalar fluid_update_time
+(
+ EHprops.lookup("fluid_update_time")
+);
+
+dimensionedScalar reaction_time_step
+(
+ EHprops.lookup("reaction_time_step")
+);
+
 rho==phis*rhos + (1.0-phis)*rhol;
 
+Info<< "setting fis\n" << endl;
+volScalarField fis
+(
+    IOobject
+    (
+        "fis",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    phis*rhos/rho
+);
+
 bool solveNavierStokesFlag = EHprops.lookupOrDefault("solveNavierStokes",  true);
+bool solveTransportFlag = EHprops.lookupOrDefault("solveTransport",  true);
+bool solveChemistryFlag = EHprops.lookupOrDefault("solveChemistry",  true);
+bool singlecellrunflag  = EHprops.lookupOrDefault("singlecellrun", false);
 
 singlePhaseTransportModel laminarTransport(U, phi);
 
@@ -365,6 +404,11 @@ dimensionedScalar maxvisc=mu_l*pow((1.0-phi_max/phi_inf),-n_mu);
 dimensionedScalar minvisc=mu_l;
 
 setlvel==C1*(exp(-C2*phis/phi_max) - exp(-C2))/(1.0-exp(-C2))*pos(phi_max-phis)*g/mag(g);
+
+volScalarField philiq=(1.0-phis);
+double reactorvolume=fvc::domainIntegrate(phis).value()
+    +fvc::domainIntegrate(philiq).value();
+Info<<"Volume of the domain:"<<reactorvolume<<"\n";
 
 #include "createMRF.H"
 #include "createFvOptions.H"

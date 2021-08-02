@@ -41,6 +41,8 @@ Description
 #include "CorrectPhi.H"
 #include "fvcSmooth.H"
 #include "Polynomial.H"
+#include<vector>
+#include"EHReactModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -61,69 +63,116 @@ int main(int argc, char *argv[])
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     Info<< "\nStarting time loop\n" << endl;
-
+    
+    double prvs_update_time=0.0;
+    double time=runTime.value();
+    double reaction_time=0.0;
+    double smallvalue=1e-10;
+    dimensionedScalar smallconc("smallconc",dimDensity,scalar(smallvalue));
+    dimensionedScalar smallsolids("smallsolids",dimless,scalar(smallvalue));
+    
+    std::ofstream os_intquants;
+    if(Pstream::master())
+    {
+        os_intquants.open("integrated_quantities.dat");
+    }
+    
     while (runTime.run())
     {
         #include "readDyMControls.H"
         #include "CourantNo.H"
         #include "setDeltaT.H"
+        
+        fis==phis*rhos/rho;
+    
+        if(solveChemistryFlag)
+        {   
+            /*Info<<"time, prvs_update_time, fluid_update_time:"<<time<<"\t"<<
+               prvs_update_time<<"\t"<<fluid_update_time<<"\n";*/
+
+            if((time-prvs_update_time) >= fluid_update_time.value() && time>fluid_steadystate_time.value())
+            {
+                #include"EHReact.H"
+                prvs_update_time=time;
+                reaction_time += reaction_update_time.value(); 
+            }
+        }
 
         runTime++;
-
         Info<< "Time = " << runTime.timeName() << nl << endl;
+        time=runTime.value();
 
-        // --- Pressure-velocity PIMPLE corrector loop
-        while (pimple.loop())
+        if(solveTransportFlag)
         {
-            if (pimple.firstIter() || moveMeshOuterCorrectors)
+            // --- Pressure-velocity PIMPLE corrector loop
+            while (pimple.loop())
             {
-                mesh.update();
-
-                if (mesh.changing())
+                if (pimple.firstIter() || moveMeshOuterCorrectors)
                 {
-                    MRF.update();
+                    mesh.update();
 
-                    if (correctPhi)
+                    if (mesh.changing())
                     {
-                        // Calculate absolute flux
-                        // from the mapped surface velocity
-                        phi = mesh.Sf() & Uf();
+                        MRF.update();
 
-                        #include "correctPhi.H"
+                        if (correctPhi)
+                        {
+                            // Calculate absolute flux
+                            // from the mapped surface velocity
+                            phi = mesh.Sf() & Uf();
 
-                        // Make the flux relative to the mesh motion
-                        fvc::makeRelative(phi, U);
-                    }
+                            #include "correctPhi.H"
 
-                    if (checkMeshCourantNo)
-                    {
-                        #include "meshCourantNo.H"
+                            // Make the flux relative to the mesh motion
+                            fvc::makeRelative(phi, U);
+                        }
+
+                        if (checkMeshCourantNo)
+                        {
+                            #include "meshCourantNo.H"
+                        }
                     }
                 }
-            }
 
-            setlvel==C1*(exp(-C2*phis/phi_max) - exp(-C2))/(1.0-exp(-C2))*pos(phi_max-phis)*g/mag(g);
-            #include "specEqns.H"
 
-            visc == mu_l*pow((1.0-phis/phi_inf),-n_mu);
-            visc.max(minvisc);
-            visc.min(maxvisc);
-            rho  == phis*rhos + (1.0-phis)*rhol;
-            rhoPhi = fvc::interpolate(rho)*phi; 
-            
-            if(solveNavierStokesFlag)
-            {
-                #include "UEqn.H"
-                // --- Pressure corrector loop
-                while (pimple.correct())
+                setlvel==C1*(exp(-C2*phis/phi_max) - exp(-C2))/(1.0-exp(-C2))
+                    *pos(phi_max-phis)*g/mag(g);
+
+                #include "specEqns.H"
+
+                //prevent negative values
+                phis  = max(phis,  smallsolids);
+                phifs = max(phifs, smallsolids);
+                phirs = max(phirs, smallsolids);
+                phils = max(phils, smallsolids);
+                cg    = max(cg, smallconc);
+                cx    = max(cx, smallconc);
+                cl    = max(cl,  smallconc);
+                cef   = max(cef, smallconc);
+                ceb   = max(ceb, smallconc);
+
+                phixs==phis-phifs-phirs-phils;
+
+                visc == mu_l*pow((1.0-phis/phi_inf),-n_mu);
+                visc.max(minvisc);
+                visc.min(maxvisc);
+                rho  == phis*rhos + (1.0-phis)*rhol;
+                rhoPhi = fvc::interpolate(rho)*phi; 
+
+                if(solveNavierStokesFlag)
                 {
+                    #include "UEqn.H"
+                    // --- Pressure corrector loop
+                    while (pimple.correct())
+                    {
                         #include "pEqn.H"
+                    }
                 }
-            }
 
-            if (pimple.turbCorr())
-            {
-                turbulence->correct();
+                if (pimple.turbCorr())
+                {
+                    turbulence->correct();
+                }
             }
         }
 
@@ -134,6 +183,7 @@ int main(int argc, char *argv[])
             << nl << endl;
     }
 
+    os_intquants.close();
     Info<< "End\n" << endl;
 
     return 0;
