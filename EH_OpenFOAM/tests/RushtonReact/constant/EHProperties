@@ -32,7 +32,7 @@ solveChemistry    yes;
 rescalefields     yes;
 
 reaction_update_time rt  [0 0 1 0 0 0 0] 1.0;  //hours
-fluid_update_time    ft  [0 0 1 0 0 0 0] 200.0; //seconds
+fluid_update_time    ft  [0 0 1 0 0 0 0] 250.0; //seconds
 fluid_steadystate_time  fst  [0 0 1 0 0 0 0] 400.0; //seconds
 reaction_time_step   rts [0 0 1 0 0 0 0] 0.1;  //seconds
 
