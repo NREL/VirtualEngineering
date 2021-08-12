@@ -145,13 +145,17 @@ int main(int argc, char *argv[])
                 phifs = max(phifs, smallsolids);
                 phirs = max(phirs, smallsolids);
                 phils = max(phils, smallsolids);
-                cg    = max(cg, smallconc);
-                cx    = max(cx, smallconc);
-                cl    = max(cl,  smallconc);
-                cef   = max(cef, smallconc);
-                ceb   = max(ceb, smallconc);
+                cg    = max(cg,    smallconc);
+                cx    = max(cx,    smallconc);
+                cl    = max(cl,    smallconc);
+                cef   = max(cef,   smallconc);
+                ceb   = max(ceb,   smallconc);
 
                 phixs==phis-phifs-phirs-phils;
+                if(rescaleflag)
+                {
+                    #include "rescaleFields.H"
+                }
 
                 visc == mu_l*pow((1.0-phis/phi_inf),-n_mu);
                 visc.max(minvisc);

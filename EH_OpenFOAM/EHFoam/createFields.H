@@ -335,6 +335,7 @@ bool solveNavierStokesFlag = EHprops.lookupOrDefault("solveNavierStokes",  true)
 bool solveTransportFlag = EHprops.lookupOrDefault("solveTransport",  true);
 bool solveChemistryFlag = EHprops.lookupOrDefault("solveChemistry",  true);
 bool singlecellrunflag  = EHprops.lookupOrDefault("singlecellrun", false);
+bool rescaleflag  = EHprops.lookupOrDefault("rescalefields", false);
 
 singlePhaseTransportModel laminarTransport(U, phi);
 
@@ -412,3 +413,7 @@ Info<<"Volume of the domain:"<<reactorvolume<<"\n";
 
 #include "createMRF.H"
 #include "createFvOptions.H"
+
+std::vector<double> avgvals(10);
+
+#include "updateAvgVals.H"

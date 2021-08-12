@@ -2,11 +2,29 @@
     phixs==phis-phifs-phirs-phils;
     const vectorField& C = mesh.C();
     std::vector<double> solnvec(reactmodel::nspecies);
+    std::vector<double> solnvec0(reactmodel::nspecies);
     std::vector<double> cenzymes(3);
     int outsteps=10;
     double solidsvfrac_cutoff=1e-10;
+    double reactsolids_cutoff=1e-8;
     double conc_cutoff=1e-10;
-    std::vector<double> avgvals(10);
+
+    //some known issues
+    /*1) when there are no solids and glucose in a cell with a 
+    large enzyme concentrations, the reactions tend give some negative
+    values for the products and bound enzymes
+     
+    2) I am assuming the concentrations of dissolved solids are with
+    respect to the liquid. ie cg/cx/cl are all in kg per m3 of liquid
+    Hence, in reactions i need a liquid volume fraction scaling to get the 
+    correct mass fraction. That said, the transport equation needs 
+    liquid volume fraction multiplier for true mass conservation. Its ok for 
+    now as we are dealing with dilute systems
+
+    3) Somehow the conversion when there is no lignin and xylan is not 
+    matching our earlier cellulose model for the well mixed and intermediate 
+    mixing case. Need to ask JJS about this.*/
+    
 
     Info << "Starting reaction update..\n";
     std::ofstream os_timehist;
@@ -15,17 +33,7 @@
         os_timehist.open("timehist.dat");
     }
 
-    avgvals[0]=fvc::domainIntegrate(phis).value()/reactorvolume;
-    avgvals[1]=fvc::domainIntegrate(phifs).value()/reactorvolume;
-    avgvals[2]=fvc::domainIntegrate(phirs).value()/reactorvolume;
-    avgvals[3]=fvc::domainIntegrate(phils).value()/reactorvolume;
-    avgvals[4]=fvc::domainIntegrate(phixs).value()/reactorvolume;
-
-    avgvals[5]=fvc::domainIntegrate(ceb*(1-phis)).value()/reactorvolume;
-    avgvals[6]=fvc::domainIntegrate(cef*(1-phis)).value()/reactorvolume;
-    avgvals[7]=fvc::domainIntegrate(cg*(1-phis)).value()/reactorvolume;
-    avgvals[8]=fvc::domainIntegrate(cx*(1-phis)).value()/reactorvolume;
-    avgvals[9]=fvc::domainIntegrate(cl*(1-phis)).value()/reactorvolume;
+    #include "updateAvgVals.H"
 
     if(Pstream::master())
     {
@@ -59,6 +67,11 @@
         solnvec[reactmodel::SLG]  = std::max(cl[i],conc_cutoff)*liqvfrac/totalmass;
         solnvec[reactmodel::EZT]  = (std::max(cef[i],conc_cutoff)+std::max(ceb[i],conc_cutoff))*liqvfrac/totalmass;
 
+        for(int sp=0;sp<reactmodel::nspecies;sp++)
+        {
+                solnvec0[sp]=solnvec[sp];
+        }
+
         double integ_time=0.0;
         int step=0;
         while(integ_time < reaction_update_time.value())
@@ -81,6 +94,27 @@
         reactmodel::get_adsorption(cenzymes,solnvec);
         boundenz=cenzymes[0]+cenzymes[1]+cenzymes[2]; //mol/m3
 
+        /*if(boundenz<0.0)
+        {
+           Info << "\nbound enzymes:"<< cenzymes[0]<<"\t"<<cenzymes[1]<<"\t"<<cenzymes[2]<<"\n";
+           Info << "solnvec0:";
+           for(int sp=0;sp<reactmodel::nspecies;sp++)
+           {
+                Info << solnvec0[sp] <<"\t";
+           }
+           Info<<"\n";
+           Info << "solnvec:";
+           for(int sp=0;sp<reactmodel::nspecies;sp++)
+           {
+                Info << solnvec[sp] <<"\t";
+           }
+           Info<<"\n";
+
+           Info<<"solids vfracs phis,phifs,phirs,phils,phixs:"<<phis[i]<<"\t"<<
+               phifs[i]<<"\t"<<phirs[i]<<"\t"<<phils[i]<<"\t"<<phixs[i]<<"\n\n";
+
+        }*/
+
         phifs[i] = solnvec[reactmodel::FGL]*totalmass/rhos.value(); 
         phirs[i] = solnvec[reactmodel::RGL]*totalmass/rhos.value(); 
         phixs[i] = solnvec[reactmodel::XLN]*totalmass/rhos.value(); 
@@ -98,20 +132,18 @@
     }
 
     Info << "finished reaction update..\n";
+
+    #include "updateAvgVals.H"
     /*if(Pstream::master())
     {
         //write integrated quantities
-        os_intquants<<"after reaction:"<<
-            fvc::domainIntegrate(phis).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(phifs).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(phirs).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(phils).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(phixs).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(ceb*(1-phis)).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(cef*(1-phis)).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(cg*(1-phis)).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(cx*(1-phis)).value()/reactorvolume<<"\t"<<
-            fvc::domainIntegrate(cl*(1-phis)).value()/reactorvolume<<"\n";
+        os_intquants<<reaction_time<<"\t";
+        for(unsigned int sp=0;sp<avgvals.size();sp++)
+        {
+            os_intquants<<avgvals[sp]<<"\t";
+        }
+        os_intquants<<"\n";
     }*/
+
     os_intquants.flush();
 }
