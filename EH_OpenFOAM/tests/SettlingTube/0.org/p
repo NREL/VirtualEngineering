@@ -21,17 +21,7 @@ internalField   uniform 100;
 
 boundaryField
 {
-    bottom
-    {
-        type            calculated;
-        value           uniform 100;
-    }
-    top
-    {
-        type            calculated;
-        value           uniform 100;
-    }
-    lateralWall
+    ".*"
     {
         type            calculated;
         value           uniform 100;

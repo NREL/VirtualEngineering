@@ -31,7 +31,7 @@ divSchemes
 
     div(rhoPhi,U)  Gauss linearUpwind grad(U);
     div(phi,U)      Gauss linearUpwind grad(U);
-    div(phi,phis|phifs|phirs|phils|ceb|cef|cg) Gauss vanLeer;
+    div(phi,phis|phifs|phirs|phils|ceb|cef|cg|cx|cl) Gauss vanLeer;
 
     turbulence      Gauss limitedLinear 1;
     div(phi,k)      $turbulence;

@@ -30,9 +30,11 @@ solveNavierStokes no;
 solveTransport    no;
 solveChemistry   yes;
 singlecellrun    yes;   
+rescalefields     no;
 
 reaction_update_time rt  [0 0 1 0 0 0 0] 100.0;  //hours
 fluid_update_time    ft  [0 0 1 0 0 0 0] 0.0;    //seconds
+fluid_steadystate_time  fst  [0 0 1 0 0 0 0] 0.0; //seconds
 reaction_time_step   rts [0 0 1 0 0 0 0] 0.1;    //seconds
 
 // ************************************************************************* //

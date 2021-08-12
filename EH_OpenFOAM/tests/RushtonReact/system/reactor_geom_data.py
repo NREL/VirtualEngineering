@@ -18,10 +18,10 @@ Z0 = 0.0               # bottom of reactor
 Dmrf = (Da+Dt-2*J)/2   # MRF region Diameter
 
 #mesh ========
-nr  = 5  	  # mesh points per unit radial length
-nz  = 10          # mesh points per unit axial length
-Npoly = 1         # mesh points in the polygon at the axis
-Na = 3            # mesh points in the azimuthal direction
+nr  = 8  	  # mesh points per unit radial length
+nz  = 15          # mesh points per unit axial length
+Npoly = 3         # mesh points in the polygon at the axis
+Na = 5            # mesh points in the azimuthal direction
 
 nbaffles = 6          # number of baffles and impeller fins
 

@@ -11,25 +11,17 @@ FoamFile
     format      ascii;
     class       volVectorField;
     location    "0";
-    object      U.gas;
+    object      U;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (0 0.0 0);
+internalField   uniform (0 0 0);
 
 boundaryField
 {
-    bottom
-    {
-        type            noSlip;
-    }
-    top
-    {
-       type            slip;
-    }
-    lateralWall
+    ".*"
     {
         type            noSlip;
     }

@@ -17,19 +17,11 @@ FoamFile
 
 dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 0.0;
+internalField   uniform 0;
 
 boundaryField
 {
-    bottom
-    {
-        type            fixedFluxPressure;
-    }
-    top
-    {
-        type            fixedFluxPressure;
-    }
-    lateralWall
+    ".*"
     {
         type            fixedFluxPressure;
     }

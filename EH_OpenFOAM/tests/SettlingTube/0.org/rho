@@ -17,22 +17,15 @@ FoamFile
 
 dimensions      [1 -3 0 0 0 0 0];
 
-internalField   uniform 1000.0;
+internalField   uniform 1000;
 
 boundaryField
 {
-    bottom
-    {
-        type            zeroGradient;
-    }
-    top
-    {
-        type            zeroGradient;
-    }
-    lateralWall
+    ".*"
     {
         type            zeroGradient;
     }
 }
+
 
 // ************************************************************************* //
