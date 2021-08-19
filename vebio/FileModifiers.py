@@ -1,9 +1,13 @@
 from shutil import copyfile
+import os
 
 def write_file_with_replacements(filename, replacements, full_overwrite=False):
 
+    # Extract the path (if applicable) and the filename
+    head, tail = os.path.split(filename)
+
     # Provide the name of an unchanging backup file to read options from
-    backup_filename = 'bkup_%s' % (filename)
+    backup_filename = os.path.join(head, 'bkup_%s' % (tail))
 
     try:
         # If it already exists (i.e., we've run this code before) simply 
@@ -26,7 +30,7 @@ def write_file_with_replacements(filename, replacements, full_overwrite=False):
 
         # Find the definition of the variable we want to change
         for key, value in replacements.items():
-            if key in line:
+            if key == line.strip()[0:len(key)]:
                 new_value = value
                 del replacements[key]
                 break;
@@ -54,7 +58,7 @@ def write_file_with_replacements(filename, replacements, full_overwrite=False):
                     lhs = line.split()[0]
                     new_line = '%s %s' % (lhs, str(new_value))
 
-                # If the original line terminated with a semicolon, add one
+                # If the original line ended with a semicolon, add one
                 # to the new line as well
                 if ';' in line:
                     new_line = '%s;\n' % (new_line)
