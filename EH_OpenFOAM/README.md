@@ -1,6 +1,6 @@
-# Compilation
+# Running the Enzymatic Hydrolysis OpenFOAM Simulation
 
-1. Compile OpenFOAM-dev using the instructions found in [submodules/README.md](../submodules/README.md).
+1. Compile OpenFOAM-dev using the instructions found in [submodules/README.md](../submodules/README.md).  If OpenFOAM has already been installed using these instructions, skip to Step 2. 
 
 2. Load the modules necessary to make the enzymatic hydrolysis examples:
 
