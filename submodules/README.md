@@ -25,13 +25,13 @@ module load openmpi/1.10.7/gcc-7.3.0
 
 3. Change your directory to the OpenFOAM folder.
 
->**WARNING**: Note that OpenFOAM requires that the *full* path to the directory be entered in this step.  So rather than simply typing `cd submodules/OpenFOAM-dev/` as you normally would, enter the full path `cd /lustre/eaglefs/.../VirtualEngineering/submodules/OpenFOAM-dev/`.  You can check that you've done this correctly by running `pwd` and confirming the path is prefixed with `/lustre/eaglefs/`
+>**WARNING**: Note that OpenFOAM requires that the *full* path to the directory be entered in this step.  So rather than simply typing `cd submodules/OpenFOAM-dev/` as you normally would, enter the full path `cd /lustre/eaglefs/.../VirtualEngineering/submodules/OpenFOAM-dev/`.  You can check that you've done this correctly by running `pwd` and confirming the path to your current location is prefixed with `/lustre/eaglefs/`
 
 ```bash
 cd /lustre/eaglefs/.../VirtualEngineering/submodules/OpenFOAM-dev/
 ```
 
-4. Still in the OpenFOAM directory, source the OpenFOAM bashrc file by with:
+4. Source the OpenFOAM bashrc file by with:
 
 ```bash
 source etc/bashrc
