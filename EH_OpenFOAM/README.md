@@ -1,6 +1,6 @@
 # Compilation
 
-1. Compile OpenFOAM-dev using the instructions found in [submodules/README.md](VirtualEngineering/submodules/README.md).
+1. Compile OpenFOAM-dev using the instructions found in [submodules/README.md](../submodules/README.md).
 
 2. Load the modules necessary to make the enzymatic hydrolysis examples:
 
