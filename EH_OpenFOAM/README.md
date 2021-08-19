@@ -21,7 +21,7 @@ substituting the correct path to the bashrc file as needed if the location of yo
 4. Change directory to the `EHFoam` folder and do `wmake`
 
 ```bash
-cd EH_OpenFOAM/
+cd EH_OpenFOAM/EHFoam/
 wmake
 ```
 
