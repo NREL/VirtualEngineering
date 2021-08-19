@@ -1,0 +1,4 @@
+EHReactModel.C
+EHFoam.C
+
+EXE = $(FOAM_USER_APPBIN)/EHFoam
