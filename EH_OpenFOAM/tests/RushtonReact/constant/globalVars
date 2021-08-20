@@ -1,14 +1,14 @@
 //EH parameters
 
-fis0   0.05;    //fraction of insoluble solids
-XG0    0.62;    //fraction of cellulose in solids   
-XX0    0.06;    //fraction of xylan in solids
-XL0    0.32;    //fraction of lignin in solids
-yF0    0.60;    //fraction of facile glucan in cellulose
-lmbdE  0.02;    //enzyme loading as fraction of glucans
+fis0   0.05;    //fraction of insoluble solids (0.005-0.07)
+XG0    0.62;    //fraction of cellulose in solids (0.3-0.7)
+XX0    0.06;    //fraction of xylan in solids (0.02-0.25)
+XL0    0.32;    //fraction of lignin in solids (0.05-0.68)
+yF0    0.60;    //fraction of facile glucan in cellulose (0.2-0.7)
+lmbdE  0.02;    //enzyme loading as fraction of glucans (0.01-0.1)
 
-rhog0   4.3;    //initial glucose conc (kg/m3)
-rhox0  29.3;    //initial xylose conc (kg/m3)
+rhog0   4.3;    //initial glucose conc (kg/m3) fix this to 1
+rhox0  29.3;    //initial xylose conc (kg/m3) (5-60)
 rhosl0    0;    //initial soluble lignin conc (kg/m3)
 
 rhos 1500.0;    //solids density
