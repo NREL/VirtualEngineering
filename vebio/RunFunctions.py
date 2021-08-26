@@ -85,41 +85,47 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         
         # Export the current state to a dictionary
         ve_params = yaml_to_dict(params_filename)
+        os.chdir('EH_OpenFOAM/tests/RushtonReact/')
                 
         # Prepare input values for EH CFD operation
-        dilution_factor = ve_params['enzymatic_input']['fis_0']/ve_params['pretreatment_output']['fis_0']
-        rho_x0 = ve_params['pretreatment_output']['rho_x']*dilution_factor
-        rho_f0 = ve_params['pretreatment_output']['rho_f']*dilution_factor
- 
-        enzdata_replacements = {}
-        enzdata_replacements['lmbde'] = ve_params['enzymatic_input']['lambda_e']
-        enzdata_replacements['fis0'] = ve_params['enzymatic_input']['fis_0']
-        enzdata_replacements['yF0'] = 0.2 + 0.6*ve_params['pretreatment_output']['conv']
-        enzdata_replacements['fGl0'] = ve_params['pretreatment_output']['X_G']
-        
-        os.chdir('EH_CFD/')
-        write_file_with_replacements('enzdata', enzdata_replacements)
-        
-        # Get dt_ss, dt_react, and dt_fr from enzdata to calculate FINTIME
-        fp = open('enzdata', 'r')
-        dt_ss = 0.0
-        dt_react = 0.0
-        dt_fr = 0.0
-        for line in fp:
-            if '#' not in line:
-                if 'dt_ss' in line:
-                    dt_ss = float(line.split('=')[1])
-                elif 'dt_react' in line:
-                    dt_react = float(line.split('=')[1])
-                elif 'dt_fr' in line:
-                    dt_fr = float(line.split('=')[1])
-        fp.close()
-        
-        fintime = dt_ss + (ve_params['enzymatic_input']['t_final']/dt_react)*dt_fr
+        globalVars = {}
 
-        paddle_rea_replacements = {}
-        paddle_rea_replacements['FINTIME'] = '   %.5f     p010 FINTIME 480\n' % (fintime)
-        write_file_with_replacements('paddle.rea', paddle_rea_replacements, full_overwrite=True)
+        globalVars['fis0'] = ve_params['enzymatic_input']['fis_0']
+        globalVars['xG0'] = ve_params['pretreatment_output']['X_G']
+        globalVars['xX0'] = ve_params['pretreatment_output']['X_X']
+        globalVars['XL0'] = 1.0 - globalVars['xG0'] - globalVars['xX0']
+        globalVars['yF0'] = 0.2 + 0.6*ve_params['pretreatment_output']['conv']
+        globalVars['lmbdE'] = ve_params['enzymatic_input']['lambda_e']
+        globalVars['rhog0'] = 0.0
+        dilution_factor = ve_params['enzymatic_input']['fis_0']/ve_params['pretreatment_output']['fis_0']
+        globalVars['rhox0'] = ve_params['pretreatment_output']['rho_x']*dilution_factor
+        globalVars['rhosl0'] = 0.0
+
+        write_file_with_replacements('constant/globalVars', globalVars)
+        
+        # Get reaction_update_time, fluid_update_time, and fluid_steadystate_time
+        # in order to convert the user-specified t_final into the endTime definition
+        # expected by the OpenFOAM simulation
+        reaction_update_time = 1.0
+        fluid_update_time = 250.0
+        fluid_steadystate_time = 400.0
+
+        with open('constant/EHProperites', 'r') as fp:
+            for line in fp:
+                if '#' not in line:
+                    if 'reaction_update_time' in line:
+                        reaction_update_time = float(line.split(']')[-1].split(';')[0])
+                    elif 'fluid_update_time' in line:
+                        fluid_update_time = float(line.split(']')[-1].split(';')[0])
+                    elif 'fluid_steadystate_time' in line:
+                        fluid_steadystate_time = float(line.split(']')[-1].split(';')[0])
+        
+
+        controlDict = {}
+        fintime = fluid_steadystate_time + (ve_params['enzymatic_input']['t_final']/reaction_update_time + 1.0)*fluid_update_time
+        controlDict['endTime'] = fintime
+
+        write_file_with_replacements('system/controlDict', controlDict)
 
         if hpc_run:
             command = "srun hostname"
@@ -127,18 +133,28 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
             num_nodes = len(host_list)
             max_cores = int(36*num_nodes)
 
-            command = "sh run.sh $s" % max_cores
+            command = "sbatch ofoamjob"
             subprocess.run(command.split())
         else:
             print('Cannot run EH_CFD without HPC resources.')
-            print('$ ./run.sh $max_cores') # not sure of the purpose of this line, JJS
             print(os.getcwd())
             
         # Prepare output values from EH CFD operations
         # FIXME: rho_g should be value taken from CFD output - should be good now, please check, JJS 9/15/20
         
         # per Hari's email, glucose concentration in fort.44 is mol/L
-        c_g_output = np.genfromtxt('fort.44') # mol/L
+        integrated_quantities = np.genfromtxt('integrated_quantities.dat', delimiter=' ') # mol/L
+
+
+        '''
+
+
+        This code represents the conversion that used to be necessary for the NEK 5000 simulation
+        outputs, it's preserved here for reference but shouldn't be necessary for the new
+        OpenFOAM version of EH.  Although it still may be necessary to calculate a version of
+        dilution_factor_final and use it to scale the final four output values.
+
+
         rho_g_final = float(c_g_output[-1, 1])*180 # g/L
         
         # back-calculate fis from conversion value
@@ -157,11 +173,15 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         dilution_factor_final = 1.0
         rho_x_final = rho_x0*dilution_factor_final
         rho_f_final = rho_f0*dilution_factor_final
+
+        '''
+
         
         output_dict = {'enzymatic_output': {}}
-        output_dict['enzymatic_output']['rho_g'] = rho_g_final
-        output_dict['enzymatic_output']['rho_x'] = rho_x_final
-        output_dict['enzymatic_output']['rho_f'] = rho_f_final
+        output_dict['enzymatic_output']['rho_g'] = integrated_quantities[-1, -3]
+        output_dict['enzymatic_output']['rho_x'] = integrated_quantities[-1, -2]
+        output_dict['enzymatic_output']['rho_sl'] = integrated_quantities[-1, -1]
+        output_dict['enzymatic_output']['rho_f'] = ve_params['pretreatment_output']['rho_f']*dilution_factor
         
         os.chdir(notebookDir)
 
@@ -190,34 +210,32 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
     # Run the selected CFD or surrogate model
     if br_options.use_cfd.value:
         # Convert the current parameters file to a dictionary
-        ve_params = yaml_to_dict(params_filename)        
+        ve_params = yaml_to_dict(params_filename)
+
+        os.chdir('bioreactor/bubble_column/')
 
         # Make changes to the fvOptions file based on replacement options
-        fvOptions_replacements = {}
-        for key, value in ve_params['enzymatic_output'].items():
-            fvOptions_replacements['double %s' % (key)] = value
+        fvOptions = {}
 
-        os.chdir('bioreactor/bubble_column/constant/')
-        write_file_with_replacements('fvOptions', fvOptions_replacements)
-        os.chdir(notebookDir)
+        fvOptions['rho_g'] = ve_params['enzymatic_output']['rho_g']
+        fvOptions['rho_x'] = ve_params['enzymatic_output']['rho_x']
+        fvOptions['rho_f'] = ve_params['enzymatic_output']['rho_f']
+
+        write_file_with_replacements('constant/fvOptions', fvOptions)
         
         # Make changes to the controlDict file based on replacement options
-        controlDict_replacements = {}
-        controlDict_replacements['endTime '] = ve_params['bioreactor_input']['t_final']
+        controlDict = {}
+        controlDict['endTime'] = ve_params['bioreactor_input']['t_final']
         
-        os.chdir('bioreactor/bubble_column/system/')
-        write_file_with_replacements('controlDict', controlDict_replacements)
-        os.chdir(notebookDir)
+        write_file_with_replacements('system/controlDict', controlDict_replacements)
 
         # Run the bioreactor model
-        os.chdir('bioreactor/bubble_column/')
         if hpc_run:
             # call function to update ovOptions # fvOptions?
             command = "sbatch ofoamjob"
             subprocess.run(command.split())
         else:
             print('Cannot run bioreactor without HPC resources.')
-            print('$ sbatch ofoamjob') # not sure of the purpose of this line, JJS
             print(os.getcwd())
             
         output_dict = {'bioreactor_output': {}}
