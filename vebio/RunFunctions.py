@@ -127,14 +127,77 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
 
         write_file_with_replacements('system/controlDict', controlDict)
 
-        if hpc_run:
-            command = "srun hostname"
-            host_list = subprocess.run(command.split(), capture_output=True).stdout.decode()
-            num_nodes = len(host_list)
-            max_cores = int(36*num_nodes)
+        '''
+        import numpy as np
+        import subprocess
+        import os
+        
+        def check_queue(username, jobname):
+            command = 'squeue -u %s -t R,PD -n %s' % (username, jobname)
+            out = subprocess.run(command.split(), capture_output=True, text=True)
+            print(out.stdout)
+            
+            if username in out.stdout:
+                # Job is running, do nothing
+                print('Job is already running')
+                job_id = out.stdout.strip().split('\\n')[-1].split()[0]
+                
+            else:
+                # Job is not running, submit it
+                command = 'sbatch --job-name=%s dummy_job.sbatch' % (jobname)
+                out = subprocess.run(command.split(), capture_output=True, text=True)
+                print(out.stdout)
+                job_id = out.stdout.strip().split()[-1]
+                
+                with open('job_history.csv', 'a') as fp:
+                    fp.write('%s\\n' % (job_id))
+                
+            print(job_id, len(job_id))
+                
+        username = os.environ['USER']
+        
+        check_queue(username, 'dummy_job')
+        '''
 
-            command = "sbatch ofoamjob"
-            subprocess.run(command.split())
+
+        if hpc_run:
+            # command = "srun hostname"
+            # host_list = subprocess.run(command.split(), capture_output=True).stdout.decode()
+            # num_nodes = len(host_list)
+            # max_cores = int(36*num_nodes)
+
+            username = os.environ['USER']
+            jobname = 'eh_cfd'
+
+            command = 'squeue -u %s -t R,PD -n %s' % (username, jobname)
+            out = subprocess.run(command.split(), capture_output=True, text=True)
+
+            if username in out.stdout:
+                # Job is running, do nothing
+                print('EH CFD job is already queued.')
+                job_id = out.stdout.strip().split('\\n')[-1].split()[0]
+
+                if eh_options.use_previous_output.value:
+                    integrated_quantities = np.genfromtxt('old_integrated_quantities.dat', delimiter=' ') # mol/L
+
+            else:
+                # Job is not running, submit it
+                print('Submitting EH CFD job.')
+                command = 'sbatch --job-name=%s ofoamjob' % (jobname)
+                out = subprocess.run(command.split(), capture_output=True, text=True)
+                print(out.stdout)
+                job_id = out.stdout.strip().split()[-1]
+                
+                with open('job_history.csv', 'a') as fp:
+                    fp.write('%s\\n' % (job_id))
+                    
+                os.chdir(notebookDir)
+
+                return
+
+
+            print('Job ID = %s' % (job_id))
+
         else:
             print('Cannot run EH_CFD without HPC resources.')
             print(os.getcwd())
@@ -143,7 +206,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         # FIXME: rho_g should be value taken from CFD output - should be good now, please check, JJS 9/15/20
         
         # per Hari's email, glucose concentration in fort.44 is mol/L
-        integrated_quantities = np.genfromtxt('integrated_quantities.dat', delimiter=' ') # mol/L
+        # integrated_quantities = np.genfromtxt('integrated_quantities.dat', delimiter=' ') # mol/L
 
 
         '''
