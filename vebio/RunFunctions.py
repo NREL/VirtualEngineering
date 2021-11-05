@@ -172,6 +172,12 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
             command = 'squeue -u %s -t R,PD -n %s' % (username, jobname)
             out = subprocess.run(command.split(), capture_output=True, text=True)
 
+            output_dict = {'enzymatic_output': {}}
+            output_dict['enzymatic_output']['rho_g'] = np.nan
+            output_dict['enzymatic_output']['rho_x'] = np.nan
+            output_dict['enzymatic_output']['rho_sl'] = np.nan
+            output_dict['enzymatic_output']['rho_f'] = np.nan
+
             if username in out.stdout:
                 # Job is running, do nothing
                 print('EH CFD job is already queued.')
@@ -179,6 +185,11 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
 
                 if eh_options.use_previous_output.value:
                     integrated_quantities = np.genfromtxt('old_integrated_quantities.dat', delimiter=' ') # mol/L
+                    output_dict = {'enzymatic_output': {}}
+                    output_dict['enzymatic_output']['rho_g'] = integrated_quantities[-1, -3]
+                    output_dict['enzymatic_output']['rho_x'] = integrated_quantities[-1, -2]
+                    output_dict['enzymatic_output']['rho_sl'] = integrated_quantities[-1, -1]
+                    output_dict['enzymatic_output']['rho_f'] = ve_params['pretreatment_output']['rho_f']*dilution_factor
 
             else:
                 # Job is not running, submit it
@@ -190,11 +201,6 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
                 
                 with open('job_history.csv', 'a') as fp:
                     fp.write('%s\\n' % (job_id))
-                    
-                os.chdir(notebookDir)
-
-                return
-
 
             print('Job ID = %s' % (job_id))
 
@@ -240,11 +246,11 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         '''
 
         
-        output_dict = {'enzymatic_output': {}}
-        output_dict['enzymatic_output']['rho_g'] = integrated_quantities[-1, -3]
-        output_dict['enzymatic_output']['rho_x'] = integrated_quantities[-1, -2]
-        output_dict['enzymatic_output']['rho_sl'] = integrated_quantities[-1, -1]
-        output_dict['enzymatic_output']['rho_f'] = ve_params['pretreatment_output']['rho_f']*dilution_factor
+        # output_dict = {'enzymatic_output': {}}
+        # output_dict['enzymatic_output']['rho_g'] = integrated_quantities[-1, -3]
+        # output_dict['enzymatic_output']['rho_x'] = integrated_quantities[-1, -2]
+        # output_dict['enzymatic_output']['rho_sl'] = integrated_quantities[-1, -1]
+        # output_dict['enzymatic_output']['rho_f'] = ve_params['pretreatment_output']['rho_f']*dilution_factor
         
         os.chdir(notebookDir)
 
@@ -270,10 +276,11 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
     br_dict = br_options.export_widgets_to_dict('bioreactor_input')
     dict_to_yaml(br_dict, params_filename, merge_with_existing=True)
 
+    # Convert the current parameters file to a dictionary
+    ve_params = yaml_to_dict(params_filename)
+
     # Run the selected CFD or surrogate model
     if br_options.use_cfd.value:
-        # Convert the current parameters file to a dictionary
-        ve_params = yaml_to_dict(params_filename)
 
         os.chdir('bioreactor/bubble_column/')
 
@@ -309,9 +316,12 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
         dict_to_yaml([ve_params, output_dict], params_filename)
         
     else:
-        os.chdir('bioreactor/bubble_column/surrogate_model')
-        path_to_input_file = '%s/%s' % (notebookDir, params_filename)
-        run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
-        os.chdir(notebookDir)
+        if np.isnan(output_dict['enzymatic_output']['rho_g']):
+            print('Waiting for EH CFD results.')
+        else:
+            os.chdir('bioreactor/bubble_column/surrogate_model')
+            path_to_input_file = '%s/%s' % (notebookDir, params_filename)
+            run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
+            os.chdir(notebookDir)
 
     print('\nFinished Bioreactor')
