@@ -117,7 +117,7 @@ print()
 if ve_params['enzymatic_input']['show_plots']:
 
     # adjust fonts for nice display in Jupyter notebook
-    font={'family':'Helvetica', 'size':'15'}
+    font={'family':'Sans', 'size':'15'}
     mpl.rc('font',**font)
     mpl.rc('xtick',labelsize=14)
     mpl.rc('ytick',labelsize=14)
