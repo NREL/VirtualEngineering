@@ -316,7 +316,7 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
         dict_to_yaml([ve_params, output_dict], params_filename)
         
     else:
-        if np.isnan(output_dict['enzymatic_output']['rho_g']):
+        if np.isnan(ve_params['enzymatic_output']['rho_g']):
             print('Waiting for EH CFD results.')
         else:
             os.chdir('bioreactor/bubble_column/surrogate_model')
