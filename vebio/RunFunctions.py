@@ -184,7 +184,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
                 job_id = out.stdout.strip().split('\n')[-1].split()[0]
 
                 if eh_options.use_previous_output.value:
-                    integrated_quantities = np.genfromtxt('old_integrated_quantities.dat', delimiter=' ') # mol/L
+                    integrated_quantities = np.genfromtxt('old_integrated_quantities.dat') # mol/L
                     output_dict = {'enzymatic_output': {}}
                     output_dict['enzymatic_output']['rho_g'] = integrated_quantities[-1, -3]
                     output_dict['enzymatic_output']['rho_x'] = integrated_quantities[-1, -2]
