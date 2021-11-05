@@ -110,7 +110,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         fluid_update_time = 250.0
         fluid_steadystate_time = 400.0
 
-        with open('constant/EHProperites', 'r') as fp:
+        with open('constant/EHProperties', 'r') as fp:
             for line in fp:
                 if '#' not in line:
                     if 'reaction_update_time' in line:
@@ -297,7 +297,7 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
         controlDict = {}
         controlDict['endTime'] = ve_params['bioreactor_input']['t_final']
         
-        write_file_with_replacements('system/controlDict', controlDict_replacements)
+        write_file_with_replacements('system/controlDict', controlDict)
 
         # Run the bioreactor model
         if hpc_run:
