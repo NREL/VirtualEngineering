@@ -181,7 +181,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
             if username in out.stdout:
                 # Job is running, do nothing
                 print('EH CFD job is already queued.')
-                job_id = out.stdout.strip().split('\\n')[-1].split()[0]
+                job_id = out.stdout.strip().split('\n')[-1].split()[0]
 
                 if eh_options.use_previous_output.value:
                     integrated_quantities = np.genfromtxt('old_integrated_quantities.dat', delimiter=' ') # mol/L
@@ -200,7 +200,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
                 job_id = out.stdout.strip().split()[-1]
                 
                 with open('job_history.csv', 'a') as fp:
-                    fp.write('%s\\n' % (job_id))
+                    fp.write('%s\n' % (job_id))
 
             print('Job ID = %s' % (job_id))
 
