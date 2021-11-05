@@ -181,15 +181,16 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
             if username in out.stdout:
                 # Job is running, do nothing
                 print('EH CFD job is already queued.')
+                print(out.stdout)
                 job_id = out.stdout.strip().split('\n')[-1].split()[0]
 
                 if eh_options.use_previous_output.value:
                     integrated_quantities = np.genfromtxt('old_integrated_quantities.dat') # mol/L
                     output_dict = {'enzymatic_output': {}}
-                    output_dict['enzymatic_output']['rho_g'] = integrated_quantities[-1, -3]
-                    output_dict['enzymatic_output']['rho_x'] = integrated_quantities[-1, -2]
-                    output_dict['enzymatic_output']['rho_sl'] = integrated_quantities[-1, -1]
-                    output_dict['enzymatic_output']['rho_f'] = ve_params['pretreatment_output']['rho_f']*dilution_factor
+                    output_dict['enzymatic_output']['rho_g'] = float(integrated_quantities[-1, -3])
+                    output_dict['enzymatic_output']['rho_x'] = float(integrated_quantities[-1, -2])
+                    output_dict['enzymatic_output']['rho_sl'] = float(integrated_quantities[-1, -1])
+                    output_dict['enzymatic_output']['rho_f'] = float(ve_params['pretreatment_output']['rho_f']*dilution_factor)
 
             else:
                 # Job is not running, submit it
