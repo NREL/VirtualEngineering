@@ -260,6 +260,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         dict_to_yaml([ve_params, output_dict], params_filename)
         
     else:
+        '''
         path_to_input_file = os.path.join(notebookDir, params_filename)
         os.chdir('two_phase_batch_model/')
         # Commenting out cellulose-only two-phase model to use lignocellulose
@@ -267,6 +268,11 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         # option. The lignocellulose model is superior.
         #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
         run_script("driver_batch_lignocell_EH_VE.py", path_to_input_file, verbose=verbose)
+        os.chdir(notebookDir)
+        '''
+        path_to_input_file = os.path.join(notebookDir, params_filename)
+        os.chdir('EH_OpenFOAM/EH_surrogate/')
+        run_script("EH_surrogate.py", path_to_input_file, verbose=verbose)
         os.chdir(notebookDir)
 
     print('\nFinished Enzymatic Hydrolysis')

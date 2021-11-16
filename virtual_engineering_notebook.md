@@ -205,9 +205,9 @@ eh_options.fis_0 = widgets.BoundedFloatText(
 )
 
 eh_options.t_final = widgets.BoundedFloatText(
-    value = 100.0,
+    value = 24.0,
     min = 1.0,
-    max = 1e16,
+    max = 24.0,
     description = 'Final Time',
     description_tooltip = r'The total time of the simulation (h).  Must be $\geq$ 1'
 )
