@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.2'
-      jupytext_version: 1.8.0
+      jupytext_version: 1.7.1
   kernelspec:
     display_name: Python 3
     language: python
@@ -205,21 +205,25 @@ eh_options.fis_0 = widgets.BoundedFloatText(
 )
 
 eh_options.t_final = widgets.BoundedFloatText(
-    value = 100.0,
+    value = 24.0,
     min = 1.0,
-    max = 1e16,
+    max = 24.0,
     description = 'Final Time',
     description_tooltip = r'The total time of the simulation (h).  Must be $\geq$ 1'
 )
 
-eh_options.show_plots = widgets.Checkbox(
-    value = False,
-    description_tooltip = 'Show Plots'
+eh_options.model_type = widgets.RadioButtons(
+    options = ['Lignocellulose Model', 'CFD Surrogate', 'CFD Simulation'],
+    value = 'CFD Surrogate',
+    description = 'Model',
+    disabled = False,
+    description_tooltip = 'Specifies the solver to use for the EH step, "High-Fidelity CFD" requires HPC resources.'
 )
 
-eh_options.use_cfd = widgets.Checkbox(
+eh_options.show_plots = widgets.Checkbox(
     value = False,
-    description_tooltip = 'Use High-Fidelity CFD (Requires HPC Resources)',
+    description_tooltip = 'Show Plots',
+    disabled = True,
 )
 
 #================================================================
@@ -229,18 +233,21 @@ eh_options.display_all_widgets()
 
 #================================================================
 
-def use_cfd_action(b):
-    if eh_options.use_cfd.value:
-        eh_options.show_plots.value = False
-        eh_options.show_plots.disabled = True
-        eh_options.show_plots.description_tooltip = 'Show Plots (Not available for CFD operation)'
-    else:
+def model_type_action(change):
+        
+    if eh_options.model_type.value == 'Lignocellulose Model':
+        # Lignocellulose Model
         eh_options.show_plots.value = False
         eh_options.show_plots.disabled = False
         eh_options.show_plots.description_tooltip = 'Show Plots'
 
+    else:
+        # Surrogate Model, CFD Simulation
+        eh_options.show_plots.value = False
+        eh_options.show_plots.disabled = True
+        eh_options.show_plots.description_tooltip = 'Show Plots (Only available for lignocellulose model)'
 
-eh_options.use_cfd.observe(use_cfd_action)
+eh_options.model_type.observe(model_type_action, names='value')
 ```
 
 ---
