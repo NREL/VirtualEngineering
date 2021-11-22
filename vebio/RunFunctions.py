@@ -8,7 +8,19 @@ from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml
 
 def run_script(filename, *args, verbose=True):
-    """ Execute the contents of a file (`filename`). Optional arguments may be provided. """
+    """ Execute the contents of a file.
+
+    This function will attempt to execute the contents of a file specified
+    with ``filename`` using the Python ``exec`` function.  No error checking
+    is performed on the source file to be executed.
+
+    Args:
+        filename (str):
+            The filename to execute line by line.
+        
+
+    """
+
     sys.argv = [filename]
     sys.argv.extend(args)
     exec_file = open(filename)
@@ -119,7 +131,6 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
                         fluid_update_time = float(line.split(']')[-1].split(';')[0])
                     elif 'fluid_steadystate_time' in line:
                         fluid_steadystate_time = float(line.split(']')[-1].split(';')[0])
-        
 
         controlDict = {}
         fintime = fluid_steadystate_time + (ve_params['enzymatic_input']['t_final']/reaction_update_time + 1.0)*fluid_update_time
