@@ -126,7 +126,7 @@ pt_options.steam_temperature = widgets.BoundedFloatText(
     max = 250.3,
     min = 3.8,
     description = 'Steam Temperature',
-    description_tooltip = r'The fixed temperature of the steam ($^\circ$ C).',
+    description_tooltip = r'The fixed temperature of the steam ($^\circ$C).',
 )
 # Conversion from celsius to kelvin
 pt_options.steam_temperature.scaling_fn = lambda C : C + 273.15
@@ -200,7 +200,7 @@ eh_options.lambda_e = widgets.BoundedFloatText(
     max = 1000.0,
     min = 0.0,
     description = 'Enzymatic Load',
-    description_tooltip = 'Ratio of the enzyme mass to the total solution mass (mg/g).  Must be in the range [0, 1000.0]'
+    description_tooltip = 'Ratio of the enzyme mass to the total solution mass (mg/g).  Must be in the range [0, 1000]'
 )
 # Conversion from mg/g to kg/kg
 eh_options.lambda_e.scaling_fn = lambda e : 0.001 * e
@@ -281,11 +281,6 @@ br_options.t_final = widgets.BoundedFloatText(
                                     # is this really 'h'? current quasi-steady simulations only run tens of seconds
 )
 
-# br_options.use_cfd = widgets.Checkbox(
-#     value = False,
-#     description_tooltip = 'Use High-Fidelity CFD (Requires HPC Resources)',
-# )
-
 #================================================================
 
 # Display the widgets
@@ -343,63 +338,29 @@ run_button.on_click(run_button_action)
 ---
 
 ```python
-# INPUTS
-# Gas velocity = 0.08
-# Column height = 40.00
-# Column diameter = 5.00
-# Bubble diameter = 0.0060
-# OUR_max = 88.13
-# t_final = 100.0
-# FINAL OUTPUTS (at t = 100.0 seconds)
-# OUR = 0.0575
+a = HTML('''<script>
+code_show=true; 
+function code_toggle() {
+ if (code_show){
+ $('div.input').hide();
+ } else {
+ $('div.input').show();
+ }
+ code_show = !code_show
+} 
+$( document ).ready(code_toggle);
+</script>
+<form action="javascript:code_toggle()"><input type="submit" \
+value="Toggle code visibility (hidden by default)."></form>''')
 
-# a = HTML('''<script>
-# code_show=true; 
-# function code_toggle() {
-#  if (code_show){
-#  $('div.input').hide();
-#  } else {
-#  $('div.input').show();
-#  }
-#  code_show = !code_show
-# } 
-# $( document ).ready(code_toggle);
-# </script>
-# <form action="javascript:code_toggle()"><input type="submit" \
-# value="Toggle code visibility (hidden by default)."></form>''')
-
-# display(a)
+display(a)
 ```
 
 ```python
-# reload "run functions" code if needed
-if False:
-    from importlib import reload
-    import vebio.RunFunctions
-    reload(vebio.RunFunctions)
-    from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
-```
-
-```python
-def temp(a, parent=None):
-    print(a, parent)
-    
-    
-temp(4, parent=6)
-```
-
-```python
-import numpy as np
-from scipy import interpolate as interp
-steam = np.genfromtxt('sat_steam_table.csv', delimiter=',', skip_header=1)
-# print(np.shape(steam))
-# print(steam)
-
-x = interp.interp1d(steam[:, 1], steam[:, 3])
-y = x(150)
-print(y, y/18.01528/1000.0)
-```
-
-```python
-
+# # reload "run functions" code if needed
+# if False:
+#     from importlib import reload
+#     import vebio.RunFunctions
+#     reload(vebio.RunFunctions)
+#     from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 ```
