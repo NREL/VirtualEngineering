@@ -11,62 +11,63 @@ class WidgetCollection:
     def display_all_widgets(self):
         
         # Set default viewing options
-        description_width = 175
         widget_width = 350
-        info_width = 300
-        padding = 10
+        description_width = 125
+        html_width = 350
+        padding = 5
         
         # Define display options
+        default_widget_layout = {'width': '%dpx' % (widget_width)}
         widget_style = {'description_width': '%dpx' % (description_width)}
-        info_layout = {'margin': '0px 0px 0px %dpx' % (2*padding), 'width':'%dpx' % (info_width)}
-        # box_layout = {'padding': '10px'}
+        html_layout = {'width':'%dpx' % (html_width), 'margin': '0px 0px 0px %dpx' % (2*padding)}
         box_layout = {'padding': '0px %dpx 0px %dpx' % (padding, padding), 'align_items': 'center'}
 
         # For every widget
-        for item in self.__dict__.items():
+        for widget_name, widget in self.__dict__.items():
 
-            widget_layout = {'width': '%dpx' % (widget_width)}
+            widget_layout = default_widget_layout.copy()
 
-            # Extract the first object
-            w = item[1]
-
-            if hasattr(w, 'contains_sub_widgets'):
-                w.lower.style = widget_style
+            if hasattr(widget, 'contains_sub_widgets'):
+                widget.lower.style = widget_style
                 
                 sub_width = int((widget_width - description_width)/2.0 - 2.0)
                 
-                w.lower.layout = {'width': '%dpx' % (description_width + sub_width)}
-                w.upper.layout = {'width': '%dpx' % (sub_width)}
+                widget.lower.layout = {'width': '%dpx' % (description_width + sub_width)}
+                widget.upper.layout = {'width': '%dpx' % (sub_width)}
                 
-                myLabel = widgets.HTMLMath(
-                    value = w.lower.description_tooltip,
-                    layout = info_layout
+                html_label = widgets.HTMLMath(
+                    value = widget.lower.description_tooltip,
+                    layout = html_layout
                 )
                 
-                w.box = HBox([w.lower, w.upper, myLabel], layout = box_layout)
+                hbox = HBox([widget.lower, widget.upper, html_label], layout = box_layout)
 
             else:
                 # Set this widget's style and layout
-                w.style = widget_style
+                widget.style = widget_style
 
-                if type(w) == Checkbox:
-                    shift_amt = 0.88*(widget_width - description_width)
+                if type(widget) == Checkbox:
+                    shift_amt = (widget_width - description_width) - 22
                     widget_layout.update({'padding': '0px 0px 0px %dpx ' % (shift_amt)})
 
-                if hasattr(w, 'custom_layout'):
-                    widget_layout.update(w.custom_layout)
+                elif type(widget) == RadioButtons:
+                    height = (len(widget.options)-2)*20 + 2*24
+                    widget_layout.update({'height': '%dpx' % (height)})
 
-                w.layout = widget_layout
+                if hasattr(widget, 'custom_layout'):
+                    widget_layout.update(widget.custom_layout)
 
-                myLabel = widgets.HTMLMath(
-                    value = w.description_tooltip,
-                    layout = info_layout
+                widget.layout = widget_layout
+
+                html_label = widgets.HTMLMath(
+                    value = widget.description_tooltip,
+                    layout = html_layout
                 )
 
                 # Organize this widget with more layout options
-                w.box = HBox([w, myLabel], layout = box_layout)
+                hbox = HBox([widget, html_label], layout = box_layout)
 
-            display(w.box)
+            display(hbox)
 
     def export_widgets_to_dict(self, parent_name=None):
         
