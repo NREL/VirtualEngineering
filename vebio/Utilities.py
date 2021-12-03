@@ -1,31 +1,18 @@
-import subprocess
+import os
 import yaml
 
 def get_host_computer():
 
-    hpc_run = False
+    nrel_cluster = os.environ.get('NREL_CLUSTER')
 
-    filename = 'hostname_info.txt'
-    bash_command = 'hostnamectl'
+    if nrel_cluster == 'eagle':
+        hpc_run = True
 
-    output_file = open(filename, 'w')
-    try:
-        process = subprocess.run(bash_command.split(), stdout=output_file)
-    except:
-        output_file.write('No hostname command found.')
-    output_file.close()
+    else:
+        hpc_run = False
 
-
-    input_file = open(filename, 'r')
-    for line in input_file:
-        if 'computer-server' in line:
-            hpc_run = True
-            break
-    input_file.close()
-
-    if not hpc_run:
         print('It looks like you\'re running this notebook on a laptop.')
-        print('Some operations requiring HPC resources will be disabled.')
+        print('Operations requiring HPC resources will be disabled.')
 
     return hpc_run
 
@@ -45,6 +32,7 @@ def print_dict(dict_to_print, indent=0):
             for j in range(indent):
                 print('  ', end='')
             print('["%s"] = ' % (key), value)
+
 
 def dict_to_yaml(dictionary_to_write, yaml_filename, merge_with_existing=False, verbose=False):
     if type(dictionary_to_write) is not dict and type(dictionary_to_write) is not list:
