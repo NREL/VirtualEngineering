@@ -4,6 +4,9 @@ import contextlib
 import subprocess
 import glob
 
+from scipy.interpolate import interp1d
+import numpy as np
+
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml
 
@@ -32,8 +35,20 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     print('Running Pretreatment Model')
     
     # Export the feedstock and pretreatment options to a global yaml file
-    fs_dict = fs_options.export_widgets_to_dict('feedstock')
-    pt_dict = pt_options.export_widgets_to_dict('pretreatment_input')
+    fs_dict = fs_options.export_widgets_to_dict(parent_name='feedstock')
+    pt_dict = pt_options.export_widgets_to_dict(parent_name='pretreatment_input')
+
+    # Obtain steam concentration from lookup table and add to dictionary
+    steam_data = np.genfromtxt('sat_steam_table.csv', delimiter=',', skip_header=1)
+
+    # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
+    interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
+    dens = interp_steam(pt_dict['pretreatment_input']['steam_temperature'])
+
+    # Convert to mol/ml => density in g/L / molecular weight / 1000.0
+    mol_per_ml = float(dens/18.01528/1000.0)
+    pt_dict['pretreatment_input']['bulk_steam_conc'] = mol_per_ml
+
     dict_to_yaml([fs_dict, pt_dict], params_filename)
 
     # Move into the pretreatment directory
@@ -77,7 +92,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
     print('\nRunning Enzymatic Hydrolysis Model')
 
     # Export the enzymatic hydrolysis options to a global yaml file
-    eh_dict = eh_options.export_widgets_to_dict('enzymatic_input')
+    eh_dict = eh_options.export_widgets_to_dict(parent_name='enzymatic_input')
     dict_to_yaml(eh_dict, params_filename, merge_with_existing=True)
     
     # Run the selected enzymatic hydrolysis model
@@ -284,14 +299,14 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
     print('\nRunning Bioreactor Model')
 
     # Export the bioreactor options to a global yaml file
-    br_dict = br_options.export_widgets_to_dict('bioreactor_input')
+    br_dict = br_options.export_widgets_to_dict(parent_name='bioreactor_input')
     dict_to_yaml(br_dict, params_filename, merge_with_existing=True)
 
     # Convert the current parameters file to a dictionary
     ve_params = yaml_to_dict(params_filename)
 
     # Run the selected CFD or surrogate model
-    if br_options.use_cfd.value:
+    if br_options.model_type.value == 'CFD Simulation':
 
         os.chdir('bioreactor/bubble_column/')
 
@@ -331,7 +346,7 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
             print('Waiting for EH CFD results.')
         else:
             os.chdir('bioreactor/bubble_column/surrogate_model')
-            path_to_input_file = '%s/%s' % (notebookDir, params_filename)
+            path_to_input_file = os.path.join(notebookDir, params_filename)
             run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
             os.chdir(notebookDir)
 
