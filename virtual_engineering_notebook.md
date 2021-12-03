@@ -22,9 +22,6 @@ The first step is to select "Cell" > "Run All" from the toolbar.  This will init
 <img src="three_unit_flow.png" alt="flowchart" width="800"/>
 
 ```python
-# I'm not sure `%reset` is necessary; it also messes up the notebookdir variable if we end up in a
-# different directory after an error
-#%reset -f 
 from ipywidgets import *
 from IPython.display import HTML, clear_output
 import os
@@ -66,7 +63,7 @@ Set the feedstock properties.
 ```python
 #================================================================
 
-# Create the collection of widgets
+# Create the collection of widgets for feedstock options
 fs_options = wf.WidgetCollection()
 
 fs_options.xylan_solid_fraction = widgets.BoundedFloatText(
@@ -89,8 +86,8 @@ fs_options.initial_porosity = widgets.BoundedFloatText(
     value = 0.8,
     max = 1,
     min = 0,
-    description = r'initial porosity',
-    description_tooltip = 'The initial forous fraction of the biomass particles.  Must be in the range [0, 1]'
+    description = r'Initial Porosity',
+    description_tooltip = 'The initial porous fraction of the biomass particles.  Must be in the range [0, 1]'
 )
 
 
@@ -112,7 +109,7 @@ Set the options for the pretreatment operation below.
 ```python
 #================================================================
 
-# Create the collection of widgets
+# Create the collection of widgets for pretreatment options
 pt_options = wf.WidgetCollection()
 
 #### this needs to be changed to g acid / g bone-dry biomass (then converted in the run function) ####
@@ -124,23 +121,25 @@ pt_options.initial_acid_conc = widgets.BoundedFloatText(
     description_tooltip = 'The initial concentration of acid (mol/mL).  Must be in the range [0, 1]'
 )
 
-#### this should be oC and then converted to K in the run function ####
 pt_options.steam_temperature = widgets.BoundedFloatText(
-    value = 423,
-    max = 1000,
-    min = 100,
+    value = 150.0,
+    max = 250.3,
+    min = 3.8,
     description = 'Steam Temperature',
-    description_tooltip = r'The fixed temperature of the steam (K).'
+    description_tooltip = r'The fixed temperature of the steam ($^\circ$C).',
 )
+# Conversion from celsius to kelvin
+pt_options.steam_temperature.scaling_fn = lambda C : C + 273.15
 
-#### this would better as steam density, kg/m^3, OR pulled from a saturated steam table #### 
-pt_options.bulk_steam_conc = widgets.BoundedFloatText(
-    value = 0.0001,
-    max = 1.0,
-    min = 0.0,
-    description = 'Bulk Steam Concentration',
-    description_tooltip = 'The ambient steam concentration (mol/mL).  Must be in the range [0, 1]'
-)
+# This has been replaced with a value from a saturated steam
+# lookup table based on temperature in the pretreatment run function.
+# pt_options.bulk_steam_conc = widgets.BoundedFloatText(
+#     value = 0.0001,
+#     max = 1.0,
+#     min = 0.0,
+#     description = 'Bulk Steam Concentration',
+#     description_tooltip = 'The ambient steam concentration (mol/mL).  Must be in the range [0, 1]'
+# )
 
 pt_options.initial_solid_fraction = widgets.BoundedFloatText(
     value = 0.745,
@@ -150,14 +149,15 @@ pt_options.initial_solid_fraction = widgets.BoundedFloatText(
     description_tooltip = 'The initial fraction of insoluble solids (kg/kg).  Must be in the range [0, 1]'
 )
 
-#### this should be minutes and then converted to seconds in the run function ####
 pt_options.final_time = widgets.BoundedFloatText(
-    value = 500, #100, #2400
-    max = 1e16,
+    value = 8.3, #100, #2400
+    max = 1440,
     min = 1,
     description = 'Final Time',
-    description_tooltip = r'Total simulation time (s).  Must be $\geq$ 1'
+    description_tooltip = r'Total simulation time (min).  Must be $\geq$ 1'
 )
+# Conversion from minutes to seconds
+pt_options.final_time.scaling_fn = lambda s : 60.0 * s
 
 pt_options.show_plots = widgets.Checkbox(
     value = False,
@@ -187,14 +187,23 @@ Set the options for the enzymatic hydrolysis operation using either a two-phase 
 # Create the collection of widgets
 eh_options = wf.WidgetCollection()
 
-#### this should be mg/g and then converted in the run function ####
+eh_options.model_type = widgets.RadioButtons(
+    options = ['Lignocellulose Model', 'CFD Surrogate', 'CFD Simulation'],
+    value = 'CFD Surrogate',
+    description = 'Model Type',
+    disabled = False,
+    description_tooltip = 'Specifies the solver to use for the EH step, "CFD Simulation" requires HPC resources.'
+)
+
 eh_options.lambda_e = widgets.BoundedFloatText(
-    value = 0.03,
-    max = 0.1,
+    value = 30.0,
+    max = 1000.0,
     min = 0.0,
     description = 'Enzymatic Load',
-    description_tooltip = 'Ratio of the enzyme mass to the total solution mass (kg/kg).  Must be in the range [0, 0.1]'
+    description_tooltip = 'Ratio of the enzyme mass to the total solution mass (mg/g).  Must be in the range [0, 1000]'
 )
+# Conversion from mg/g to kg/kg
+eh_options.lambda_e.scaling_fn = lambda e : 0.001 * e
 
 eh_options.fis_0 = widgets.BoundedFloatText(
     value = 0.05,
@@ -210,14 +219,6 @@ eh_options.t_final = widgets.BoundedFloatText(
     max = 24.0,
     description = 'Final Time',
     description_tooltip = r'The total time of the simulation (h).  Must be $\geq$ 1'
-)
-
-eh_options.model_type = widgets.RadioButtons(
-    options = ['Lignocellulose Model', 'CFD Surrogate', 'CFD Simulation'],
-    value = 'CFD Surrogate',
-    description = 'Model',
-    disabled = False,
-    description_tooltip = 'Specifies the solver to use for the EH step, "High-Fidelity CFD" requires HPC resources.'
 )
 
 eh_options.show_plots = widgets.Checkbox(
@@ -263,6 +264,14 @@ Set the options for the bubble column bioreaction operation below.
 # Create the collection of widgets
 br_options = wf.WidgetCollection()
 
+br_options.model_type = widgets.RadioButtons(
+    options = ['CFD Surrogate', 'CFD Simulation'],
+    value = 'CFD Surrogate',
+    description = 'Model Type',
+    disabled = False,
+    description_tooltip = 'Specifies the solver to use for the bioreaction step, "CFD Simulation" requires HPC resources.'
+)
+
 br_options.t_final = widgets.BoundedFloatText(
     value = 100.0, # default 500
     min = 1.0,
@@ -270,11 +279,6 @@ br_options.t_final = widgets.BoundedFloatText(
     description = 'Final Time',
     description_tooltip = r'The total time of the simulation (h).  Must be $\geq 1$'
                                     # is this really 'h'? current quasi-steady simulations only run tens of seconds
-)
-
-br_options.use_cfd = widgets.Checkbox(
-    value = False,
-    description_tooltip = 'Use High-Fidelity CFD (Requires HPC Resources)',
 )
 
 #================================================================
@@ -353,14 +357,10 @@ display(a)
 ```
 
 ```python
-# reload "run functions" code if needed
-if False:
-    from importlib import reload
-    import vebio.RunFunctions
-    reload(vebio.RunFunctions)
-    from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
-```
-
-```python
-
+# # reload "run functions" code if needed
+# if False:
+#     from importlib import reload
+#     import vebio.RunFunctions
+#     reload(vebio.RunFunctions)
+#     from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 ```
