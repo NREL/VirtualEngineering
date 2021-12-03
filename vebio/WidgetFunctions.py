@@ -73,16 +73,18 @@ class WidgetCollection:
         #Start with a blank dictionary
         widget_dict = {}
 
-        for item in self.__dict__.items():
+        for widget_name, widget in self.__dict__.items():
             # Get the name and current state of each widget
-            widgetName = item[0]
-            widgetValue = item[1].value
 
-            if hasattr(item[1], 'alt_name'):
-                widgetName = item[1].alt_name
+            widget_value = widget.value
+
+            if hasattr(widget, 'scaling_fn'):
+                # print('pre-scaling value = %f' % (widget_value))
+                widget_value = widget.scaling_fn(widget_value)
+                # print('post-scaling value = %f' % (widget_value))
 
             # Create a dictionary with name : value pairs
-            widget_dict['%s' % (widgetName)] = widgetValue
+            widget_dict['%s' % (widget_name)] = widget_value
 
         if parent_name is not None:
             widget_dict = {'%s' % (parent_name): widget_dict}
