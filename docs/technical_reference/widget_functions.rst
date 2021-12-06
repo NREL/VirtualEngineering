@@ -1,0 +1,5 @@
+WidgetFunctions
+===============
+
+.. automodule:: WidgetFunctions
+   :members:

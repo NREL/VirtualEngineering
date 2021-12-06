@@ -47,3 +47,7 @@ auto/
 *.synctex.gz
 *.spl
 *.out
+
+# Exclude temporary documentation build files
+docs/_build/
+!docs/technical_reference/run_*

@@ -1,0 +1,29 @@
+\documentclass[10pt]{article}
+%\documentclass[margin=5pt]{standalone}
+\usepackage[usenames]{color} %used for font color
+\usepackage{amssymb} %maths
+\usepackage{amsmath} %maths
+\usepackage[utf8]{inputenc} %useful to type directly diacritic characters
+\usepackage{tikz}
+\usepackage{cancel}
+\usepackage{mathtools}
+\usepackage{siunitx}
+\usepackage{bm}
+\usepackage{booktabs}
+\usetikzlibrary{decorations.pathmorphing,fit,shapes.geometric,positioning}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{grffile}
+\usepackage{caption}
+\usepackage{subcaption}
+\begin{document}
+\begin{align*}\begin{tikzpicture}[scale=2.0]
+\pgfmathsetmacro{\ss}{1.5};
+% Typeset at 36pt font in LaTeXiT (the default)
+\node (0, 0) [rotate=90, opacity=0, scale=\ss] {\sffamily{\textcolor{black}{VE}}};
+% Code for white logo (main logo)
+\node (0, 0) [scale=\ss] {\sffamily{\textcolor{black!1}{VE}}};
+% Code for black logo (small favicon)
+%\node (0, 0) [scale=\ss] {\sffamily{\textcolor{black}{VE}}};
+\end{tikzpicture}\end{align*}
+\end{document}
