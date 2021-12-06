@@ -20,7 +20,15 @@ def run_script(filename, *args, verbose=True):
     Args:
         filename (str):
             The filename to execute line by line.
-        
+        *args:
+            Variable length argument list to be made
+            available to the executed file via ``sys.argv[..]``.
+        verbose (bool, optional):
+            Flag to display the printed outputs
+            from the executed file, defaults to ``True``.
+
+    Returns:
+        None
 
     """
 

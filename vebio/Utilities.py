@@ -4,18 +4,19 @@ import yaml
 def get_host_computer():
     """ Check if environment is running on the HPC.
 
-    This function queries the hostname of the computer and if the pattern
-    "computer-server" is found, sets the variable ``hpc_run`` to True to 
+    This function queries an environment variable, ``NREL_CLUSTER`` and if the pattern
+    "eagle" is found, sets the variable ``hpc_run`` to True to 
     allow the submission CFD jobs from the Notebook.  Note that the particular
-    pattern "computer-server" is found to correctly identify all instances
-    of the Eagle HPC but may need to be updated or appended to catch other
+    pattern "eagle" is found to correctly identify all instances
+    of the Eagle HPC but may need to be updated to catch other
     HPC systems (e.g., Vermillion or Swift).
     
     Args:
-        N/A
+        None
 
     Returns:
-        hpc_run (bool): True if HPC resources identified, False otherwise. 
+        bool:
+            True if HPC resources identified, False otherwise. 
 
     """
 
@@ -49,7 +50,7 @@ def print_dict(dict_to_print, indent=0):
             Non-zero values of indent effectively shift the output to the right.
 
     Returns:
-        N/A
+        None
 
     """
 
@@ -105,7 +106,7 @@ def dict_to_yaml(dictionary_to_write, yaml_filename, merge_with_existing=False, 
             dictionary, after the conversion process. Defaults to ``False``
 
     Returns:
-        N/A 
+        None
 
     """
 
@@ -150,7 +151,7 @@ def yaml_to_dict(yaml_filename, verbose=False):
             converted dictionary, after the conversion process. Defaults to ``False``
 
     Returns:
-        N/A 
+        None
 
     """
 

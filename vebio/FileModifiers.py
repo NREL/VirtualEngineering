@@ -34,7 +34,7 @@ def write_file_with_replacements(filename, replacements, full_overwrite=False):
             Defaults to ``False``.
 
     Returns:
-        N/A 
+        None
 
     """
 

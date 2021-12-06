@@ -5,7 +5,7 @@ from vebio.Utilities import dict_to_yaml, yaml_to_dict
 #================================================================
 
 class WidgetCollection:
-    """A ``WidgetCollection`` object contains any number of different iPyWidgets.
+    """A ``WidgetCollection`` object collects any number of different iPyWidgets.
 
     This object can be used to organize all the widgets pertaining to a single
     unit model or step of the overall conversion process.  New widgets should be
@@ -17,7 +17,8 @@ class WidgetCollection:
         fs_options.glucan_solid_fraction = widgets.BoundedFloatText(...)
         fs_options.initial_porosity = widgets.Checkbox(...)
 
-    where widget options and values can be accessed using ``fs_options.initial_porosity.value``
+    where widget options and values can be accessed using, for example,
+    ``fs_options.initial_porosity.value``
 
     """
     def __init__(self):
@@ -31,10 +32,10 @@ class WidgetCollection:
         to the Jupyter Notebook interface.
 
         Args:
-            N/A
+            None
 
         Returns:
-            N/A
+            None
 
         """
 
@@ -101,24 +102,26 @@ class WidgetCollection:
         """Store all widget values in dictionary.
 
         This method allows the values of each widget to be saved
-        in a dictionary with the pattern ``{"widget_1_name": value, ...}``.
-        If the widget was given an alternate name (``alt_name``) attribute
-        as part of its initialization, this value rather than the actual
-        widget name will be reflected in the returned dictionary.
+        in a dictionary with the pattern ``{"widget_1_name": widget_1_value, ...}``.
+        If the widget was created with a scaling function, the scaled
+        version of the value is calculated and stored in the dictionary.
+        This scaled value is the one that will be referenced by subsequent operations
+        accessing the VE parameter file.
 
         Args:
-            parent_name (string, optional):
+            parent_name (str, optional):
                 At the end of the dictionary creation, all the ``name: value``
                 entries can be nested under a single "parent" keyword.  For example::
 
-                    {parent_name: {"widget_1_name": value,
-                                   "widget_2_name": value}}
+                    {parent_name: {"widget_1_name": widget_1_value,
+                                   "widget_2_name": widget_2_value}}
 
-                Defaults to ``None``.
+                Defaults to ``None``, i.e., do not nest under a parent name.
 
         Returns:
-            widget_dict (dict):
-                The name and value of each widget collected in a Python dictionary.
+            dict:
+                The name and value of each widget
+                collected in a Python dictionary.
             
         """
 
@@ -181,7 +184,7 @@ class ValueRangeWidget:
                 buttons in the ``BoundedFloatText`` field.
 
         Returns:
-            N/A
+            None
 
         """
 
