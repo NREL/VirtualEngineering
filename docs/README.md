@@ -30,7 +30,6 @@ docs
 |
 |--background
 |  |  index.rst
-|  |  ...
 |
 |--how_to_guides
 |  |  index.rst
