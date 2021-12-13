@@ -56,8 +56,8 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_logo = "ve_logo.png"
-html_favicon = "ve_logo_small.png"
+html_logo = "assets/ve_logo.png"
+html_favicon = "assets/ve_logo_small.png"
 
 autoclass_content = 'both'
 
