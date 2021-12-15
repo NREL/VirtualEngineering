@@ -15,7 +15,9 @@ dependencies:
   - joblib=1.0.0
   - pandas=1.2.3
   - scikit-learn=0.24.1
+  - sphinx=4.2.0
   - pip
   - pip:
+    - sphinx-rtd-theme
     - -e .
 prefix: /opt/anaconda3/envs/virteng-env

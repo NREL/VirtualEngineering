@@ -1,0 +1,42 @@
+\documentclass[10pt]{article}
+%\documentclass[margin=5pt]{standalone}
+\usepackage[usenames]{color} %used for font color
+\usepackage{amssymb} %maths
+\usepackage{amsmath} %maths
+\usepackage[utf8]{inputenc} %useful to type directly diacritic characters
+\usepackage{tikz}
+\usepackage{cancel}
+\usepackage{mathtools}
+\usepackage{siunitx}
+\usepackage{bm}
+\usepackage{booktabs}
+\usetikzlibrary{decorations.pathmorphing,fit,shapes.geometric,positioning}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{grffile}
+\usepackage{caption}
+\usepackage{subcaption}
+\begin{document}
+\tikzset{
+pics/ve_arrow/.style args={#1}{
+code={
+  \pgfmathsetmacro{\xx}{{cos(#1)}}
+  \pgfmathsetmacro{\yy}{{sin(#1)}}
+  \pgfmathsetmacro{\rad}{0.15}
+  \pgfmathsetmacro{\xxt}{{(1+\rad)*cos(#1)}}
+  \pgfmathsetmacro{\yyt}{{(1+\rad)*sin(#1)}}
+  \draw [draw=black!1, line width = 1, opacity=1.0, line cap=round] (\xxt, \yyt) arc (#1:#1-180:\rad);
+  \draw [draw=black!1, line width=1, opacity=1.0,] (\xx, \yy) arc (#1:#1+112:1);
+  \draw [draw=black!1, fill=black!1, opacity=1.0,] (\xx, \yy) circle (0.45*\rad);
+}
+}
+}
+\begin{tikzpicture}
+% Typeset in 12pt font for good size
+\foreach \theta in {0, 120, 240}
+{
+  \draw pic{ve_arrow={\theta}};
+}
+\node (0, 0) [scale=3] {\textcolor{black!1}{\sffamily{VE}}};
+\end{tikzpicture}
+\end{document}
