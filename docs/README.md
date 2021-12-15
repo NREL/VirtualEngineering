@@ -12,7 +12,7 @@ The documentation is broken up into three separate folders:
 
 For developers interested in building the documentation locally for testing purposes, carry out the following steps:
 
-1. In order to build the documentation, you will need a version of Sphinx installed in your VE Conda environment.  This should be included when building the environment using the `environment.yaml` file, but if using a custom or out-of-date installation, run `conda install -c conda-forge sphinx=4.2.0` in your VE environment.
+1. In order to build the documentation, you will need a version of Sphinx installed in your VE Conda environment.  This should be included when building the environment using the `environment.yaml` file, but if using a custom or out-of-date installation, run `conda install -c conda-forge sphinx=4.2.0` in your VE environment followed by `pip install sphinx-rtd-theme`.
 2. Change directory to `VirtualEngineering/docs`
 3. Run `make html`
 4. Open the file `_build/html/index.html`

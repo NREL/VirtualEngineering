@@ -18,5 +18,6 @@ dependencies:
   - sphinx=4.2.0
   - pip
   - pip:
+    - sphinx-rtd-theme
     - -e .
 prefix: /opt/anaconda3/envs/virteng-env
