@@ -1,6 +1,7 @@
 .*
 scratch/
 !/.gitignore
+!/.readthedocs.yaml
 *~
 *.pyc
 *.egg-info/
