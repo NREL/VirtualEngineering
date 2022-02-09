@@ -35,7 +35,7 @@ dilution_factor = ve_params['enzymatic_input']['fis_0']/ve_params['pretreatment_
 rhox0 = ve_params['pretreatment_output']['rho_x']*dilution_factor
 omega = 3.14
 
-rho_f = ve_params['pretreatment_output']['rho_f']
+rho_f = ve_params['pretreatment_output']['rho_f']*dilution_factor
 
 T = ve_params['enzymatic_input']['t_final']
 '''
