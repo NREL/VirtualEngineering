@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pt_input_file_io as pt_input
 import timeit as timerlib
+import subprocess
 
 import sys
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
@@ -78,7 +79,11 @@ pt_input.writeinpfile(new_inputfilename, meshp, scales, IBCs, rrates, Egtcs, det
 
 # run the simulation
 simtime=-timerlib.default_timer()
-solnvec = pt.main(m,n, new_inputfilename)
+# Make the call to pt.main(m, n, filename) using subprocess
+command = f'python pt_solve.py {m} {n} {new_inputfilename}'
+out = subprocess.run(command.split(), capture_output=True, text=True)
+solnvec = np.genfromtxt('pt_solnvec.csv', delimiter=',')
+assert np.shape(solnvec) == (m, n)
 simtime=simtime+timerlib.default_timer()
 
 #solnvec=pt.ptmain.interpsoln
@@ -168,6 +173,8 @@ output_dict['pretreatment_output']['X_G'] = float(X_G)
 output_dict['pretreatment_output']['rho_x'] = float(xylose_bulk*1000*M_xylose
                                                     + xylog_bulk*1000*M_xylog)
 output_dict['pretreatment_output']['rho_f'] = float(furfural_bulk*1000*M_furf)
+output_dict['pretreatment_output']['rho_f_init'] = float(furfural[0])
+output_dict['pretreatment_output']['rho_f_final'] = float(furfural[-1])
 
 if len(sys.argv) > 1:
     dict_to_yaml([ve_params, output_dict], params_filename)
@@ -176,4 +183,3 @@ if len(sys.argv) > 1:
 #     # Save the output dictionary to a .yaml file
 #     output_filename = sys.argv[2]
 #     dict_to_yaml(output_dict, output_filename)
-

@@ -34,7 +34,7 @@ def run_script(filename, *args, verbose=True):
 
     sys.argv = [filename]
     sys.argv.extend(args)
-    exec_file = open(filename)
+    exec_file = open(filename, 'r')
 
     if verbose:
         # Execute the file as usual
