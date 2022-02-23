@@ -21,17 +21,18 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
-    # - name: Set up Python ${{ matrix.python-version }}
       with:
         miniconda-version: "latest"
         channels: conda-forge
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
-    - name: Install test environment
+    - name: Install Virtual Engineering Conda environment
+      shell: pwsh
       run: |
         conda env create -f environment.yaml -n test-env
         conda activate test-env
         conda list
-    - name: Test with pytest
+    - name: Test Virtual Engineering functions with pytest
+      shell: pwsh
       run: |
         pytest -s vebio/tests/
