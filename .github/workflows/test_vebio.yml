@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-  
+    name: test_vebio
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -21,7 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    # - name: Set up Python ${{ matrix.python-version }}
       with:
         miniconda-version: "latest"
         channels: conda-forge
