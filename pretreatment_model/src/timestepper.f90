@@ -83,7 +83,7 @@ contains
     	call printpolysolution(elementarray,inpobj%nelements,printit,inpobj%printpointsperelement,&
 			inpobj%xscale,inpobj%scalefactors,interpsoln)
 	
-	print *,
+	print *
 	print *,"saving solution at time:",totaltime
 	printtime=0.d0
 	printit=printit+1
@@ -249,7 +249,7 @@ contains
     	call printpolysolution(elementarray,inpobj%nelements,printit,inpobj%printpointsperelement,&
 			inpobj%xscale,inpobj%scalefactors,interpsoln)
 
-	print *,
+	print *
 	print *,"saving solution at time:",totaltime
 	printtime=0.d0
 	printit=printit+1

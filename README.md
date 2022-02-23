@@ -20,7 +20,7 @@ Then update specific modules with
 
 `git submodule update submodules/[name of submodule]`
 
-This command will perform the git clone or pull for that module. To run the enzymatic hydrolysis CFD model, update `Nek5000`. To run the well-mixed enzymatic hydrolysis model (no CFD), update`CEH_EmpiricalModel`. To run bioreactor CFD, update `OpenFOAM-dev` and `ThirdParty-dev`. Also see [README_OpenFOAM.md](README_OpenFOAM.md).
+This command will perform a git clone or pull for that module. To run the enzymatic hydrolysis CFD model, update `Nek5000`. To run the well-mixed "Ligncellulose" model (no CFD), update`CEH_EmpiricalModel`. To run bioreactor CFD simulation, update `OpenFOAM-dev` and `ThirdParty-dev`. Also see [README_OpenFOAM.md](README_OpenFOAM.md).
 
 ## Developer Quick Start
 
