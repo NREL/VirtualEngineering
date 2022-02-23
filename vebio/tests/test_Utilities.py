@@ -67,8 +67,6 @@ def test_dict_to_yaml_multi_merge():
     with open(test_yaml_filename) as fp:
         output_dict = yaml.load(fp, Loader = yaml.FullLoader)
 
-    print(output_dict)
-
     assert len(output_dict) == 9
 
     for key, val in input_dict_a.items():
