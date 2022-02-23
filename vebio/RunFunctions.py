@@ -107,7 +107,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     pt_dict = pt_options.export_widgets_to_dict(parent_name='pretreatment_input')
 
     # Obtain steam concentration from lookup table and add to dictionary
-    steam_data = np.genfromtxt('sat_steam_table.csv', delimiter=',', skip_header=1)
+    steam_data = np.genfromtxt('pretreatment_model/lookup_tables/sat_steam_table.csv', delimiter=',', skip_header=1)
 
     # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
     interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
