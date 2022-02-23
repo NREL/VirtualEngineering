@@ -19,13 +19,14 @@ jupyter:
 
 The first step is to select "Cell" > "Run All" from the toolbar.  This will initialize all the widgets and allow you to interact with the unit operation options via the GUI controls.
 
-<img src="three_unit_flow.png" alt="flowchart" width="800"/>
+<img src="docs/figures/three_unit_flow.png" alt="flowchart" width="800"/>
 
 ```python
 from ipywidgets import *
 from IPython.display import HTML, clear_output
 import os
 import sys
+import numpy as np
 
 #================================================================
 # attempt to capture the parent directory in case of errors
@@ -319,7 +320,6 @@ def run_button_action(b):
     # Set global paths and files for communication between operations
     os.chdir(notebookDir)
     params_filename = 'virteng_params.yaml'
-    
     # Run the pretreatment model
     run_pretreatment(notebookDir, params_filename, fs_options, pt_options)
     
