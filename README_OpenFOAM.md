@@ -5,8 +5,9 @@ When you first clone the VirtualEngineering repo, folders named `openfoam-dev` a
 1. From the root level of the VirtualEngineering directory, do:
 
 ```bash
-git submodule init
-git submodule update
+git submodule init # if not done already
+git submodule update submodules/OpenFOAM-dev
+git submodule update submodules/ThirdParty-dev
 ```
 
 which will pull in the necessary files from the linked sources (a custom version of openfoam with NREL contributions along with thirdparty).
