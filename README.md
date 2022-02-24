@@ -14,11 +14,11 @@ New users are encouraged to review the [Getting Started](https://virtualengineer
 
 First, create a Conda environment from the `environment.yaml` file by opening a terminal, navigating to the root level of the Virtual Engineering directory, and running
 
-`conda env create -f environment.yaml -n <env_name>`
+`conda env create -f environment.yaml -n [environment name]`
 
-where `<env_name>` is the desired name of your VE Conda environment. This Conda installs the required packages and pip installs the `vebio` Python package.  Next, activate the environment with
+where `[environment name]` is replaced with the desired name of your VE Conda environment. This Conda installs the required packages and pip installs the `vebio` Python package.  Next, activate the environment with
 
-`conda activate <env_name>`
+`conda activate [environment name]`
 
 and launch the Notebook by running
 
