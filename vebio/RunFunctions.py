@@ -153,15 +153,13 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
         subprocess.run(command.split())
         print('Finished building PT module.')
 
-
         print('Copying modules to test directory.')
         files_to_copy = glob.glob(f'{build_folder_path}*.so')
-        print('Found files to copy', files_to_copy)
+        print(f'Found {len(files_to_copy)} files to copy:')
         for f in files_to_copy:
-            print(f'Copying {f} to directory {test_folder_path}')
+            print(f'| Copying {f} to directory {test_folder_path}')
             shutil.copy(f, test_folder_path)
         print('Finished copying files.')
-
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
     outfiles = glob.glob("out*.dat")
@@ -169,6 +167,8 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
         os.remove(outfile)
     # Run pretreatment code specifying location of input file
     path_to_input_file = os.path.join(notebookDir, params_filename)
+    for k, p in enumerate(sys.path):
+        print(k, p)
     run_script("ptrun.py", path_to_input_file, verbose=verbose)
     # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
     # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
