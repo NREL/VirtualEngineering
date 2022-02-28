@@ -1,3 +1,10 @@
+import sys
+import os
+
+notebookDir = os.path.split(sys.argv[1])[0]
+test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
+sys.path.append(test_folder_path)
+
 import pt
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,7 +12,6 @@ import pt_input_file_io as pt_input
 import timeit as timerlib
 import subprocess
 
-import sys
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 # run pretreatment model
