@@ -141,6 +141,8 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
     sys.path.append(test_folder_path)
     os.chdir(test_folder_path)
+
+    print('Current working directory: ', os.getcwd())
     
     # See if the pretreatment module exists, if not, we need to build it
     try:
