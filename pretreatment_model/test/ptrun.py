@@ -1,9 +1,9 @@
 import sys
 import os
 
-notebookDir = os.path.split(sys.argv[1])[0]
-test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
-sys.path.append(test_folder_path)
+# notebookDir = os.path.split(sys.argv[1])[0]
+# test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
+# sys.path.append(test_folder_path)
 
 import pt
 import matplotlib.pyplot as plt

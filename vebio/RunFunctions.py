@@ -161,6 +161,8 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
             shutil.copy(f, test_folder_path)
         print('Finished copying files.')
 
+    os.chdir(test_folder_path)
+
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
     outfiles = glob.glob("out*.dat")
     for outfile in outfiles:
