@@ -156,6 +156,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
 
         print('Copying modules to test directory.')
         files_to_copy = glob.glob(f'{build_folder_path}*.so')
+        print('Found files to copy', files_to_copy)
         for f in files_to_copy:
             print(f'Copying {f} to directory {test_folder_path}')
             shutil.copy(f, test_folder_path)
