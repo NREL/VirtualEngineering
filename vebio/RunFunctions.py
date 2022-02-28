@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 import contextlib
 import subprocess
 import glob
@@ -32,22 +33,39 @@ def run_script(filename, *args, verbose=True):
 
     """
 
-    sys.argv = [filename]
-    sys.argv.extend(args)
-    exec_file = open(filename, 'r')
+    method = 1
 
-    if verbose:
-        # Execute the file as usual
-        exec(exec_file.read(), globals())
+    if method == 1:
+        sys.argv = [filename]
+        sys.argv.extend(args)
+        exec_file = open(filename, 'r')
 
-    else:
-        # Execute the file, redirecting all output to devnull
-        # This suppresses any print statements within `filename`
-        with open(os.devnull, 'w') as fp:
-            with contextlib.redirect_stdout(fp):
-                exec(exec_file.read(), globals())
+        if verbose:
+            # Execute the file as usual
+            exec(exec_file.read(), globals())
 
-    exec_file.close()
+        else:
+            # Execute the file, redirecting all output to devnull
+            # This suppresses any print statements within `filename`
+            with open(os.devnull, 'w') as fp:
+                with contextlib.redirect_stdout(fp):
+                    exec(exec_file.read(), globals())
+
+        exec_file.close()
+
+    elif method == 2:
+        # Begin the command with `python <filename>`
+        command = f'python {filename}'
+
+        # Extend with any command-line arguments
+        for arg in args:
+            command += f' {arg}'
+
+        # Execute this command using subprocess
+        command_output = subprocess.run(command.split(), capture_output=True, text=True)
+
+        if verbose:
+            print(command_output.stdout)
 
     return
 
@@ -120,7 +138,9 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     dict_to_yaml([fs_dict, pt_dict], params_filename)
 
     # Move into the pretreatment directory
-    os.chdir('pretreatment_model/test/')
+    test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
+    sys.path.append(test_folder_path)
+    os.chdir(test_folder_path)
     
     # See if the pretreatment module exists, if not, we need to build it
     try:
@@ -128,10 +148,14 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     except:
         print('Could not load PT module, building module from source.')
         print('(This will only happen the first time the notebook is run.)')
-        os.chdir('../bld/')
-        command = "sh build_first_time.sh"
+        build_folder_path = os.path.join(notebookDir, 'pretreatment_model/bld/')
+        command = f'make -C {build_folder_path} ptpython'
         subprocess.run(command.split())
-        os.chdir('../test/')
+
+        files_to_copy = glob.glob(f'{build_folder_path}*.so')
+        for f in files_to_copy:
+            shutil.copy(f, test_folder_path)
+
         print('Finished building PT module.')
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
