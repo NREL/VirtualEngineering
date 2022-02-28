@@ -5,17 +5,12 @@ from pathlib import Path
 
 from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 from vebio.WidgetFunctions import WidgetCollection
+from vebio.Utilities import yaml_to_dict
 
-# if not 'notebook_dir' in globals():
-#     notebook_dir = os.getcwd()
 
 notebook_dir = os.getcwd()
 params_filename = 'test_params.yaml'
 
-# @pytest.fixture
-# def base_path() -> Path:
-#     """Get the current folder of the test"""
-#     return Path(__file__).parent
 
 @pytest.fixture()
 def build_fs_options():
@@ -40,7 +35,6 @@ def build_pt_options():
     pt_options.show_plots = widgets.Checkbox(value = False)
 
     return pt_options
-
 
 @pytest.fixture()
 def build_eh_options():
@@ -71,14 +65,27 @@ def test_run_pretreatment(build_fs_options, build_pt_options):
     fs_options = build_fs_options
     pt_options = build_pt_options
 
-    # monkeypatch.chdir(base_path)
-    # Do something in the data folder
     run_pretreatment(notebook_dir, params_filename, fs_options, pt_options)
 
-# def test_run_enzymatic_hydrolysis(build_eh_options):
-#     eh_options = build_eh_options
+    truth_values = {'fis_0': 0.31765314961287994,
+                    'conv': 0.028073229915110083,
+                    'X_X': 0.2575180632106229,
+                    'X_G': 0.40297527098473657,
+                    'rho_x': 3.4623134078020046,
+                    'rho_f': 0.0004599638814971187}
 
-#     run_enzymatic_hydrolysis(notebook_dir, params_filename, eh_options, False)
+    test_values = yaml_to_dict(params_filename)
+
+    for key, val in truth_values.items():
+        assert key in test_values['pretreatment_output']
+        assert val == pytest.approx(test_values['pretreatment_output'][key])
+
+
+def test_run_enzymatic_hydrolysis(build_eh_options):
+    eh_options = build_eh_options
+
+    run_enzymatic_hydrolysis(notebook_dir, params_filename, eh_options, False)
+    
 
 # def test_run_bioreactor(build_br_options):
 #     br_options = build_br_options
