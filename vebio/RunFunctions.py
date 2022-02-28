@@ -151,12 +151,16 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
         build_folder_path = os.path.join(notebookDir, 'pretreatment_model/bld/')
         command = f'make -C {build_folder_path} ptpython'
         subprocess.run(command.split())
+        print('Finished building PT module.')
 
+
+        print('Copying modules to test directory.')
         files_to_copy = glob.glob(f'{build_folder_path}*.so')
         for f in files_to_copy:
+            print(f'Copying {f} to directory {test_folder_path}')
             shutil.copy(f, test_folder_path)
+        print('Finished copying files.')
 
-        print('Finished building PT module.')
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
     outfiles = glob.glob("out*.dat")
