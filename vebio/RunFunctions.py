@@ -159,7 +159,11 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
         for f in files_to_copy:
             print(f'| Copying {f} to directory {test_folder_path}')
             shutil.copy(f, test_folder_path)
-        shutil.copy(f'{test_folder_path}libptreat.so', notebookDir)
+            if 'libptreat' in f and 'pytest' in sys.modules:
+                print('doing the pytest copy')
+                shutil.copy(f, notebookDir)
+
+        print('FROM NOTEBOOKDIR FOUND *.SO:', glob.glob(f'{notebookDir}*.so'))
         print('Finished copying files.')
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
