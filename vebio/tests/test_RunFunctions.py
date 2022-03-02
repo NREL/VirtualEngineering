@@ -2,6 +2,8 @@ import pytest
 import os
 from ipywidgets import *
 from pathlib import Path
+import shutil
+
 
 from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 from vebio.WidgetFunctions import WidgetCollection
@@ -67,6 +69,12 @@ def test_run_pretreatment(build_fs_options, build_pt_options):
 
     run_pretreatment(notebook_dir, params_filename, fs_options, pt_options)
 
+    try:
+        os.remove('libptreat.so')
+        print('Found libptreat.so in notebookDir', os.getcwd())
+    except:
+        print('Could not find libptreat.so in', os.getcwd())
+
     truth_values = {'fis_0': 0.31765314961287994,
                     'conv': 0.028073229915110083,
                     'X_X': 0.2575180632106229,
@@ -81,11 +89,12 @@ def test_run_pretreatment(build_fs_options, build_pt_options):
         assert val == pytest.approx(test_values['pretreatment_output'][key])
 
 
+
 def test_run_enzymatic_hydrolysis(build_eh_options):
     eh_options = build_eh_options
 
     run_enzymatic_hydrolysis(notebook_dir, params_filename, eh_options, False)
-    
+
 
 # def test_run_bioreactor(build_br_options):
 #     br_options = build_br_options

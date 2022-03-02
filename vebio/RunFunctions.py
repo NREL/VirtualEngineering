@@ -159,6 +159,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
         for f in files_to_copy:
             print(f'| Copying {f} to directory {test_folder_path}')
             shutil.copy(f, test_folder_path)
+        shutil.copy(f'{test_folder_path}libptreat.so', notebookDir)
         print('Finished copying files.')
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
