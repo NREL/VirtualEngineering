@@ -35,5 +35,6 @@ jobs:
     - name: Test Virtual Engineering functions with pytest
       shell: pwsh
       run: |
+        export LD_LIBRARY_PATH=$(pwd)/pretreatment_model/test/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         conda activate test-env
         pytest -s vebio/tests/
