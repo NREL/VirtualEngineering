@@ -37,5 +37,7 @@ jobs:
       run: |
         echo "$(pwd)/pretreatment_model/test/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         echo "$(pwd)/pretreatment_model/test/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> $GITHUB_PATH
+        echo "{LD_LIBRARY_PATH}={$(pwd)/pretreatment_model/test/}" >> $GITHUB_ENV
+        echo $LD_LIBRARY_PATH
         conda activate test-env
         pytest -s vebio/tests/
