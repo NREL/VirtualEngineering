@@ -141,7 +141,6 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
     sys.path.append(test_folder_path)
     os.chdir(test_folder_path)
-
     
     # See if the pretreatment module exists, if not, we need to build it
     try:
@@ -161,9 +160,6 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
             print(f'| Copying {f} to directory {test_folder_path}')
             shutil.copy(f, test_folder_path)
         print('Finished copying files.')
-
-    os.chdir(test_folder_path)
-    print('Current working directory: ', os.getcwd())
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
     outfiles = glob.glob("out*.dat")
