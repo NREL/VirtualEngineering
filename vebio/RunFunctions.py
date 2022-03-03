@@ -140,7 +140,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     # Move into the pretreatment directory
     test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
     sys.path.append(test_folder_path)
-    os.chdir(test_folder_path)
+    # os.chdir(test_folder_path)
     
     # See if the pretreatment module exists, if not, we need to build it
     try:
@@ -185,7 +185,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     if pt_options.show_plots.value:
         run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
-    os.chdir(notebookDir)
+    # os.chdir(notebookDir)
     print('\nFinished Pretreatment')
 
     
