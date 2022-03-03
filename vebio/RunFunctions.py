@@ -174,7 +174,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     path_to_input_file = os.path.join(notebookDir, params_filename)
     for k, p in enumerate(sys.path):
         print(k, p)
-    run_script("ptrun.py", path_to_input_file, verbose=verbose)
+    run_script("pretreatment_model/test/ptrun.py", path_to_input_file, verbose=verbose)
     # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
     # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
     # 1/13/21
