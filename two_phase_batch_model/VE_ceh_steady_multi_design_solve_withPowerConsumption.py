@@ -158,9 +158,11 @@ print("Enzyme mass balance is %g" % cstr.mbE)
 
 # system level result saved in a dictionary
 system_level_result_dict = {
-                'Glucan conversion yield'               : cstr.convG.tolist(),
-                'Xylan conversion yield'                : cstr.convX.tolist(),
-                'Total carbohydrate conversion yield'   : cstr.convCarb.tolist(),
+                'Total membrane units'                          : sum(membrane_units).tolist(),
+                'Total membrane loop power consumption (kW)'    : sum(power_consumptions).tolist(),
+                'Glucan conversion yield'                       : cstr.convG.tolist(),
+                'Xylan conversion yield'                        : cstr.convX.tolist(),
+                'Total carbohydrate conversion yield'           : cstr.convCarb.tolist(),
                 }
 
 # extra calcs for FY21 Q4
@@ -511,6 +513,8 @@ if True:
 
 reactor_level_result_dict = {
                 'Reactor Size (kg)'                     : cstr.mT,
+                'Membrane units'                        : membrane_units,
+                'Membrane loop pump power (kW)'         : power_consumptions,
                 'Feed stream (kg/h)'                    : cstr.F[:,0],
                 'Makeup buffer stream (kg/h)'           : cstr.F[:,1],
                 'Permeate stream kg/h'                  : cstr.F[:,2],
