@@ -32,6 +32,13 @@ jobs:
         conda env create -f environment.yaml -n test-env
         conda activate test-env
         conda list
+    - name: Compile PT library and module
+      shell: pwsh
+      run: |
+        conda activate test-env
+        make -C pretreatment_model/bld/
+        cp pretreatment_model/bld/*.so pretreatment_model/test/
+        ls pretreatment_model/test/*.so
     - name: Test Virtual Engineering functions with pytest
       shell: pwsh
       run: |
