@@ -41,6 +41,8 @@ jobs:
         cp pretreatment_model/bld/*.so .
         cp pretreatment_model/bld/*.so vebio/
         cp pretreatment_model/bld/*.so vebio/tests/
+        cp pretreatment_model/bld/*.so /lib/
+        cp pretreatment_model/bld/*.so /usr/local/lib/
         ls -l *.so
     - name: Test Virtual Engineering functions with pytest
       shell: pwsh
