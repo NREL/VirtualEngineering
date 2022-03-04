@@ -54,4 +54,5 @@ jobs:
         echo "--------LD_LIBRARY_PATH (sent to GITHUB_ENV)"
         echo $LD_LIBRARY_PATH
         conda activate test-env
+        pip install -e .
         pytest -s vebio/tests/
