@@ -101,7 +101,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     """
 
     print('Running Pretreatment Model')
-    
+
     # Export the feedstock and pretreatment options to a global yaml file
     fs_dict = fs_options.export_widgets_to_dict(parent_name='feedstock')
     pt_dict = pt_options.export_widgets_to_dict(parent_name='pretreatment_input')
@@ -121,7 +121,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
 
     # Move into the pretreatment directory
     os.chdir('pretreatment_model/test/')
-    
+
     # See if the pretreatment module exists, if not, we need to build it
     try:
         import pt
@@ -154,17 +154,17 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     os.chdir(notebookDir)
     print('\nFinished Pretreatment')
 
-    
+
 def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
                              verbose=True):
     """ Run the enzymatic hydrolysis operation.
 
-    This function runs the enzymatic hydrolysis unit operation. Three 
+    This function runs the enzymatic hydrolysis unit operation. Three
     distinct variants are included in the virtual engineering code:
     (1) a two-phase model which makes a well-mixed assumption, (2)
-    a pre-trained surrogate model informed from CFD runs, and (3) 
+    a pre-trained surrogate model informed from CFD runs, and (3)
     the CFD simulation itself, where option (3) is accessible only
-    with ``hpc_run=True``. The default unit operation is the 
+    with ``hpc_run=True``. The default unit operation is the
     surrogate model.
 
     Through the ``eh_options`` widgets, the user controls the following
@@ -207,14 +207,14 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
     # Export the enzymatic hydrolysis options to a global yaml file
     eh_dict = eh_options.export_widgets_to_dict(parent_name='enzymatic_input')
     dict_to_yaml(eh_dict, params_filename, merge_with_existing=True)
-    
+
     # Run the selected enzymatic hydrolysis model
     if eh_options.model_type.value == 'CFD Simulation':
-        
+
         # Export the current state to a dictionary
         ve_params = yaml_to_dict(params_filename)
         os.chdir('EH_OpenFOAM/tests/RushtonReact/')
-                
+
         # Prepare input values for EH CFD operation
         globalVars = {}
 
@@ -230,7 +230,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         globalVars['rhosl0'] = 0.0
 
         write_file_with_replacements('constant/globalVars', globalVars)
-        
+
         # Get reaction_update_time, fluid_update_time, and fluid_steadystate_time
         # in order to convert the user-specified t_final into the endTime definition
         # expected by the OpenFOAM simulation
@@ -258,31 +258,31 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         import numpy as np
         import subprocess
         import os
-        
+
         def check_queue(username, jobname):
             command = 'squeue -u %s -t R,PD -n %s' % (username, jobname)
             out = subprocess.run(command.split(), capture_output=True, text=True)
             print(out.stdout)
-            
+
             if username in out.stdout:
                 # Job is running, do nothing
                 print('Job is already running')
                 job_id = out.stdout.strip().split('\\n')[-1].split()[0]
-                
+
             else:
                 # Job is not running, submit it
                 command = 'sbatch --job-name=%s dummy_job.sbatch' % (jobname)
                 out = subprocess.run(command.split(), capture_output=True, text=True)
                 print(out.stdout)
                 job_id = out.stdout.strip().split()[-1]
-                
+
                 with open('job_history.csv', 'a') as fp:
                     fp.write('%s\\n' % (job_id))
-                
+
             print(job_id, len(job_id))
-                
+
         username = os.environ['USER']
-        
+
         check_queue(username, 'dummy_job')
         '''
 
@@ -328,7 +328,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
                 out = subprocess.run(command.split(), capture_output=True, text=True)
                 print(out.stdout)
                 job_id = out.stdout.strip().split()[-1]
-                
+
                 with open('job_history.csv', 'a') as fp:
                     fp.write('%s\n' % (job_id))
 
@@ -337,10 +337,10 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         else:
             print('Cannot run EH_CFD without HPC resources.')
             print(os.getcwd())
-            
+
         # Prepare output values from EH CFD operations
         # FIXME: rho_g should be value taken from CFD output - should be good now, please check, JJS 9/15/20
-        
+
         # per Hari's email, glucose concentration in fort.44 is mol/L
         # integrated_quantities = np.genfromtxt('integrated_quantities.dat', delimiter=' ') # mol/L
 
@@ -355,7 +355,7 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
 
 
         rho_g_final = float(c_g_output[-1, 1])*180 # g/L
-        
+
         # back-calculate fis from conversion value
         conv_output = np.genfromtxt('fort.42')
         conversion = float(conv_output[-1,1])
@@ -363,10 +363,10 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
         ## if have non-glucan solids, e.g. lignin, then the calculation will be:
         # fis = fis_0*(1 - XG0*conversion)
         ## where XG0 is initial fraction of solids that is glucan
-        
+
         # this dilution calculation is not correct and needs fixing, JJS 9/15/20
         #dilution_factor_final = fis_final/ve_params['enzymatic_input']['fis_0']
-        
+
         # FIXME: dilution_factor_final should be (fis_final)/(ve_params['enzymatic_input']['fis_0'])
         # where fis_final is taken from CFD output
         dilution_factor_final = 1.0
@@ -375,19 +375,19 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
 
         '''
 
-        
+
         # output_dict = {'enzymatic_output': {}}
         # output_dict['enzymatic_output']['rho_g'] = integrated_quantities[-1, -3]
         # output_dict['enzymatic_output']['rho_x'] = integrated_quantities[-1, -2]
         # output_dict['enzymatic_output']['rho_sl'] = integrated_quantities[-1, -1]
         # output_dict['enzymatic_output']['rho_f'] = ve_params['pretreatment_output']['rho_f']*dilution_factor
-        
+
         os.chdir(notebookDir)
 
         dict_to_yaml([ve_params, output_dict], params_filename)
-        
+
     else:
-        
+
         path_to_input_file = os.path.join(notebookDir, params_filename)
 
         if eh_options.model_type.value == 'CFD Surrogate':
@@ -401,17 +401,17 @@ def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
             # option. The lignocellulose model is superior.
             #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
             run_script("driver_batch_lignocell_EH_VE.py", path_to_input_file, verbose=verbose)
-        
+
         os.chdir(notebookDir)
 
     print('\nFinished Enzymatic Hydrolysis')
 
-    
+
 def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=True):
     """ Run the aerobic bioreaction operation.
 
     This function runs the aerobic bioreaction operation using the
-    user-specified properties.  Two distinct models exist: (1) a 
+    user-specified properties.  Two distinct models exist: (1) a
     pre-trained surrogate model informed from CFD runs and (2) the
     full CFD simulation itself where option (2) is accessible only
     with ``hpc_run=True``.  The default option is the surrogate model.
@@ -470,11 +470,11 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
         fvOptions['rho_f'] = ve_params['enzymatic_output']['rho_f']
 
         write_file_with_replacements('constant/fvOptions', fvOptions)
-        
+
         # Make changes to the controlDict file based on replacement options
         controlDict = {}
         controlDict['endTime'] = ve_params['bioreactor_input']['t_final']
-        
+
         write_file_with_replacements('system/controlDict', controlDict)
 
         # Run the bioreactor model
@@ -485,14 +485,14 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
         else:
             print('Cannot run bioreactor without HPC resources.')
             print(os.getcwd())
-            
+
         output_dict = {'bioreactor_output': {}}
         output_dict['bioreactor_output']['placeholder'] = 123
 
         os.chdir(notebookDir)
 
         dict_to_yaml([ve_params, output_dict], params_filename)
-        
+
     else:
         if np.isnan(ve_params['enzymatic_output']['rho_g']):
             print('Waiting for EH CFD results.')
@@ -503,3 +503,59 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
             os.chdir(notebookDir)
 
     print('\nFinished Bioreactor')
+
+
+def run_CEH(notebookDir, params_filename, ceh_options,
+                             verbose=True):
+    """ Run the continuous enzymatic hydrolysis operation.
+
+    This function runs the CEH unit operation.
+
+    Through the ``ceh_options`` widgets, the user controls the following
+    values:
+
+        * DMR material properties with EH conditions
+        * Final Time (float)
+        * Show plots (bool)
+
+    Args:
+        notebookDir (str):
+            The path to the Jupyter Notebook, used to specify the location
+            of the input file and reset the working directory after this operation
+            is finished.
+
+        params_filename (str):
+            The filename for the parameters yaml file including
+            extension, e.g., ``'virteng_params.yaml'``
+
+        eh_options (WidgetCollection):
+            A ``WidgetCollection`` object containing all of widgets used
+            to solicit user input for CEH properties.
+
+        verbose (bool, optional):
+            Option to show print messages from executed file, default True.
+
+    Returns:
+        None
+
+    """
+
+    print('\nRunning Continuous Enzymatic Hydrolysis Model')
+
+    # Export the CEH options to a global yaml file
+    ceh_dict = ceh_options.export_widgets_to_dict(parent_name='CEH_input')
+    dict_to_yaml(ceh_dict, params_filename, merge_with_existing=True)
+
+    # Run the CEH model
+
+    path_to_input_file = os.path.join(notebookDir, params_filename)
+
+    os.chdir('two_phase_batch_model/')
+
+    run_script("VE_driver_batch_lignocellulose_CEH_FY21Q4.py", path_to_input_file, verbose=verbose)
+
+    run_script("VE_ceh_steady_multi_design_solve_withPowerConsumption.py", path_to_input_file, verbose=verbose)
+
+    os.chdir(notebookDir)
+
+    print('\nFinished Continuous Enzymatic Hydrolysis')
