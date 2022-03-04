@@ -36,9 +36,9 @@ jobs:
       shell: pwsh
       run: |
         conda activate test-env
-        make -C pretreatment_model/bld/
+        make -C pretreatment_model/bld/ ptpython
         cp pretreatment_model/bld/*.so pretreatment_model/test/
-        ls pretreatment_model/test/*.so
+        ls -l pretreatment_model/test/*.so
     - name: Test Virtual Engineering functions with pytest
       shell: pwsh
       run: |
