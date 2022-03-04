@@ -140,7 +140,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     # Move into the pretreatment directory
     test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
     sys.path.append(test_folder_path)
-    # os.chdir(test_folder_path)
+    os.chdir(test_folder_path)
     
     # See if the pretreatment module exists, if not, we need to build it
     try:
@@ -177,7 +177,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     path_to_input_file = os.path.join(notebookDir, params_filename)
     for k, p in enumerate(sys.path):
         print(k, p)
-    run_script("pretreatment_model/test/ptrun.py", path_to_input_file, verbose=verbose)
+    run_script("ptrun.py", path_to_input_file, verbose=verbose)
     # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
     # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
     # 1/13/21
@@ -188,7 +188,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     if pt_options.show_plots.value:
         run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
-    # os.chdir(notebookDir)
+    os.chdir(notebookDir)
     print('\nFinished Pretreatment')
 
     
