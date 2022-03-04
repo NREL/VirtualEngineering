@@ -1,14 +1,6 @@
 import sys
 import os
 import glob
-
-
-print(glob.glob(os.getcwd()+'/*.so'))
-# notebookDir = os.path.split(sys.argv[1])[0]
-# test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
-# sys.path.append(test_folder_path)
-print('Current working directory (in ptrun): ', os.getcwd())
-
 import pt
 import matplotlib.pyplot as plt
 import numpy as np

@@ -46,23 +46,10 @@ jobs:
         conda activate test-env
         make -C pretreatment_model/bld/ ptpython
         cp pretreatment_model/bld/*.so pretreatment_model/test/
-        cp pretreatment_model/bld/*.so .
-        cp pretreatment_model/bld/*.so vebio/
-        cp pretreatment_model/bld/*.so vebio/tests/
-        cp pretreatment_model/bld/*.so /lib/
-        cp pretreatment_model/bld/*.so /usr/local/lib/
-        ls -l *.so
+        sudo cp pretreatment_model/bld/*.so /lib/
+        sudo cp pretreatment_model/bld/*.so /usr/local/lib/
     - name: Test Virtual Engineering functions with pytest
       shell: pwsh
       run: |
-        echo "--------Found *.so in root"
-        ls -l *.so
-        echo "--------LD_LIBRARY_PATH (sent to GITHUB_PATH)"
-        echo "$(pwd)/pretreatment_model/test/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        echo "$(pwd)/pretreatment_model/test/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> $GITHUB_PATH
-        echo "{LD_LIBRARY_PATH}={$(pwd)/pretreatment_model/test/}" >> $GITHUB_ENV
-        echo "--------LD_LIBRARY_PATH (sent to GITHUB_ENV)"
-        echo $LD_LIBRARY_PATH
         conda activate test-env
-        pip install -e .
         pytest -s vebio/tests/

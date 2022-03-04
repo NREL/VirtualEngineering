@@ -33,39 +33,22 @@ def run_script(filename, *args, verbose=True):
 
     """
 
-    method = 1
+    sys.argv = [filename]
+    sys.argv.extend(args)
+    exec_file = open(filename, 'r')
 
-    if method == 1:
-        sys.argv = [filename]
-        sys.argv.extend(args)
-        exec_file = open(filename, 'r')
+    if verbose:
+        # Execute the file as usual
+        exec(exec_file.read(), globals())
 
-        if verbose:
-            # Execute the file as usual
-            exec(exec_file.read(), globals())
+    else:
+        # Execute the file, redirecting all output to devnull
+        # This suppresses any print statements within `filename`
+        with open(os.devnull, 'w') as fp:
+            with contextlib.redirect_stdout(fp):
+                exec(exec_file.read(), globals())
 
-        else:
-            # Execute the file, redirecting all output to devnull
-            # This suppresses any print statements within `filename`
-            with open(os.devnull, 'w') as fp:
-                with contextlib.redirect_stdout(fp):
-                    exec(exec_file.read(), globals())
-
-        exec_file.close()
-
-    elif method == 2:
-        # Begin the command with `python <filename>`
-        command = f'python {filename}'
-
-        # Extend with any command-line arguments
-        for arg in args:
-            command += f' {arg}'
-
-        # Execute this command using subprocess
-        command_output = subprocess.run(command.split(), capture_output=True, text=True)
-
-        if verbose:
-            print(command_output.stdout)
+    exec_file.close()
 
     return
 
@@ -159,14 +142,7 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
         for f in files_to_copy:
             print(f'| Copying {f} to directory {test_folder_path}')
             shutil.copy(f, test_folder_path)
-            if 'libptreat' in f and 'pytest' in sys.modules:
-                print('doing the pytest copy')
-                shutil.copy(f, notebookDir)
-                print('doing the pytest copy')
-                shutil.copy(f, os.path.join(notebookDir, 'vebio/tests/'))
 
-        print('FROM NOTEBOOKDIR FOUND *.SO:', glob.glob(f'{notebookDir}/*.so'))
-        print('FROM NOTEBOOKDIR FOUND *.SO:', glob.glob(f'{notebookDir}/vebio/tests/*.so'))
         print('Finished copying files.')
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
@@ -175,8 +151,6 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
         os.remove(outfile)
     # Run pretreatment code specifying location of input file
     path_to_input_file = os.path.join(notebookDir, params_filename)
-    for k, p in enumerate(sys.path):
-        print(k, p)
     run_script("ptrun.py", path_to_input_file, verbose=verbose)
     # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
     # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
