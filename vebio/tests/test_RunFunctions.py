@@ -63,18 +63,15 @@ def build_br_options():
 
     return br_options
 
-# @pytest.mark.skipif('linux' in sys.platform, reason='currently fails on linux')
-def test_run_pretreatment(build_fs_options, build_pt_options):
+
+@pytest.mark.regression
+def test_run_pt(build_fs_options, build_pt_options):
     fs_options = build_fs_options
     pt_options = build_pt_options
 
     run_pretreatment(notebook_dir, params_filename, fs_options, pt_options)
 
-    try:
-        os.remove('libptreat.so')
-        print('Found libptreat.so in notebookDir', os.getcwd())
-    except:
-        print('Could not find libptreat.so in', os.getcwd())
+    test_values = yaml_to_dict(params_filename)
 
     truth_values = {'fis_0': 0.31765314961287994,
                     'conv': 0.028073229915110083,
@@ -83,21 +80,38 @@ def test_run_pretreatment(build_fs_options, build_pt_options):
                     'rho_x': 3.4623134078020046,
                     'rho_f': 0.0004599638814971187}
 
+    _assert_dictionary_agreement(test_values['pretreatment_output'], truth_values)
+
+@pytest.mark.regression
+def test_run_eh_surrogate(build_eh_options):
+    eh_options = build_eh_options
+
+    run_enzymatic_hydrolysis(notebook_dir, params_filename, eh_options, False)
+
     test_values = yaml_to_dict(params_filename)
 
-    for key, val in truth_values.items():
-        assert key in test_values['pretreatment_output']
-        assert val == pytest.approx(test_values['pretreatment_output'][key])
+    truth_values = {'rho_g': 11.419105159857235,
+                    'rho_x': 10.406950179753244,
+                    'rho_sL': 7.7044046618903765,
+                    'rho_f': 7.240033383230595e-05}
 
+    _assert_dictionary_agreement(test_values['enzymatic_output'], truth_values)
 
-
-# def test_run_enzymatic_hydrolysis(build_eh_options):
-#     eh_options = build_eh_options
-
-#     run_enzymatic_hydrolysis(notebook_dir, params_filename, eh_options, False)
-
-
-# def test_run_bioreactor(build_br_options):
-#     br_options = build_br_options
+@pytest.mark.regression
+def test_run_br_surrogate(build_br_options):
+    br_options = build_br_options
     
-#     run_bioreactor(notebook_dir, params_filename, br_options, False)
+    run_bioreactor(notebook_dir, params_filename, br_options, False)
+
+    test_values = yaml_to_dict(params_filename)
+
+    truth_values = {'our': 0.05755705710733422}
+
+    _assert_dictionary_agreement(test_values['bioreactor_output'], truth_values)
+
+@pytest.mark.regression
+def _assert_dictionary_agreement(test, truth):
+
+    for key, val in truth.items():
+        assert key in test
+        assert val == pytest.approx(test[key])
