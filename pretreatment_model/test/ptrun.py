@@ -1,6 +1,3 @@
-import sys
-import os
-import glob
 import pt
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,6 +5,7 @@ import pt_input_file_io as pt_input
 import timeit as timerlib
 import subprocess
 
+import sys
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 # run pretreatment model

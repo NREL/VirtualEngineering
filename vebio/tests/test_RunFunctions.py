@@ -1,10 +1,7 @@
 import pytest
 import os
-import sys
 from ipywidgets import *
-from pathlib import Path
 import shutil
-
 
 from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 from vebio.WidgetFunctions import WidgetCollection
