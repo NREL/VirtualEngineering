@@ -8,6 +8,7 @@ from vebio.Utilities import get_host_computer, print_dict, dict_to_yaml, yaml_to
 
 test_yaml_filename = 'temp.yaml'
 
+@pytest.mark.unit
 def test_get_host_computer():
     # Test with the current environment variable
     hpc_run = get_host_computer()
@@ -21,6 +22,7 @@ def test_get_host_computer():
     # Clean up the manually-set variable
     del os.environ['NREL_CLUSTER']
 
+@pytest.mark.unit
 def test_print_dict():
 
     input_dict = {'A': 100, 'B': {'x': 10, 'y': 20, 'z': {'m': 1, 'n': 2}}, 'C': 200}
@@ -44,6 +46,7 @@ def test_print_dict():
     for k, j in zip(output, truth_value):
         assert k == j
 
+@pytest.mark.unit
 def test_dict_to_yaml():
     
     input_dict = {'model_type_1': 'CFD Surrogate', 'initial_porosity_1': 0.234, 'show_plots_1': False}
@@ -57,6 +60,7 @@ def test_dict_to_yaml():
         assert key in output_dict
         assert input_dict[key] == output_dict[key]
 
+@pytest.mark.unit
 def test_dict_to_yaml_multi_merge():
     
     input_dict_a = {'model_type_2': 'Batch Model', 'initial_porosity_2': 0.345, 'show_plots_2': True}
@@ -77,6 +81,7 @@ def test_dict_to_yaml_multi_merge():
         assert key in output_dict
         assert val == output_dict[key]
 
+@pytest.mark.unit
 def test_yaml_to_dict():
     
     output_dict = yaml_to_dict(test_yaml_filename)

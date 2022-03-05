@@ -9,7 +9,7 @@ PRETREATFILES=${SOURCEDIR}/globalvars.o ${SOURCEDIR}/exprparser.o ${SOURCEDIR}/p
 PRETREATOBJFILES=exprparser.o polynomial.o inputs.o quadrature.o globalvars.o element.o transport.o outputs.o gmres.o timestepper.o
 FLAGS2= -O3
 %.o: %.f90
-	${FORT} -c ${FFLAGS} $< -o $@
+	${FORT} -fPIC -c ${FFLAGS} $< -o $@
 
 pretreat: ${PRETREATFILES}
 	mv ${SOURCEDIR}/*.o .

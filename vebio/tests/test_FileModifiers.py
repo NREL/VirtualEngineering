@@ -43,6 +43,7 @@ def buid_test_dict():
 
     return replacement_dict
 
+@pytest.mark.unit
 def test_replacement(build_test_file, buid_test_dict, build_truth_file):
 
     test_file = build_test_file

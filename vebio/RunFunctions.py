@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 import contextlib
 import subprocess
 import glob
@@ -120,7 +121,9 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     dict_to_yaml([fs_dict, pt_dict], params_filename)
 
     # Move into the pretreatment directory
-    os.chdir('pretreatment_model/test/')
+    test_folder_path = os.path.join(notebookDir, 'pretreatment_model/test/')
+    sys.path.append(test_folder_path)
+    os.chdir(test_folder_path)
     
     # See if the pretreatment module exists, if not, we need to build it
     try:
@@ -128,11 +131,19 @@ def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbo
     except:
         print('Could not load PT module, building module from source.')
         print('(This will only happen the first time the notebook is run.)')
-        os.chdir('../bld/')
-        command = "sh build_first_time.sh"
+        build_folder_path = os.path.join(notebookDir, 'pretreatment_model/bld/')
+        command = f'make -C {build_folder_path} ptpython'
         subprocess.run(command.split())
-        os.chdir('../test/')
         print('Finished building PT module.')
+
+        print('Copying modules to test directory.')
+        files_to_copy = glob.glob(f'{build_folder_path}*.so')
+        print(f'Found {len(files_to_copy)} files to copy:')
+        for f in files_to_copy:
+            print(f'| Copying {f} to directory {test_folder_path}')
+            shutil.copy(f, test_folder_path)
+
+        print('Finished copying files.')
 
     # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
     outfiles = glob.glob("out*.dat")
