@@ -23,6 +23,7 @@ scratch/
 # ignore data files--can add specific files for tracking
 *.dat
 *.csv
+*.pkl
 
 # specific files or file types to ignore, related to this project
 pretreat_defs_updated.inp
