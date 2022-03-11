@@ -54,8 +54,30 @@ class MembraneLoopSystem():
         self.pump_power_per_unit = 2.1/(1+np.exp(-3.2*self.slurry_velocity+12.1))
         self.total_pump_power = self.pump_power_per_unit*self.total_units
 
+    @property
+    def pump_power(self):
+        return self.total_pump_power
+
+    @property
+    def membrane_units(self):
+        return self.total_units
+
+    @property
+    def permeate_flux(self):
+        return self.p_flux
+
+    @permeate_flux.setter
+    def permeate_flux(self,value):
+        self.p_flux = value
+        self._calc_n_units()
+        self._calc_slurry_velocity()
+        self._calc_pump_power()
+
+
+    """
     def get_pump_power(self):
         return self.total_pump_power
 
     def get_membrane_units(self):
         return self.total_units
+    """

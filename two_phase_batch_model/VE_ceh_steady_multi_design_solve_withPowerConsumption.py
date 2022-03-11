@@ -61,7 +61,21 @@ MFrps = [21.9, 36.5]  # calculated in 'flux flow.xlsx'
 lmbdE = 0.012 # kg/kg; *1000 to get mg/g
 # target reactor fis, each reactor
 #fis = np.array([0.05, 0.05, 0.05])
-fis = np.array(nr*[f1is])
+"""
+Yudong 03/11/2022:
+Change from:
+the fis of the target 2 CEH reactors match upstream batch purge stream fis
+to:
+the fis of the target 2 CEH reactors are now user input.
+(this means that, some extra care may be needed to dilute/concentrate the Batch
+purge stream fis to the fis target of the 1st reactor?)
+"""
+#fis = np.array(nr*[f1is])
+fis = np.array([
+                ve_params['CEH_input']['fis_1'],
+                ve_params['CEH_input']['fis_2'],
+                ])
+
 # target *carbohydrate* conversion yield *for each reactor* -- is there an
 # approach to specify overall conversion yield, allowing optimization of each
 # reactor?
@@ -72,13 +86,25 @@ fis = np.array(nr*[f1is])
 # different target conversions for each reactor; resulting relative sizes of
 # reactors were a bit unintuitive (to me) -- it is a balance of residence times
 # and amounts of solids entering each reactor
-xi = np.array([0.3, 0.8])
+
+# make target conversion yield user input
+#xi = np.array([0.3, 0.8])
+xi = np.array([
+                ve_params['CEH_input']['target_conv_1'],
+                ve_params['CEH_input']['target_conv_2'],
+                ])
 
 # outlet flow criteria of each reactor
 #theta3 = np.array([0.75, 0.75, 0.75])  # permeate/(sum inlet streams)
 # use "theta2" now!
-theta2set = 0.50
-theta2 = np.array(nr*[theta2set])
+
+#make theta2 a user input
+#theta2set = 0.50
+#theta2 = np.array(nr*[theta2set])
+theta2 = np.array([
+                ve_params['CEH_input']['theta2_1'],
+                ve_params['CEH_input']['theta2_2'],
+                ])
 
 # enzyme rejection by membrane -- assume common for all CSTRs
 # rejE = 0.
@@ -116,8 +142,8 @@ power_consumptions = np.zeros(nr)
 membrane_units = np.zeros(nr).astype(int)
 for i in range(nr):
     membrane_loop_systems[i] = MembraneLoopSystem(p_m_dot[i], p_rou, fis[i])
-    power_consumptions[i] = membrane_loop_systems[i].get_pump_power()
-    membrane_units[i] = membrane_loop_systems[i].get_membrane_units()
+    power_consumptions[i] = membrane_loop_systems[i].pump_power
+    membrane_units[i] = membrane_loop_systems[i].membrane_units
     print('Reactor {} needs {} membrane units with pump power {:0.2f} kW.'.format(
         i+1,membrane_units[i],power_consumptions[i]))
 
@@ -472,7 +498,7 @@ if True:
     text += 'Nr. CSTRs,{:d}\n'.format(nr)
     text += 'FIS,{:.1f},%\n'.format(f1is*100)
     text += 'enzyme loading,{:.0f},mg/g,(independent calculation)\n'.format((cstr.F[0,1]*cstr.f[0,1,7])/(cstr.F[0,0]*np.sum(cstr.f[0,0,0:2]))*1e3)  # lmbdE*1e3
-    text += 'theta2 (makeup/feed),{:.2f},\n'.format(theta2set)
+    text += 'theta2 (makeup/feed) for reactor1 :{:.2f}; for reactor2: {:.2f},\n'.format(theta2[0],theta2[1]) # hardcode reactor number=2 for now
     text += 'glucan conversion,{:.1f},%\n'.format(cstr.convG*100)
     text += 'xylan conversion,{:.1f},%\n'.format(cstr.convX*100)
     text += 'total carbohydrate conversion,{:.1f},%\n'.format(cstr.convCarb*100)

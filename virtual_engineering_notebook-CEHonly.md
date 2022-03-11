@@ -54,7 +54,7 @@ hpc_run = get_host_computer()
 
 Set the options for the continuous enzymatic hydrolysis operation using CEH model
 #### Process flow chart
-                                                makeup buffer1   makeup buffer 2
+                                                makeup buffer 1   makeup buffer 2
                                                       |                 |
                                                       v                 v
     DMR material -> Plug flow reactor EH stage -> CEH reactor 1 -> CEH reactor 2 -> exit stream
@@ -94,6 +94,54 @@ ceh_options.fis_0 = widgets.BoundedFloatText(
     min = 0.0,
     description = r'Initial FIS$_0$',
     description_tooltip = 'The  initial fraction of insoluble solids of DMR material (kg/kg).  Must be in the range [0, 1]'
+)
+
+ceh_options.fis_1 = widgets.BoundedFloatText(
+    value = 0.20,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target FIS$_1$',
+    description_tooltip = 'The target insoluble solids in CEH reactor 1 (kg/kg).  Must be in the range [0, 1]'
+)
+
+ceh_options.fis_2 = widgets.BoundedFloatText(
+    value = 0.20,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target FIS$_2$',
+    description_tooltip = 'The target insoluble solids in CEH reactor 2 (kg/kg).  Must be in the range [0, 1]'
+)
+
+ceh_options.target_conv_1 = widgets.BoundedFloatText(
+    value = 0.30,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target x$_1$',
+    description_tooltip = 'The target hydrocarbon conversion in CEH reactor 1.  Must be in the range [0, 1]'
+)
+
+ceh_options.target_conv_2 = widgets.BoundedFloatText(
+    value = 0.80,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target x$_2$',
+    description_tooltip = 'The target hydrocarbon conversion in CEH reactor 2.  Must be in the range [0, 1]'
+)
+
+ceh_options.theta2_1 = widgets.BoundedFloatText(
+    value = 0.50,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target theta2$_1$',
+    description_tooltip = 'The target theta2 (makeup/feed ratio) in CEH reactor 1.  Must be in the range [0, 1]'
+)
+
+ceh_options.theta2_2 = widgets.BoundedFloatText(
+    value = 0.50,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target theta2$_2$',
+    description_tooltip = 'The target theta2 (makeup/feed ratio) in CEH reactor 2.  Must be in the range [0, 1]'
 )
 
 ceh_options.glucan_solid_fraction = widgets.BoundedFloatText(
@@ -164,7 +212,7 @@ When finished setting options for all unit operations, press the button below to
 run_button = widgets.Button(
     description = 'Run All.',
     tooltip = 'Execute the model start-to-finish with the properties specified above.',
-    layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'}, 
+    layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'},
     button_style = 'success'
 )
 
@@ -179,23 +227,23 @@ display(run_button)
 def run_button_action(b):
     clear_output()
     display(run_button)
-    
+
     # Set global paths and files for communication between operations
     os.chdir(notebookDir)
     params_filename = 'virteng_params.yaml'
-    
+
     # Run the pretreatment model
     #run_pretreatment(notebookDir, params_filename, fs_options, pt_options)
-    
+
     # Run the enzymatic hydrolysis model
     #run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run)
-    
+
     # Run the CEH modelS
     run_CEH(notebookDir, params_filename, ceh_options)
-    
+
     # Run the bioreactor model
     #run_bioreactor(notebookDir, params_filename, br_options, hpc_run)
-    
+
 run_button.on_click(run_button_action)
 
 #================================================================
@@ -206,7 +254,7 @@ run_button.on_click(run_button_action)
 
 ```python
 a = HTML('''<script>
-code_show=true; 
+code_show=true;
 function code_toggle() {
  if (code_show){
  $('div.input').hide();
@@ -214,7 +262,7 @@ function code_toggle() {
  $('div.input').show();
  }
  code_show = !code_show
-} 
+}
 $( document ).ready(code_toggle);
 </script>
 <form action="javascript:code_toggle()"><input type="submit" \
