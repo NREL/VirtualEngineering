@@ -54,14 +54,14 @@ hpc_run = get_host_computer()
 
 Set the options for the continuous enzymatic hydrolysis operation using CEH model
 #### Process flow chart
-                                                makeup buffer 1   makeup buffer 2
-                                                      |                 |
-                                                      v                 v
-    DMR material -> Plug flow reactor EH stage -> CEH reactor 1 -> CEH reactor 2 -> exit stream
+                    makeup buffer 1   makeup buffer 2  makeup buffer 3
+                          |                 |                |
+                          v                 v                v
+    DMR material ->  CEH reactor 1 -> CEH reactor 2 -> CEH reactor 3 -> exit stream
 
-                                                      |                 |
-                                                      v                 v
-                                               sugar stream 1    sugar stream 2
+                          |                 |                |
+                          v                 v                v
+                    sugar stream 1    sugar stream 2   sugar stream 3
 
 
 ```python
@@ -88,60 +88,20 @@ ceh_options.lambda_e = widgets.BoundedFloatText(
 # Conversion from mg/g to kg/kg
 ceh_options.lambda_e.scaling_fn = lambda e : 0.001 * e
 
-ceh_options.fis_0 = widgets.BoundedFloatText(
-    value = 0.20,
+ceh_options.f1_is = widgets.BoundedFloatText(
+    value = 0.10,
     max = 1.0,
     min = 0.0,
-    description = r'Initial FIS$_0$',
-    description_tooltip = 'The  initial fraction of insoluble solids of DMR material (kg/kg).  Must be in the range [0, 1]'
+    description = r'Inflow f1_is',
+    description_tooltip = 'Inflow: The  initial fraction of insoluble solids in input stream for DMR slurry (kg/kg).  Must be in the range [0, 1]'
 )
 
-ceh_options.fis_1 = widgets.BoundedFloatText(
-    value = 0.20,
-    max = 1.0,
+ceh_options.inflow_mass_flowrate = widgets.BoundedFloatText(
+    value = 100.0,
+    max = 1.0e8,
     min = 0.0,
-    description = r'Target FIS$_1$',
-    description_tooltip = 'The target insoluble solids in CEH reactor 1 (kg/kg).  Must be in the range [0, 1]'
-)
-
-ceh_options.fis_2 = widgets.BoundedFloatText(
-    value = 0.20,
-    max = 1.0,
-    min = 0.0,
-    description = r'Target FIS$_2$',
-    description_tooltip = 'The target insoluble solids in CEH reactor 2 (kg/kg).  Must be in the range [0, 1]'
-)
-
-ceh_options.target_conv_1 = widgets.BoundedFloatText(
-    value = 0.30,
-    max = 1.0,
-    min = 0.0,
-    description = r'Target x$_1$',
-    description_tooltip = 'The target hydrocarbon conversion in CEH reactor 1.  Must be in the range [0, 1]'
-)
-
-ceh_options.target_conv_2 = widgets.BoundedFloatText(
-    value = 0.80,
-    max = 1.0,
-    min = 0.0,
-    description = r'Target x$_2$',
-    description_tooltip = 'The target hydrocarbon conversion in CEH reactor 2.  Must be in the range [0, 1]'
-)
-
-ceh_options.theta2_1 = widgets.BoundedFloatText(
-    value = 0.50,
-    max = 1.0,
-    min = 0.0,
-    description = r'Target theta2$_1$',
-    description_tooltip = 'The target theta2 (makeup/feed ratio) in CEH reactor 1.  Must be in the range [0, 1]'
-)
-
-ceh_options.theta2_2 = widgets.BoundedFloatText(
-    value = 0.50,
-    max = 1.0,
-    min = 0.0,
-    description = r'Target theta2$_2$',
-    description_tooltip = 'The target theta2 (makeup/feed ratio) in CEH reactor 2.  Must be in the range [0, 1]'
+    description = r'Inflow F1',
+    description_tooltip = 'Inflow: mass flow rate for DMR slurry (kg/h).  Must be in the range [0, 1e8]'
 )
 
 ceh_options.glucan_solid_fraction = widgets.BoundedFloatText(
@@ -160,13 +120,21 @@ ceh_options.xylan_solid_fraction = widgets.BoundedFloatText(
     description_tooltip = 'The initial fraction of solids that is Xylan (kg/kg) after DMR pretreatment.  Must be in the range [0, 1]'
 )
 
-ceh_options.lignin_solid_fraction = widgets.BoundedFloatText(
-    value = 0.113,
-    max = 1.0,
+ceh_options.residue_soluble_lignin = widgets.BoundedFloatText(
+    value = 2.0,
+    max = 1000.0,
     min = 0.0,
-    description = 'Initial $X_L$',
-    description_tooltip = 'The initial fraction of solids that is Xylan (kg/kg) after DMR pretreatment.  Must be in the range [0, 1]'
+    description = r'Residue $C_L$',
+    description_tooltip = 'The residule soluble lignin in material inflow (g/L) of DMR slurry.  Must be in the range [0, 1000]'
 )
+
+#ceh_options.lignin_solid_fraction = widgets.BoundedFloatText(
+#    value = 0.113,
+#    max = 1.0,
+#    min = 0.0,
+#    description = 'Initial $X_L$',
+#    description_tooltip = 'The initial fraction of solids that is Xylan (kg/kg) after DMR pretreatment.  Must be in the range [0, 1]'
+#)
 
 ceh_options.facile_fraction_glucan = widgets.BoundedFloatText(
     value = 0.6,
@@ -176,13 +144,87 @@ ceh_options.facile_fraction_glucan = widgets.BoundedFloatText(
     description_tooltip = 'Facile glucan fraction.  Must be in the range [0, 1]'
 )
 
-ceh_options.t_final = widgets.BoundedFloatText(
-    value = 25.0,
-    min = 1.0,
-    max = 100.0,
-    description = 'Final Time',
-    description_tooltip = r'The total time of the simulation (h).  Must be $\geq$ 1'
+ceh_options.fis_1 = widgets.BoundedFloatText(
+    value = 0.07,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target FIS$_1$',
+    description_tooltip = 'The target insoluble solids in CEH reactor 1 (kg/kg).  Must be in the range [0, 1]'
 )
+
+ceh_options.fis_2 = widgets.BoundedFloatText(
+    value = 0.07,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target FIS$_2$',
+    description_tooltip = 'The target insoluble solids in CEH reactor 2 (kg/kg).  Must be in the range [0, 1]'
+)
+
+ceh_options.fis_3 = widgets.BoundedFloatText(
+    value = 0.07,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target FIS$_3$',
+    description_tooltip = 'The target insoluble solids in CEH reactor 3 (kg/kg).  Must be in the range [0, 1]'
+)
+
+ceh_options.target_conv_1 = widgets.BoundedFloatText(
+    value = 0.50,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target x$_1$',
+    description_tooltip = 'The target hydrocarbon conversion in CEH reactor 1.  Must be in the range [0, 1]'
+)
+
+ceh_options.target_conv_2 = widgets.BoundedFloatText(
+    value = 0.60,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target x$_2$',
+    description_tooltip = 'The target hydrocarbon conversion in CEH reactor 2.  Must be in the range [0, 1]'
+)
+
+ceh_options.target_conv_3 = widgets.BoundedFloatText(
+    value = 0.70,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target x$_3$',
+    description_tooltip = 'The target hydrocarbon conversion in CEH reactor 3.  Must be in the range [0, 1]'
+)
+
+ceh_options.theta2_1 = widgets.BoundedFloatText(
+    value = 0.50,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target theta2$_1$',
+    description_tooltip = 'The target theta2 (makeup/feed ratio) in CEH reactor 1.  Must be in the range [0, 1]'
+)
+
+ceh_options.theta2_2 = widgets.BoundedFloatText(
+    value = 0.50,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target theta2$_2$',
+    description_tooltip = 'The target theta2 (makeup/feed ratio) in CEH reactor 2.  Must be in the range [0, 1]'
+)
+
+ceh_options.theta2_3 = widgets.BoundedFloatText(
+    value = 0.50,
+    max = 1.0,
+    min = 0.0,
+    description = r'Target theta2$_3$',
+    description_tooltip = 'The target theta2 (makeup/feed ratio) in CEH reactor 3.  Must be in the range [0, 1]'
+)
+
+
+
+#ceh_options.t_final = widgets.BoundedFloatText(
+#    value = 25.0,
+#    min = 1.0,
+#    max = 100.0,
+#    description = 'Final Time',
+#    description_tooltip = r'The total time of the simulation (h).  Must be $\geq$ 1'
+#)
 
 ceh_options.show_plots = widgets.Checkbox(
     value = False,
