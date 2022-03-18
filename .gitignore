@@ -53,6 +53,3 @@ auto/
 # Exclude temporary documentation build files
 docs/_build/
 !docs/technical_reference/run_*
-
-# exclude test file
-two_phase_batch_model/test_membrane_loop.py
