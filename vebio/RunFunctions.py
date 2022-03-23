@@ -572,9 +572,9 @@ def run_ve_tea(notebookDir, params_filename, tea_options, verbose=True):
 
     path_to_input_file = os.path.join(notebookDir, params_filename)
 
-    os.chdir('submodules/Aspen_tool/AutoAspen/')
+    os.chdir('tea_tools/')
 
-    run_script("run_tea_ve.py", path_to_input_file, verbose=verbose)
+    run_script("tea_ve.py", path_to_input_file, verbose=verbose)
 
     os.chdir(notebookDir)
 
