@@ -16,7 +16,7 @@ First, create a Conda environment from the `environment.yaml` file by opening a 
 
 `conda env create -f environment.yaml -n [environment name]`
 
-where `[environment name]` is replaced with the desired name of your VE Conda environment. This Conda installs the required packages and pip installs the `vebio` Python package.  Next, activate the environment with
+where `[environment name]` is replaced with the desired name of your VE Conda environment. This Conda installs the required packages and pip installs the `vebio` Python package.  Windows users should replace `environment.yaml` with `environment_windows.yaml`, but note that Windows support is still experimental and only Linux and Mac operating systems are currently supported. Next, activate the environment with
 
 `conda activate [environment name]`
 
@@ -36,5 +36,5 @@ Then update specific modules with
 
 `git submodule update submodules/[name of submodule]`
 
-This command will perform a git clone or pull for that module. To run the enzymatic hydrolysis CFD model, update `Nek5000`. To run the well-mixed "Ligncellulose" model (no CFD), update`CEH_EmpiricalModel`. To run bioreactor CFD simulation, update `OpenFOAM-dev` and `ThirdParty-dev`. Also see [README_OpenFOAM.md](README_OpenFOAM.md).
+This command will perform a git clone or pull for that module. To run the enzymatic hydrolysis CFD model, update `Nek5000`. To run the well-mixed "Ligncellulose" model (no CFD), update`CEH_EmpiricalModel`. To run bioreactor CFD simulation, update `OpenFOAM-dev` and `ThirdParty-dev`. Also see [README_OpenFOAM.md](README_OpenFOAM.md). Windows users with an existing Aspen Plus installation may wish to update the `Aspen_tool` directory as well, which provides functionality to modify and launch Aspen Plus models from the command line.
 
