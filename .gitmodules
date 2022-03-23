@@ -9,7 +9,7 @@
 	url = https://github.com/Nek5000/Nek5000
 [submodule "submodules/CEH_EmpiricalModel"]
 	path = submodules/CEH_EmpiricalModel
-	url = https://github.nrel.gov/jlisches/CEH_EmpiricalModel
+	url = https://github.com/NREL/CEH_EmpiricalModel
 [submodule "submodules/Aspen_tool"]
 	path = submodules/Aspen_tool
 	url = https://github.com/eyoung55/Aspen_tool.git
