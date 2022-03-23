@@ -66,7 +66,7 @@ def run_aspen_model_ve(aspenFile, ve_params, outDir):
         # Run the Aspen Plus model
         # ================================================================
         print('Running Aspen Plus model... ')
-        # aspenModel.run_model()
+        aspenModel.run_model()
         print('Success!')
 
         # ================================================================
@@ -74,7 +74,7 @@ def run_aspen_model_ve(aspenFile, ve_params, outDir):
         # ================================================================
         print('Saving current model definition... ')
         tmpFile = os.path.join(outDir, 'CEH_ve.bkp')
-        # aspenModel.save_model(tmpFile)
+        aspenModel.save_model(tmpFile)
         print('Success!')
 
     finally:
@@ -134,11 +134,7 @@ def run_tea_ve(*args):
 
     mssp = run_excel_calc_ve(excelFile, tmpFile)
 
-    try:
-        print(f'Selling price: {mssp}')
-    except:
-        print('Could not calculate MSSP.')
-
+    print(f'Selling price: {mssp}')
 
 
 run_tea_ve(sys.argv)
