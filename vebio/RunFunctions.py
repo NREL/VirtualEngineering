@@ -544,7 +544,7 @@ def run_CEH(notebookDir, params_filename, ceh_options,
 
     # Export the CEH options to a global yaml file
     ceh_dict = ceh_options.export_widgets_to_dict(parent_name='CEH_input')
-    dict_to_yaml(ceh_dict, params_filename, merge_with_existing=True)
+    dict_to_yaml(ceh_dict, params_filename, merge_with_existing=False)
 
     # Run the CEH model
 
@@ -561,3 +561,21 @@ def run_CEH(notebookDir, params_filename, ceh_options,
     os.chdir(notebookDir)
 
     print('\nFinished Continuous Enzymatic Hydrolysis')
+
+
+def run_ve_tea(notebookDir, params_filename, tea_options, verbose=True):
+
+    print('\nRunning Techno-Economic Analysis (TEA)')
+
+    tea_dict = tea_options.export_widgets_to_dict(parent_name='tea_input')
+    dict_to_yaml(tea_dict, params_filename, merge_with_existing=True)
+
+    path_to_input_file = os.path.join(notebookDir, params_filename)
+
+    os.chdir('submodules/Aspen_tool/AutoAspen/')
+
+    run_script("run_tea_ve.py", path_to_input_file, verbose=verbose)
+
+    os.chdir(notebookDir)
+
+    print('\nFinished TEA')
