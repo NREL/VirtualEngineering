@@ -37,9 +37,10 @@ if not 'notebookDir' in globals():
 import vebio.WidgetFunctions as wf
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
-from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor, run_CEH
+from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor, run_CEH, run_ve_tea
 # add path for no-CFD EH model
 sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/src/core/"))
+sys.path.append(os.path.join(notebookDir, "submodules/Aspen_tool/AutoAspen/"))
 
 
 #================================================================
@@ -243,6 +244,41 @@ ceh_options.display_all_widgets()
 
 ---
 
+### 2. Techno-Economic Analysis Options
+
+
+```python
+#================================================================
+
+# Create the collection of widgets
+tea_options = wf.WidgetCollection()
+
+tea_options.aspen_filename = widgets.Text(
+    value = 'bc1707a-sugars_CEH.bkp',
+    description = 'Aspen File',
+    disabled = True,
+    description_tooltip = 'Path to Aspen backup file.'
+)
+
+tea_options.excel_filename = widgets.Text(
+    value = 've_bc1707a-sugars_CEH.xlsm',
+    description = 'Excel File',
+    disabled = True,
+    description_tooltip = 'Path to Excel calculation file.'
+)
+
+
+#================================================================
+
+# Display the widgets
+tea_options.display_all_widgets()
+
+#================================================================
+
+```
+
+---
+
 ## Run Model
 
 When finished setting options for all unit operations, press the button below to run the complete model.
@@ -285,6 +321,8 @@ def run_button_action(b):
 
     # Run the bioreactor model
     #run_bioreactor(notebookDir, params_filename, br_options, hpc_run)
+    
+    run_ve_tea(notebookDir, params_filename, tea_options, verbose=True)
 
 run_button.on_click(run_button_action)
 
