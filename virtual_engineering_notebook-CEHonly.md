@@ -307,14 +307,17 @@ display(run_button)
 #================================================================
 
 # Define a function to be executed each time the run button is pressed
-def run_button_action(b, clear_output=True):
-    if clear_output:
+def run_button_action(b, clear_output_flag=True, case_num=None):
+    if clear_output_flag:
         clear_output()
         display(run_button)
 
     # Set global paths and files for communication between operations
     os.chdir(notebookDir)
-    params_filename = 'virteng_params.yaml'
+    if case_num is not None:
+        params_filename = f'sweep_output/virteng_params_{case_num:03d}.yaml'
+    else:
+        params_filename = 'virteng_params.yaml'
 
     # Run the pretreatment model
     #run_pretreatment(notebookDir, params_filename, fs_options, pt_options)
@@ -359,8 +362,8 @@ def run_sweep_button_action(b):
 
     swept_param = ceh_options.f1_is
 
-    nn = 10
-    min_swept_param = 0.01
+    nn = 20
+    min_swept_param = 0.005
     max_swept_param = 0.1
 
     swept_vals = np.linspace(min_swept_param, max_swept_param, nn)
@@ -371,7 +374,7 @@ def run_sweep_button_action(b):
         print('================================================================')
         swept_param.value = val
 
-        run_button_action(b, clear_output=False)
+        run_button_action(b, clear_output_flag=False, case_num=case_num)
 
 
 run_sweep_button.on_click(run_sweep_button_action)
