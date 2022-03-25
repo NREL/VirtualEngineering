@@ -83,7 +83,7 @@ def run_aspen_model_ve(aspenFile, ve_params, outDir):
     return tmpFile
 
 
-def run_excel_calc_ve(excelFile, tmpFile):
+def run_excel_calc_ve(excelFile, tmpFile, ve_params):
 
     # ================================================================
     # Create Excel communicator and run calculator
@@ -98,7 +98,10 @@ def run_excel_calc_ve(excelFile, tmpFile):
 
         power = excelCalculator.get_cell('OPEX', 'E40')
         print(f'Old Power: {power}')
-        power += 10000
+        delta_power = ve_params['CEH_output']['System level']['Total membrane loop power consumption (kW)']
+        print(f'Delta Power: {delta_power}')
+        power += delta_power
+
         excelCalculator.set_cell(power, 'OPEX', 'E40')
         power = excelCalculator.get_cell('OPEX', 'E40')
         print(f'New Power: {power}')
@@ -132,9 +135,9 @@ def run_tea_ve(*args):
 
     tmpFile = run_aspen_model_ve(aspenFile, ve_params, outDir)
 
-    mssp = run_excel_calc_ve(excelFile, tmpFile)
+    mssp = run_excel_calc_ve(excelFile, tmpFile, ve_params)
 
-    print(f'Selling price: {mssp}')
+    print(f'Selling price: {mssp:.6f}')
 
 
 run_tea_ve(sys.argv)

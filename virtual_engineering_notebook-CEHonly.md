@@ -25,6 +25,7 @@ from ipywidgets import *
 from IPython.display import HTML, clear_output
 import os
 import sys
+import numpy as np
 
 #================================================================
 # attempt to capture the parent directory in case of errors
@@ -248,6 +249,10 @@ ceh_options.display_all_widgets()
 
 
 ```python
+
+```
+
+```python
 #================================================================
 
 # Create the collection of widgets
@@ -302,9 +307,10 @@ display(run_button)
 #================================================================
 
 # Define a function to be executed each time the run button is pressed
-def run_button_action(b):
-    clear_output()
-    display(run_button)
+def run_button_action(b, clear_output=True):
+    if clear_output:
+        clear_output()
+        display(run_button)
 
     # Set global paths and files for communication between operations
     os.chdir(notebookDir)
@@ -317,6 +323,10 @@ def run_button_action(b):
     #run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run)
 
     # Run the CEH modelS
+    aspen_flowrate = 282628.0 # (kg/hr) for an FIS of 0.198
+    aspen_fis = 0.198
+    ceh_options.inflow_mass_flowrate.value = aspen_flowrate*aspen_fis/ceh_options.f1_is.value
+
     run_CEH(notebookDir, params_filename, ceh_options)
 
     # Run the bioreactor model
@@ -325,6 +335,46 @@ def run_button_action(b):
     run_ve_tea(notebookDir, params_filename, tea_options, verbose=True)
 
 run_button.on_click(run_button_action)
+
+#================================================================
+
+#================================================================
+
+run_sweep_button = widgets.Button(
+    description = 'Run Param Sweep of FIS.',
+    tooltip = 'Execute the model in parameter sweep mode with the properties specified above.',
+    layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'},
+    button_style = 'success'
+)
+
+#================================================================
+
+# run_button_output = widgets.Output()
+display(run_sweep_button)
+
+#================================================================
+
+# Define a function to be executed each time the run button is pressed
+def run_sweep_button_action(b):
+
+    swept_param = ceh_options.f1_is
+
+    nn = 10
+    min_swept_param = 0.01
+    max_swept_param = 0.1
+
+    swept_vals = np.linspace(min_swept_param, max_swept_param, nn)
+
+    for case_num, val in enumerate(swept_vals):
+        print('================================================================')
+        print(f'Sweep {case_num+1} of {nn}, {swept_param.description} = {val} ')
+        print('================================================================')
+        swept_param.value = val
+
+        run_button_action(b, clear_output=False)
+
+
+run_sweep_button.on_click(run_sweep_button_action)
 
 #================================================================
 
