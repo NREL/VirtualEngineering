@@ -139,5 +139,10 @@ def run_tea_ve(*args):
 
     print(f'Selling price: {mssp:.6f}')
 
+    output_dict = {}
+    output_dict['tea_output'] = {}
+    output_dict['tea_output']['mssp'] = float(mssp)
+
+    dict_to_yaml([ve_params, output_dict], params_filename)
 
 run_tea_ve(sys.argv)
