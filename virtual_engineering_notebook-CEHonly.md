@@ -58,11 +58,11 @@ Set the options for the continuous enzymatic hydrolysis operation using CEH mode
                                                       |                 |
                                                       v                 v
     DMR material -> Plug flow reactor EH stage -> CEH reactor 1 -> CEH reactor 2 -> exit stream
-
-                                                      |                 |
-                                                      v                 v
-                                               sugar stream 1    sugar stream 2
-
+                                                   |          |    |          |
+                                                   |_Membrane_|    |_Membrane_|
+                                                       |                 |
+                                                       v                 v
+                                                sugar stream 1    sugar stream 2
 
 ```python
 #================================================================
@@ -76,6 +76,22 @@ ceh_options.model_type = widgets.RadioButtons(
     description = 'Model Type',
     disabled = False,
     description_tooltip = 'Only have one option for now'
+)
+
+ceh_options.n_units_in_series = widgets.BoundedIntText(
+    value = 20,
+    max = 100,
+    min = 0,
+    description = 'Modules in series',
+    description_tooltip = 'Number of membrane modules operated in series.'
+)
+
+ceh_options.p_flux_target = widgets.BoundedFloatText(
+    value = 20.0,
+    max = 100.0,
+    min = 0.0,
+    description = 'Permeate flux',
+    description_tooltip = 'unit in LMH. Target permeate flux.'
 )
 
 ceh_options.lambda_e = widgets.BoundedFloatText(
