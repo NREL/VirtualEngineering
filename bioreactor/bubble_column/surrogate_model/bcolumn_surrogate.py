@@ -18,8 +18,8 @@ mpl.rc('ytick',labelsize=14)
 
 dt = 4
 
-our_base = 100.0
-r = 0.75
+our_base = 100.0 # units?
+r = 0.75  # what is this parameter?
 
 gas_velocity = 0.08
 column_height = 40.
@@ -29,10 +29,12 @@ bubble_diameter = 0.006
 rho_g = ve_params['enzymatic_output']['rho_g']
 rho_x = ve_params['enzymatic_output']['rho_x']
 rho_f = ve_params['enzymatic_output']['rho_f']
+# what is the source for this expression?
 our_max = our_base * np.exp(-rho_f/100.0) * (r + (1.0-r) * rho_g/(rho_g+rho_x));
 
 T = ve_params['bioreactor_input']['t_final']
 
+# these outputs should show units 
 print('\nINPUTS')
 print('Gas velocity = %.2f' % (gas_velocity))
 print('Column height = %.2f' % (column_height))
@@ -66,7 +68,7 @@ with open('gp_bub_col.pkl', 'rb') as f_id:
         ff = np.power(10., f_0*(1-s) + f_1*s)
 
 print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
-print('OUR = %.4f' % (ff))
+print('OUR = %.4f' % (ff))  # units???
 
 # Save the outputs into a dictionary
 output_dict = {'bioreactor_output': {}}

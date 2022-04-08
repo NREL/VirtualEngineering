@@ -41,7 +41,7 @@ from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
 from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 # add path for no-CFD EH model
-sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
+sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/src/core/"))
 
 #================================================================
 # See if we're running on Eagle or on a laptop
