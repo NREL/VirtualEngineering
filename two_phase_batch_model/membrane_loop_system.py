@@ -69,8 +69,8 @@ class MembraneLoopSystem():
 
     def _calc_slurry_velocity(self):
         self.slurry_velocity = (self.p_flux
-                                + 39.1134
-                                - 0.078742*pow(self.fis+0.737,-25)
+                                + 26.692
+                                - 0.166*pow(self.fis+0.737,-25)
                                 )/9.8
 
     def _calc_retentate_permeate_ratio(self):
@@ -80,10 +80,7 @@ class MembraneLoopSystem():
         self.total_retentate_flow_rate = self.retentate_flow_rate * self.total_units / self.n_units
 
     def _calc_pump_power(self):
-        if self.slurry_velocity > 3.1:
-            self.pump_power_per_unit = 2.1/(1+np.exp(-3.2*self.slurry_velocity+12.1))
-        else:
-            self.pump_power_per_unit = (0.213278/3.1)*self.slurry_velocity
+        self.pump_power_per_unit = 2.1/(1+np.exp(-3.2*self.slurry_velocity+12.1))
         self.total_pump_power = self.pump_power_per_unit*self.total_units
 
     @property
