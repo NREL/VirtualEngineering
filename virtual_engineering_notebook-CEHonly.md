@@ -55,16 +55,16 @@ hpc_run = get_host_computer()
 ### 1. Continuous Enzymatic Hydrolysis Operation
 
 Set the options for the continuous enzymatic hydrolysis operation using CEH model
-#### Process flow chart
-                    makeup buffer 1   makeup buffer 2  makeup buffer 3
-                          |                 |                |
-                          v                 v                v
-    DMR material ->  CEH reactor 1 -> CEH reactor 2 -> CEH reactor 3 -> exit stream
 
-                          |                 |                |
-                          v                 v                v
-                    sugar stream 1    sugar stream 2   sugar stream 3
-
+                                                makeup buffer 1   makeup buffer 2
+                                                      |                 |
+                                                      v                 v
+    DMR material -> Plug flow reactor EH stage -> CEH reactor 1 -> CEH reactor 2 -> exit stream
+                                                   |          |    |          |
+                                                   |_Membrane_|    |_Membrane_|
+                                                       |                 |
+                                                       v                 v
+                                                sugar stream 1    sugar stream 2
 
 ```python
 #================================================================
@@ -78,6 +78,22 @@ ceh_options.model_type = widgets.RadioButtons(
     description = 'Model Type',
     disabled = False,
     description_tooltip = 'Only have one option for now'
+)
+
+ceh_options.n_units_in_series = widgets.BoundedIntText(
+    value = 20,
+    max = 100,
+    min = 0,
+    description = 'Modules in series',
+    description_tooltip = 'Number of membrane modules operated in series.'
+)
+
+ceh_options.p_flux_target = widgets.BoundedFloatText(
+    value = 20.0,
+    max = 100.0,
+    min = 0.0,
+    description = 'Permeate flux',
+    description_tooltip = 'unit in LMH. Target permeate flux.'
 )
 
 ceh_options.lambda_e = widgets.BoundedFloatText(
