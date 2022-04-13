@@ -95,6 +95,14 @@ ceh_options.p_flux_target = widgets.BoundedFloatText(
     description_tooltip = 'unit in LMH. Target permeate flux.'
 )
 
+ceh_options.inflow_mass_flowrate = widgets.BoundedFloatText(
+    value = 328996 + 6918,
+    max = 1000000000.0,
+    min = 0.0,
+    description = 'inflow_MassRate',
+    description_tooltip = 'Mass flow rate (kg/h) of slurry to first CEH reactor (cstr).'
+)
+
 ceh_options.lambda_e = widgets.BoundedFloatText(
     value = 12.0,
     max = 1000.0,
