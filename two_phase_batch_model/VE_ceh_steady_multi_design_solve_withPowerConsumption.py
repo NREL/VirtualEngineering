@@ -135,17 +135,34 @@ fis = cstr.fis ####
 # assume density of sugar stream is equal to water?
 p_rou = 1 #kg/L
 
+####
+# membrane loop calculations
+n_units_in_series = ve_params['CEH_input']['n_units_in_series']
+p_flux_target = ve_params['CEH_input']['p_flux_target']
 
-print(f'++++ Pump Power Requirement for membrane loops of {nr} reactors ++++\n')
+
+print(f'++++ Reactor level information for membrane loops of {nr} reactors ++++\n')
 membrane_loop_systems = [[]]*nr
 power_consumptions = np.zeros(nr)
 membrane_units = np.zeros(nr).astype(int)
+membrane_area = np.zeros(nr)
+retentate_flow_rate = np.zeros(nr)
+retentate_permeate_ratio = np.zeros(nr)
+
 for i in range(nr):
-    membrane_loop_systems[i] = MembraneLoopSystem(p_m_dot[i], p_rou, fis[i])
+    membrane_loop_systems[i] = MembraneLoopSystem(p_m_dot[i], p_rou, fis[i],
+                                                        n_units=n_units_in_series,p_flux=p_flux_target)
     power_consumptions[i] = membrane_loop_systems[i].pump_power
     membrane_units[i] = membrane_loop_systems[i].membrane_units
-    print('Reactor {} needs {} membrane units with pump power {:0.2f} kW.'.format(
-        i+1,membrane_units[i],power_consumptions[i]))
+    membrane_area[i] = membrane_loop_systems[i].total_membrane_area
+    retentate_flow_rate[i] = membrane_loop_systems[i].total_retentate_flow_rate
+    retentate_permeate_ratio[i] = membrane_loop_systems[i].retentate_permeate_ratio
+
+    #print('Reactor {} needs {} membrane units with pump power {:0.2f} kW.'.format(
+    #    i+1,membrane_units[i],power_consumptions[i]))
+    print(f"Reactor {i+1} :")
+    print(f"\tTotal {membrane_units[i]} membrane units which has total membrane area of {membrane_area[i]:0.2f} m2.")
+    print(f"\tRetentate flow rate: {retentate_flow_rate[i]:0.2f}kg/h, permeate_flow_rate: {p_m_dot[i]:2f}kg/h, r/p ratio: {retentate_permeate_ratio[i]:2f}")
 
 print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 #%%
@@ -184,6 +201,10 @@ print("Enzyme mass balance is %g" % cstr.mbE)
 
 # system level result saved in a dictionary
 system_level_result_dict = {
+                'Total membrane area (m2)'                      : sum(membrane_area).tolist(),
+                'Overall retentate/permeate ratio'              : (sum(retentate_flow_rate)/sum(p_m_dot)).tolist(),
+                'Total retentate flow rate (kg/h)'              : sum(retentate_flow_rate).tolist(),
+                'Total permeate flow rate (kg/h)'               : sum(-p_m_dot).tolist(),
                 'Total membrane units'                          : sum(membrane_units).tolist(),
                 'Total membrane loop power consumption (kW)'    : sum(power_consumptions).tolist(),
                 'Glucan conversion yield'                       : cstr.convG.tolist(),
@@ -539,6 +560,9 @@ if True:
 
 reactor_level_result_dict = {
                 'Reactor Size (kg)'                     : cstr.mT,
+                'Membrane area'                         : membrane_area,
+                'Retentate/permeate ratio'              : retentate_permeate_ratio,
+                'Retentate flow rate (kg/h)'            : retentate_flow_rate,
                 'Membrane units'                        : membrane_units,
                 'Membrane loop pump power (kW)'         : power_consumptions,
                 'Feed stream (kg/h)'                    : cstr.F[:,0],
