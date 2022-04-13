@@ -275,14 +275,16 @@ ceh_options.display_all_widgets()
 tea_options = wf.WidgetCollection()
 
 tea_options.aspen_filename = widgets.Text(
-    value = 'bc1707a-sugars_CEH.bkp',
+#     value = 'bc1707a-sugars_CEH.bkp',
+    value = 'bc1707a-sugars_CEH_2019_SOT.bkp',
     description = 'Aspen File',
     disabled = True,
     description_tooltip = 'Path to Aspen backup file.'
 )
 
 tea_options.excel_filename = widgets.Text(
-    value = 've_bc1707a-sugars_CEH.xlsm',
+#     value = 've_bc1707a-sugars_CEH.xlsm',
+    value = 've_bc1707a-sugars_CEH_2019_SOT_3.xlsm',
     description = 'Excel File',
     disabled = True,
     description_tooltip = 'Path to Excel calculation file.'
@@ -351,7 +353,7 @@ def run_button_action(b, clear_output_flag=True, case_num=None):
     # Run the bioreactor model
     #run_bioreactor(notebookDir, params_filename, br_options, hpc_run)
     
-    run_ve_tea(notebookDir, params_filename, tea_options, verbose=True)
+#     run_ve_tea(notebookDir, params_filename, tea_options, verbose=True)
 
 run_button.on_click(run_button_action)
 
@@ -378,8 +380,8 @@ def run_sweep_button_action(b):
 
     swept_param = ceh_options.f1_is
 
-    nn = 20
-    min_swept_param = 0.005
+    nn = 14
+    min_swept_param = 0.035
     max_swept_param = 0.1
 
     swept_vals = np.linspace(min_swept_param, max_swept_param, nn)
