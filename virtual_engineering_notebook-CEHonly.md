@@ -54,6 +54,7 @@ hpc_run = get_host_computer()
 
 Set the options for the continuous enzymatic hydrolysis operation using CEH model
 #### Process flow chart
+
                                                 makeup buffer 1   makeup buffer 2
                                                       |                 |
                                                       v                 v
@@ -63,6 +64,7 @@ Set the options for the continuous enzymatic hydrolysis operation using CEH mode
                                                        |                 |
                                                        v                 v
                                                 sugar stream 1    sugar stream 2
+
 ```python
 #================================================================
 
