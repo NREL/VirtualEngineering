@@ -63,7 +63,6 @@ Set the options for the continuous enzymatic hydrolysis operation using CEH mode
                                                        |                 |
                                                        v                 v
                                                 sugar stream 1    sugar stream 2
-
 ```python
 #================================================================
 
