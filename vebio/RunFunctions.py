@@ -552,11 +552,9 @@ def run_CEH(notebookDir, params_filename, ceh_options,
 
     os.chdir('two_phase_batch_model/')
 
-    #run_script("VE_driver_batch_lignocellulose_CEH_FY21Q4.py", path_to_input_file, verbose=verbose)
-    #run_script("VE_ceh_steady_multi_design_solve_withPowerConsumption.py", path_to_input_file, verbose=verbose)
+    run_script("VE_driver_batch_lignocellulose_CEH_FY21Q4.py", path_to_input_file, verbose=verbose)
 
-    # cstr only CEH 03162022
-    run_script("VE_cstr_only_ceh_steady_multi_design_solve_with_membraneLoop.py", path_to_input_file, verbose=verbose)
+    run_script("VE_ceh_steady_multi_design_solve_withPowerConsumption.py", path_to_input_file, verbose=verbose)
 
     os.chdir(notebookDir)
 
