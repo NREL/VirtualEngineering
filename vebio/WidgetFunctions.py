@@ -119,7 +119,11 @@ class WidgetCollection:
         for widget_name, widget in self.__dict__.items():
             # Get the name and current state of each widget
 
-            widget_value = widget.value
+            if isinstance(widget, OptimizationWidget):
+                widget_value = widget.widget.value
+
+            else:
+                widget_value = widget.value
 
             if hasattr(widget, 'scaling_fn'):
                 # print('pre-scaling value = %f' % (widget_value))
@@ -208,6 +212,18 @@ class ValueRangeWidget:
         self.lower.observe(swap_range_values, names='value')
 
     def custom_display(self):
+        """Displays a value range widget.
+
+        This displays a value range widget including the formatting
+        of the two fields side by side with a single label.
+
+        Args:
+            None
+            
+        Returns:
+            None
+
+        """
 
         # Set default viewing options
         widget_width = 350
@@ -248,26 +264,45 @@ class OptimizationWidget:
     checkboxes to specify whether or not this widget should be used as
     a control value or an objective value.
 
-        
     """
 
     def __init__(self, widget_name, widget_options):
+        
+        """Initialize an optimization widget.
+
+        This creates an optimization widget of type ``widget_name``
+        which must be a valid ipywidget type. ``widget_options`` determines
+        the set up and properties of this widget.
+
+        Args:
+            widget_name (string):
+                The name of the ipywidget to create, e.g., `BoundedFloatText`
+            widget_options (dict):
+                A dictionary containing all the setup values for a widget of type
+                ``widget_name``. For example::
+
+                    widget_options = {'value': 0.25,
+                                      'min': -1.0,
+                                      'max': 1.0,
+                                      'description': Short Description
+                                      'description_tooltip': A long description...}
+
+        Returns:
+            None
+
+        """
 
         self.widget = getattr(widgets, widget_name)(**widget_options)
-
-        self.is_objective = widgets.Checkbox(value = False,
-                                             description = 'Objective',
-                                             disabled = False)
 
         self.is_control = widgets.Checkbox(value = False,
                                            description = 'Control',
                                            disabled = False)
 
-        def objective_button(change):
-            if self.is_objective.value:
-                self.is_control.value = False
-
-        self.is_objective.observe(objective_button, names='value')
+        # Objective function is disabled for now since we don't want to set
+        # any of the things specified via widget to be the objective
+        self.is_objective = widgets.Checkbox(value = False,
+                                             description = 'Objective',
+                                             disabled = True)
 
         def control_button(change):
             if self.is_control.value:
@@ -275,8 +310,26 @@ class OptimizationWidget:
 
         self.is_control.observe(control_button, names='value')
 
+        def objective_button(change):
+            if self.is_objective.value:
+                self.is_control.value = False
+
+        self.is_objective.observe(objective_button, names='value')
+
 
     def custom_display(self):
+        """Displays an optimization widget.
+
+        This displays an optimization widget including the formatting
+        of the boxes used to toggle control/objective specification.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        """
 
         widget_width = 350
         description_width = 125
@@ -303,18 +356,18 @@ class OptimizationWidget:
         self.widget.layout = widget_layout
         self.widget.style = widget_style
 
-        self.is_objective.layout = checkbox_layout
-        self.is_objective.style = checkbox_style
-
         self.is_control.layout = checkbox_layout
         self.is_control.style = checkbox_style
                 
+        self.is_objective.layout = checkbox_layout
+        self.is_objective.style = checkbox_style
+        
         self.html_label = widgets.HTMLMath(
             value = self.widget.description_tooltip,
             layout = html_layout
         )
         
-        hbox = HBox([self.widget, self.is_objective, self.is_control, self.html_label], layout = box_layout)
+        hbox = HBox([self.widget, self.is_control, self.is_objective, self.html_label], layout = box_layout)
 
         display(hbox)
 
