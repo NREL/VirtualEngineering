@@ -10,149 +10,175 @@ import numpy as np
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml
 
-def run_script(filename, *args, verbose=True):
-    """ Execute the contents of a file.
 
-    This function will attempt to execute the contents of a file specified
-    with ``filename`` using the Python ``exec`` function.  No error checking
-    is performed on the source file to be executed.
+class Feedstock:
+    def __init__(self, params_filename, fs_options):
+        """Through the ``fs_options`` widgets, the user controls the following
+            values:
 
-    Args:
-        filename (str):
-            The filename to execute line by line.
-        *args:
-            Variable length argument list to be made
-            available to the executed file via ``sys.argv[..]``.
-        verbose (bool, optional):
-            Flag to display the printed outputs
-            from the executed file, defaults to ``True``.
+                * The initial fraction of solids due to xylan (X_X)
+                * The initial fraction of solids due to glucan (X_G)
+                * The initial porous fraction of the biomass particles
 
-    Returns:
-        None
+        :param params_filename: (str)
+            The filename for the parameters yaml file including
+            extension, e.g., ``'virteng_params.yaml'``
+        :param fs_options: (WidgetCollection)
+            A ``WidgetCollection`` object containing all of widgets used
+            to solicit user input for feedstock properties.
+        """
+        self.params_filename = params_filename
 
-    """
+        if isinstance(fs_options, dict):
+            self.xylan_solid_fraction = fs_options['xylan_solid_fraction']
+            self.glucan_solid_fraction = fs_options['glucan_solid_fraction']
+            self.initial_porosity = fs_options['initial_porosity']
+        else:
+            self.xylan_solid_fraction = fs_options.xylan_solid_fraction.value
+            self.glucan_solid_fraction = fs_options.glucan_solid_fraction.value
+            self.initial_porosity = fs_options.initial_porosity.widget.value
 
-    sys.argv = [filename]
-    sys.argv.extend(args)
-    exec_file = open(filename, 'r')
+        self.input2yaml()
 
-    if verbose:
-        # Execute the file as usual
-        exec(exec_file.read(), globals())
+    def input2yaml(self):
+        fs_input = {'xylan_solid_fraction': self.xylan_solid_fraction,
+                    'glucan_solid_fraction': self.glucan_solid_fraction,
+                    'initial_porosity': self.initial_porosity}
+        fs_dict = {'feedstock': fs_input}
+        dict_to_yaml(fs_dict, self.params_filename)
 
-    else:
-        # Execute the file, redirecting all output to devnull
-        # This suppresses any print statements within `filename`
-        with open(os.devnull, 'w') as fp:
-            with contextlib.redirect_stdout(fp):
-                exec(exec_file.read(), globals())
 
-    exec_file.close()
+class Pretreatment:
 
-    return
+    def __init__(self, notebookDir, params_filename, pt_options):
+        """ Through the ``pt_options`` widgets, the user controls the following
+            values:
 
-def run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbose=True):
-    """ Run the pretreatment operation.
+                * Acid Loading (float)
+                * Steam Temperature (float)
+                * Initial FIS_0 (float)
+                * Final Time (float)
+                * Show plots (bool)
 
-    This function runs the pretreatment unit model specified in ``ptrun.py``.
-    Since this is the first unit operation in the overall conversion process,
-    the feedstock properties are integrated during this step.
-
-    Through the ``fs_options`` widgets, the user controls the following
-    values:
-
-        * The initial fraction of solids due to xylan (X_X)
-        * The initial fraction of solids due to glucan (X_G)
-        * The initial porous fraction of the biomass particles
-
-    Through the ``pt_options`` widgets, the user controls the following
-    values:
-
-        * Acid Loading (float)
-        * Steam Temperature (float)
-        * Initial FIS_0 (float)
-        * Final Time (float)
-        * Show plots (bool)
-
-    Args:
-        notebookDir (str):
+        :param notebookDir: (str)
             The path to the Jupyter Notebook, used to specify the location
             of the input file and reset the working directory after this operation
             is finished.
-
-        params_filename (str):
+        :param params_filename: (str)
             The filename for the parameters yaml file including
             extension, e.g., ``'virteng_params.yaml'``
-
-        fs_options (WidgetCollection):
-            A ``WidgetCollection`` object containing all of widgets used
-            to solicit user input for feedstock properties.
-
-        pt_options (WidgetCollection):
+        :param pt_options: (WidgetCollection) or (dict)
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for pretreatment properties.
+            or 
+            A dictionary containing all input values
+        """
 
-        verbose (bool, optional):
+        print('Initializing Pretreatment Model')
+
+        self.notebookDir = notebookDir
+        self.params_filename = params_filename
+
+        # pt_options can be dict or widget
+        if isinstance(pt_options, dict):
+            self.initial_acid_conc = pt_options['initial_acid_conc']
+            self.steam_temperature = pt_options['steam_temperature'] + 273.15 # Conversion from celsius to kelvin
+            self.initial_solid_fraction = pt_options['initial_solid_fraction']
+            self.final_time = 60 * pt_options['final_time']
+            self.show_plots = pt_options['show_plots']
+        else:
+            self.initial_acid_conc = pt_options.initial_acid_conc.widget.value
+            self.steam_temperature = pt_options.steam_temperature.widget.value + 273.15 # Conversion from celsius to kelvin
+            self.initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
+            self.final_time = 60 * pt_options.final_time.widget.value
+            self.show_plots = pt_options.show_plots.value 
+
+        # Obtain steam concentration from lookup table and add to dictionary
+        steam_data = np.genfromtxt('pretreatment_model/lookup_tables/sat_steam_table.csv', delimiter=',', skip_header=1)
+        # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
+        interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
+        dens = interp_steam(self.steam_temperature)
+        # Convert to mol/ml => density in g/L / molecular weight / 1000.0
+        mol_per_ml = float(dens/18.01528/1000.0)
+        
+        self.bulk_steam_conc = mol_per_ml
+
+        # Writing parameters to Yaml file
+        self.input2yaml()
+
+        # Move into the pretreatment directory
+        os.chdir('pretreatment_model/test/')
+        
+        # See if the pretreatment module exists, if not, we need to build it
+        try:
+            import pt
+        except:
+            print('Could not load PT module, building module from source.')
+            print('(This will only happen the first time the notebook is run.)')
+            os.chdir('../bld/')
+            command = "sh build_first_time.sh"
+            subprocess.run(command.split())
+            os.chdir('../test/')
+            print('Finished building PT module.')
+            
+        os.chdir(self.notebookDir)
+
+    # TODO: Use getter and setter with property instead ?
+    def update_values(self, initial_acid_conc=None, steam_temperature=None, initial_solid_fraction=None, final_time=None):
+
+        if initial_acid_conc is not None:
+            self.initial_acid_conc = float(initial_acid_conc)
+        if steam_temperature is not None:
+            self.steam_temperature = float(steam_temperature)
+        if initial_solid_fraction is not None:
+            self.initial_solid_fraction =  float(initial_solid_fraction)
+        if final_time is not None:
+            self.final_time = float(final_time)
+        self.input2yaml(rewrite=True)
+
+    def input2yaml(self, rewrite=False):
+        pt_input = {'initial_acid_conc': self.initial_acid_conc,
+                    'steam_temperature': self.steam_temperature,
+                    'initial_solid_fraction': self.initial_solid_fraction,
+                    'bulk_steam_conc': self.bulk_steam_conc,
+                    'final_time': self.final_time}
+        if rewrite:
+            params_dict = yaml_to_dict(self.params_filename)
+            params_dict['pretreatment_input'] = pt_input
+            dict_to_yaml(params_dict, self.params_filename, merge_with_existing=False)
+        else:
+            pt_dict = {'pretreatment_input': pt_input}
+            dict_to_yaml(pt_dict, self.params_filename, merge_with_existing=True)
+
+    def run_pretreatment(self, verbose=True):
+        """_summary_
+
+        :param verbose: (bool, optional) 
             Option to show print messages from executed file, default True.
+        """
+        print('Running Pretreatment')
+        # Move into the pretreatment directory
+        os.chdir('pretreatment_model/test/')
+        # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
+        outfiles = glob.glob("out*.dat")
+        for outfile in outfiles:
+            os.remove(outfile)
 
-    Returns:
-        None
+        # Run pretreatment code specifying location of input file
+        path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
+        run_script("ptrun.py", path_to_input_file, verbose=verbose)
+        # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
+        # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
+        # 1/13/21
+        #pt_run_command = 'python ptrun.py %s' % (path_to_input_file)
+        #pt_cli = subprocess.run(pt_run_command.split(), capture_output=True, text=True)
+        #print(pt_cli.stdout[-1394:])
 
-    """
+        if self.show_plots:
+            run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
-    print('Running Pretreatment Model')
-    
-    # Export the feedstock and pretreatment options to a global yaml file
-    fs_dict = fs_options.export_widgets_to_dict(parent_name='feedstock')
-    pt_dict = pt_options.export_widgets_to_dict(parent_name='pretreatment_input')
-
-    # Obtain steam concentration from lookup table and add to dictionary
-    steam_data = np.genfromtxt('pretreatment_model/lookup_tables/sat_steam_table.csv', delimiter=',', skip_header=1)
-
-    # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
-    interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
-    dens = interp_steam(pt_dict['pretreatment_input']['steam_temperature'])
-
-    # Convert to mol/ml => density in g/L / molecular weight / 1000.0
-    mol_per_ml = float(dens/18.01528/1000.0)
-    pt_dict['pretreatment_input']['bulk_steam_conc'] = mol_per_ml
-
-    dict_to_yaml([fs_dict, pt_dict], params_filename)
-
-    # Move into the pretreatment directory
-    os.chdir('pretreatment_model/test/')
-    
-    # See if the pretreatment module exists, if not, we need to build it
-    try:
-        import pt
-    except:
-        print('Could not load PT module, building module from source.')
-        print('(This will only happen the first time the notebook is run.)')
-        os.chdir('../bld/')
-        command = "sh build_first_time.sh"
-        subprocess.run(command.split())
-        os.chdir('../test/')
-        print('Finished building PT module.')
-
-    # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
-    outfiles = glob.glob("out*.dat")
-    for outfile in outfiles:
-        os.remove(outfile)
-    # Run pretreatment code specifying location of input file
-    path_to_input_file = os.path.join(notebookDir, params_filename)
-    run_script("ptrun.py", path_to_input_file, verbose=verbose)
-    # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
-    # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
-    # 1/13/21
-    #pt_run_command = 'python ptrun.py %s' % (path_to_input_file)
-    #pt_cli = subprocess.run(pt_run_command.split(), capture_output=True, text=True)
-    #print(pt_cli.stdout[-1394:])
-
-    if pt_options.show_plots.value:
-        run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
-
-    os.chdir(notebookDir)
-    print('\nFinished Pretreatment')
+        os.chdir(self.notebookDir)
+        print('Finished Pretreatment')
 
     
 def run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run,
@@ -503,3 +529,43 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
             os.chdir(notebookDir)
 
     print('\nFinished Bioreactor')
+
+
+def run_script(filename, *args, verbose=True):
+    """ Execute the contents of a file.
+
+    This function will attempt to execute the contents of a file specified
+    with ``filename`` using the Python ``exec`` function.  No error checking
+    is performed on the source file to be executed.
+
+    Args:
+        filename (str):
+            The filename to execute line by line.
+        *args:
+            Variable length argument list to be made
+            available to the executed file via ``sys.argv[..]``.
+        verbose (bool, optional):
+            Flag to display the printed outputs
+            from the executed file, defaults to ``True``.
+
+    Returns:
+        None
+
+    """
+
+    sys.argv = [filename]
+    sys.argv.extend(args)
+    exec_file = open(filename, 'r')
+
+    if verbose:
+        # Execute the file as usual
+        exec(exec_file.read(), globals())
+
+    else:
+        # Execute the file, redirecting all output to devnull
+        # This suppresses any print statements within `filename`
+        with open(os.devnull, 'w') as fp:
+            with contextlib.redirect_stdout(fp):
+                exec(exec_file.read(), globals())
+
+    exec_file.close()
