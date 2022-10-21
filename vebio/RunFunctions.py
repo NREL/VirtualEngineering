@@ -238,11 +238,11 @@ class EnzymaticHydrolysis:
         # selected enzymatic hydrolysis model
         if self.model_type == 'CFD Simulation':
             assert self.hpc_run, f'Cannot run EH_CFD without HPC resources. \n {os.getcwd()}'
-            self.run_enzymatic_hydrolysis = self.run_cfd_simulation
+            self.run_enzymatic_hydrolysis = self.run_eh_cfd_simulation
         elif self.model_type == "CFD Surrogate":
-            self.run_enzymatic_hydrolysis = self.run_cfd_surrogate
+            self.run_enzymatic_hydrolysis = self.run_eh_cfd_surrogate
         else:
-            self.run_enzymatic_hydrolysis = self.run_lignocellulose_model
+            self.run_enzymatic_hydrolysis = self.run_eh_lignocellulose_model
 
     # TODO: Use getter and setter with property instead ?
     def update_values(self, lambda_e=None, fis_0=None, t_final=None, model_type=None):
@@ -296,7 +296,7 @@ class EnzymaticHydrolysis:
 
         return globalVars
 
-    def run_cfd_simulation(self, verbose=True):
+    def run_eh_cfd_simulation(self, verbose=True):
         
         print('\nRunning Enzymatic Hydrolysis Model')
         globalVars = self.get_globalVars()
@@ -454,7 +454,7 @@ class EnzymaticHydrolysis:
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
 
-    def run_cfd_surrogate(self, verbose=True):
+    def run_eh_cfd_surrogate(self, verbose=True):
 
         print('\nRunning Enzymatic Hydrolysis Model')
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
@@ -464,7 +464,7 @@ class EnzymaticHydrolysis:
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
 
-    def run_lignocellulose_model(self, verbose=True):
+    def run_eh_lignocellulose_model(self, verbose=True):
         
         print('\nRunning Enzymatic Hydrolysis Model')
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
@@ -479,61 +479,83 @@ class EnzymaticHydrolysis:
         print('Finished Enzymatic Hydrolysis')
 
     
-def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=True):
-    """ Run the aerobic bioreaction operation.
+class Bioreactor:
+    def __init__(self, notebookDir, params_filename, br_options, hpc_run):
+        """ Initialize the aerobic bioreaction operation using 
+            user-specified properties. Two distinct models exist: (1) a 
+            pre-trained surrogate model informed from CFD runs and (2) the
+            full CFD simulation itself where option (2) is accessible only
+            with ``hpc_run=True``.  The default option is the surrogate model.
 
-    This function runs the aerobic bioreaction operation using the
-    user-specified properties.  Two distinct models exist: (1) a 
-    pre-trained surrogate model informed from CFD runs and (2) the
-    full CFD simulation itself where option (2) is accessible only
-    with ``hpc_run=True``.  The default option is the surrogate model.
+            Through the ``br_options`` widgets, the user controls the following
+            values:
 
-    Through the ``br_options`` widgets, the user controls the following
-    values:
+                * Model Type
+                * Final Time (float)
 
-        * Model Type
-        * Final Time (float)
-
-    Args:
-        notebookDir (str):
+        :param notebookDir: (str):
             The path to the Jupyter Notebook, used to specify the location
             of the input file and reset the working directory after this operation
             is finished.
-
-        params_filename (str):
+        :param params_filename: (str):
             The filename for the parameters yaml file including
             extension, e.g., ``'virteng_params.yaml'``
-
-        br_options (WidgetCollection):
+        :param br_options: (WidgetCollection):
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for bioreaction properties.
-
-        hpc_run (bool):
+        :param hpc_run: (bool):
             A flag indicating whether or not the Notebook is being
             run on HPC resources, enable CFD only if True.
+        """
 
-        verbose (bool, optional):
-            Option to show print messages from executed file, default True.
+        print('Initializing Bioreactor Model')
+        self.notebookDir = notebookDir
+        self.params_filename = params_filename
+        self.hpc_run = hpc_run
 
-    Returns:
-        None
+        # Bioreactor input parameters
+        self.model_type = br_options.model_type.value
+        self.t_final = br_options.t_final.value
 
-    """
+        # Writing input parameters to Yaml file
+        self.input2yaml()
+        self.select_run_function()
 
-    print('\nRunning Bioreactor Model')
+    def select_run_function(self):
+        # selected enzymatic hydrolysis model
+        if self.model_type == 'CFD Simulation':
+            assert self.hpc_run, f'Cannot run bioreactor without HPC resources. \n {os.getcwd()}'
+            self.run_bioreactor = self.run_biorector_cfd_simulation
+        elif self.model_type == "CFD Surrogate":
+            self.run_bioreactor = self.run_biorector_cfd_surrogate
 
-    # Export the bioreactor options to a global yaml file
-    br_dict = br_options.export_widgets_to_dict(parent_name='bioreactor_input')
-    dict_to_yaml(br_dict, params_filename, merge_with_existing=True)
+    # TODO: Use getter and setter with property instead ?
+    def update_values(self, t_final=None, model_type=None):
 
-    # Convert the current parameters file to a dictionary
-    ve_params = yaml_to_dict(params_filename)
+        if t_final is not None:
+            self.t_final =  float(t_final)
+        if model_type is not None:
+            self.model_type = float(model_type)
+            self.select_run_function()
 
-    # Run the selected CFD or surrogate model
-    if br_options.model_type.value == 'CFD Simulation':
+        self.input2yaml(rewrite=True)
 
+    def input2yaml(self, rewrite=False):
+        br_input = {'model_type': self.model_type,
+                    't_final': self.t_final}
+        if rewrite:
+            params_dict = yaml_to_dict(self.params_filename)
+            params_dict['bioreactor_input'] = br_input
+            dict_to_yaml(params_dict, self.params_filename, merge_with_existing=False)
+        else:
+            br_dict = {'bioreactor_input': br_input}
+            dict_to_yaml(br_dict, self.params_filename, merge_with_existing=True)
+
+    def run_biorector_cfd_simulation(self, verbose=True):
+
+        print('\nRunning Bioreactor')
         os.chdir('bioreactor/bubble_column/')
-
+        ve_params = yaml_to_dict(self.params_filename)
         # Make changes to the fvOptions file based on replacement options
         fvOptions = {}
 
@@ -545,36 +567,34 @@ def run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=Tr
         
         # Make changes to the controlDict file based on replacement options
         controlDict = {}
-        controlDict['endTime'] = ve_params['bioreactor_input']['t_final']
+        controlDict['endTime'] = self.t_final
         
         write_file_with_replacements('system/controlDict', controlDict)
 
         # Run the bioreactor model
-        if hpc_run:
-            # call function to update ovOptions # fvOptions?
-            command = "sbatch ofoamjob"
-            subprocess.run(command.split())
-        else:
-            print('Cannot run bioreactor without HPC resources.')
-            print(os.getcwd())
+        # call function to update ovOptions # fvOptions?
+        command = "sbatch ofoamjob"
+        subprocess.run(command.split())
             
         output_dict = {'bioreactor_output': {}}
         output_dict['bioreactor_output']['placeholder'] = 123
 
-        os.chdir(notebookDir)
+        os.chdir(self.notebookDir)
+        dict_to_yaml(output_dict, self.params_filename, merge_with_existing=True)
+        print('Finished Bioreactor')
 
-        dict_to_yaml([ve_params, output_dict], params_filename)
+    def run_biorector_cfd_surrogate(self, verbose=True):
         
-    else:
+        print('\nRunning Bioreactor')
+        ve_params = yaml_to_dict(self.params_filename)
         if np.isnan(ve_params['enzymatic_output']['rho_g']):
             print('Waiting for EH CFD results.')
         else:
             os.chdir('bioreactor/bubble_column/surrogate_model')
-            path_to_input_file = os.path.join(notebookDir, params_filename)
+            path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
             run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
-            os.chdir(notebookDir)
-
-    print('\nFinished Bioreactor')
+            os.chdir(self.notebookDir)
+            print('Finished Bioreactor')
 
 
 def run_script(filename, *args, verbose=True):
