@@ -333,9 +333,9 @@ def sweep_button_action(b):
             PT_model.update_values(initial_acid_conc=initial_acid_conc)
             EH_model.update_values(lambda_e=enz_loading)
             
-            PT_model.run_pretreatment(verbose=False) # Run the pretreatment model
+            PT_model.run_pretreatment(verbose=False)         # Run the pretreatment model
             EH_model.run_enzymatic_hydrolysis(verbose=False) # Run the enzymatic hydrolysis model
-            BR_model.run_bioreactor(verbose=True) # Run the bioreactor model
+            BR_model.run_bioreactor(verbose=True)            # Run the bioreactor model
 
             sweep_ctr += 1
 
@@ -418,7 +418,7 @@ opt_button.on_click(opt_button_action)
 
 ```python
 opt_results = np.loadtxt(os.path.join(notebookDir, 'optimization_results.csv'), delimiter=',', skiprows=1)
-print(opt_results)
+print()
 shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
 bar = plt.colorbar(shw)
 bar.set_label('OUR')
