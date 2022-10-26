@@ -298,23 +298,24 @@ class OptimizationWidget:
                                            description = 'Control',
                                            disabled = False)
 
-        # Objective function is disabled for now since we don't want to set
-        # any of the things specified via widget to be the objective
-        self.is_objective = widgets.Checkbox(value = False,
-                                             description = 'Objective',
-                                             disabled = True)
+        # # Objective function is disabled for now since we don't want to set
+        # # any of the things specified via widget to be the objective
+        # self.is_objective = widgets.Checkbox(value = False,
+        #                                      description = 'Objective',
+        #                                      disabled = True)
 
         def control_button(change):
-            if self.is_control.value:
-                self.is_objective.value = False
+            return
+            # if self.is_control.value:
+            #     self.is_objective.value = False
 
         self.is_control.observe(control_button, names='value')
 
-        def objective_button(change):
-            if self.is_objective.value:
-                self.is_control.value = False
+        # def objective_button(change):
+        #     if self.is_objective.value:
+        #         self.is_control.value = False
 
-        self.is_objective.observe(objective_button, names='value')
+        # self.is_objective.observe(objective_button, names='value')
 
 
     def custom_display(self):
@@ -359,15 +360,17 @@ class OptimizationWidget:
         self.is_control.layout = checkbox_layout
         self.is_control.style = checkbox_style
                 
-        self.is_objective.layout = checkbox_layout
-        self.is_objective.style = checkbox_style
+        # self.is_objective.layout = checkbox_layout
+        # self.is_objective.style = checkbox_style
         
         self.html_label = widgets.HTMLMath(
             value = self.widget.description_tooltip,
             layout = html_layout
         )
         
-        hbox = HBox([self.widget, self.is_control, self.is_objective, self.html_label], layout = box_layout)
+        # hbox = HBox([self.widget, self.is_control, self.is_objective, self.html_label], layout = box_layout)
+        hbox = HBox([self.widget, self.is_control,  self.html_label], layout = box_layout)
+
 
         display(hbox)
 
