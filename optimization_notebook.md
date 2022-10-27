@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.7.1
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -39,7 +39,7 @@ if not 'notebookDir' in globals():
 from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
-from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
+from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bioreactor
 # add path for no-CFD EH model
 sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
 
@@ -287,63 +287,14 @@ br_options.t_final = widgets.BoundedFloatText(
 br_options.display_all_widgets()
 ```
 
----
-
-## Run Model
-
-When finished setting options for all unit operations, press the button below to run the complete model.
-
-
 ```python
 #================================================================
-
-run_button = widgets.Button(
-    description = 'Run All.',
-    tooltip = 'Execute the model start-to-finish with the properties specified above.',
-    layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'}, 
-    button_style = 'success'
-)
-
-#================================================================
-
-# run_button_output = widgets.Output()
-display(run_button)
-
-#================================================================
-
-# Define a function to be executed each time the run button is pressed
-def run_button_action(b):
-    clear_output()
-    display(run_button)
-    
-    # Set global paths and files for communication between operations
-    os.chdir(notebookDir)
-    params_filename = 'virteng_params_opt.yaml'
-    # Run the pretreatment model
-    run_pretreatment(notebookDir, params_filename, fs_options, pt_options)
-    
-    # Run the enzymatic hydrolysis model
-    run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run)
-    
-    # Run the bioreactor model
-    run_bioreactor(notebookDir, params_filename, br_options, hpc_run)
-    
-run_button.on_click(run_button_action)
-
-#================================================================
-
-```
-
-```python
-#================================================================
-
 sweep_button = widgets.Button(
     description = 'Run Sweep.',
     tooltip = 'Execute the model start-to-finish with the properties specified above.',
     layout =  {'width': '200px', 'margin': '25px 0px 100px 170px'}, 
     button_style = 'primary'
 )
-
 #================================================================
 
 # run_button_output = widgets.Output()
@@ -357,48 +308,42 @@ def sweep_button_action(b):
     display(sweep_button)
     
     with open('param_sweep.csv', 'w') as fp:
-#         fp.write('# Iteration, Acid Loading, Initial FIS_0, Final Time, OUR\n')
         fp.write('# Iteration, Acid Loading, Enzyme Loading, OUR\n')
     
     sweep_ctr = 0
+    nn = 10 # The number of points to select across each value
     
-    nn = 3 # The number of points to select across each value
-    
-    initial_acid_conc_range = np.linspace(0.00005, 0.001, 12)#[0.00005, 0.0001, 0.00015, 0.0002, 0.00025, 0.0003]
-    
+    initial_acid_conc_range = np.linspace(0.00005, 0.001, nn)   #[0.00005, 0.0001, 0.00015, 0.0002, 0.00025, 0.0003] 
 #     initial_solid_fraction_range = [0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
-
 #     final_time_range = [6, 7, 8, 9, 10, 11]
-    enz_loading_range = np.linspace(5, 300, 12)#[10, 20, 30, 40, 50, 60]
+    enz_loading_range = np.linspace(5, 300, nn)    #[10, 20, 30, 40, 50, 60]
+    
+    # Set global paths and files for communication between operations
+    os.chdir(notebookDir)
+    params_filename = 'virteng_params_opt.yaml'
+    
+    FD_model = Feedstock(params_filename, fs_options)
+    PT_model = Pretreatment(notebookDir, params_filename, pt_options)
+    EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
+    BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
     
     for initial_acid_conc in initial_acid_conc_range:
         for enz_loading in enz_loading_range:
-            # Set global paths and files for communication between operations
-            os.chdir(notebookDir)
-            params_filename = 'virteng_params_opt.yaml'
-
-            # Set the swept value
-            pt_options.initial_acid_conc.widget.value = initial_acid_conc
-#             pt_options.initial_solid_fraction.widget.value = initial_solid_fraction
-#                 pt_options.final_time.widget.value = final_time
-            eh_options.lambda_e.widget.value = enz_loading
-
-            # Run the pretreatment model
-            run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbose=False)
-
-            # Run the enzymatic hydrolysis model
-            run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run, verbose=False)
-
-            # Run the bioreactor model
-            run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=True)
+          # Set the swept value
+            PT_model.update_values(initial_acid_conc=initial_acid_conc)
+            EH_model.update_values(lambda_e=enz_loading)
+            
+            PT_model.run_pretreatment(verbose=False)         # Run the pretreatment model
+            EH_model.run_enzymatic_hydrolysis(verbose=False) # Run the enzymatic hydrolysis model
+            BR_model.run_bioreactor(verbose=True)            # Run the bioreactor model
 
             sweep_ctr += 1
 
             with open('param_sweep.csv', 'a') as fp:
-                v1 = pt_options.initial_acid_conc.widget.value
+                v1 = PT_model.initial_acid_conc
 #                 v2 = pt_options.initial_solid_fraction.widget.value
 #                     v3 = pt_options.final_time.widget.value
-                v3 = eh_options.lambda_e.widget.value
+                v3 = EH_model.lambda_e*1000
 
                 output_dict = yaml_to_dict(params_filename)
                 obj = output_dict['bioreactor_output']['our']
@@ -413,6 +358,20 @@ sweep_button.on_click(sweep_button_action)
 
 ```
 
+```python
+import matplotlib.pyplot as plt
+
+sweeps = np.loadtxt(os.path.join(notebookDir, 'param_sweep.csv'), delimiter=',', skiprows=1)
+extent = np.min(sweeps[:, 1]), np.max(sweeps[:, 1]), np.min(sweeps[:, 2]), np.max(sweeps[:, 2])
+OUR = sweeps[:, 3].reshape(10, 10)
+
+shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
+bar = plt.colorbar(shw)
+bar.set_label('OUR')
+plt.xlabel('initial_acid_conc')
+plt.ylabel('enz_loading')
+```
+
  ## Optimize
 
 Press the Optimize button below to launch the optimization of the start-to-finish operation using the above values as initial conditions.
@@ -420,7 +379,8 @@ Press the Optimize button below to launch the optimization of the start-to-finis
 This example **maximizes OUR** by **changing user-specified pretreatment options**.
 
 ```python
-import scipy.optimize as opt
+# import scipy.optimize as opt
+from vebio.OptimizationFunctions import Optimization
 
 #================================================================
 
@@ -437,159 +397,36 @@ opt_button = widgets.Button(
 display(opt_button)
 
 #================================================================
-
-def opt_callback(free_variables):
-    pass
-#     print('Controls:', free_variables)
-
-fn_evals = 0
-objective_scaling = 1.0
-
-def objective_function(free_variables, notebookDir, params_filename,
-                 fs_options, pt_options, eh_options, br_options, hpc_run, opt_results_file, x_0_names):
-            
-    global fn_evals
-    global objective_scaling
-    
-    ctr = 0
-    
-    dimensional_values = []
-    
-    # Update the controls with the latest values
-    for wc in [fs_options, pt_options, eh_options]:
-        for widget_name, widget in wc.__dict__.items():        
-            if isinstance(widget, OptimizationWidget) and widget.is_control.value == True:
-                lb = widget.widget.min
-                ub = widget.widget.max
-
-                dimensional_value = free_variables[ctr]*(ub-lb) + lb
-                dimensional_values.append(dimensional_value)
-
-                widget.widget.value = dimensional_value
-                ctr += 1
-    
-#     for item in fs_options.__dict__.items():
-#         w_name = item[0]
-#         w = item[1]
-        
-#         if hasattr(w, 'optimize'):
-#             if getattr(w, 'optimize') == True:
-#                 setattr(w, 'value', free_variables[ctr])
-#                 ctr += 1
-                
-    # Set global paths and files for communication between operations
-    os.chdir(notebookDir)
-    
-    # Turn off printed outputs from unit operations
-    if fn_evals == 0:
-        v_flag = True
-    else:
-        v_flag = False
-    
-    # Run the pretreatment model
-    run_pretreatment(notebookDir, params_filename, fs_options, pt_options, verbose=v_flag)
-    
-    # Run the enzymatic hydrolysis model
-    run_enzymatic_hydrolysis(notebookDir, params_filename, eh_options, hpc_run, verbose=v_flag)
-    
-    # Run the bioreactor model
-    run_bioreactor(notebookDir, params_filename, br_options, hpc_run, verbose=v_flag)
-    
-    # Read the outputs into a dictionary
-    output_dict = yaml_to_dict(params_filename)
-    
-    # The objective function in this case is OUR, we take the negative
-    # so the minimize function sees the correct orientation
-    obj = -output_dict['bioreactor_output']['our']        
-
-    if fn_evals == 0:
-        print('Beginning Optimization')
-        objective_scaling = -1.0/obj
-        
-    fn_evals += 1
-        
-    with open(opt_results_file, 'a') as fp:
-        fp.write('%d, ' % (fn_evals))
-        for dv in dimensional_values:
-            fp.write('%.15e, ' % (dv))
-        fp.write('%.15e\n' % (obj))
-
-    print('Iter = %3d: ' % (fn_evals), end='')
-    for k, dv in enumerate(dimensional_values):
-        print('%s = %12.9e, ' % (x_0_names[k], dv), end='')
-    print('Objective = %12.9e' % (obj))
-    
-    obj *= objective_scaling
-    print(obj)
-    
-    return obj
-
-
 # Define a function to be executed each time the run button is pressed
 def opt_button_action(b):
     clear_output()
     display(opt_button)
     
-    assert br_options.model_type.value == 'CFD Surrogate'
-    assert eh_options.model_type.value == 'CFD Surrogate'
-
-    x_0 = []
-    x_0_names = []
-    x_0_bounds = []
-    
-    for wc in [fs_options, pt_options, eh_options]:
-        for widget_name, widget in wc.__dict__.items():        
-            if isinstance(widget, OptimizationWidget) and widget.is_control.value == True:
-                print('Optimizing %s.' % widget_name)
-                
-                lb = widget.widget.min
-                ub = widget.widget.max
-
-                scaled_value = (widget.widget.value - lb)/(ub-lb)
-                
-#                 current_val = widget.widget.value
-
-                # Here, we use the values of the controls scaled to the range [0, 1]
-                x_0.append(scaled_value)
-                x_0_names.append(widget_name)
-#                 x_0_bounds.append((lb, ub))
-                x_0_bounds.append((0.0, 1.0))
-    
-    if len(x_0) == 0:
-        raise ValueError('No controls have been specified, retry with >= 1 control variables.')
-    
     params_filename = 'virteng_params_optimization.yaml'
-    
-    
     opt_results_file = 'optimization_results.csv'
-    with open(opt_results_file, 'w') as fp:
-        fp.write('# Iteration, ')
-        for control in x_0_names:
-            fp.write('%s, ' % (control))
-            
-        fp.write('Objective\n')
-
-     #L-BFGS-B
-    global fn_evals
-    global objective_scaling
-    fn_evals = 0
-    objective_scaling=1.0
     
-    opt_result = opt.minimize(objective_function,
-                 x_0,
-                 (notebookDir, params_filename,
-                  fs_options, pt_options,
-                  eh_options, br_options,
-                  hpc_run, opt_results_file, x_0_names),
-                 method='SLSQP',
-                 bounds=x_0_bounds,
-                 callback=opt_callback)
-        
+    Opt = Optimization(fs_options, pt_options, eh_options, br_options, 
+                      hpc_run, notebookDir, params_filename, opt_results_file)
+    
+    opt_result = Opt.scipy_minimize(Opt.objective_function)
     print(opt_result)
     
 opt_button.on_click(opt_button_action)
 
 #================================================================
+```
+
+```python
+opt_results = np.loadtxt(os.path.join(notebookDir, 'optimization_results.csv'), delimiter=',', skiprows=1)
+print()
+shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
+bar = plt.colorbar(shw)
+bar.set_label('OUR')
+plt.xlabel('Acid Loading')
+plt.ylabel('Enzymatic Load')
+plt.scatter(opt_results[:, 1], opt_results[:, 2], s=50, c='k', marker='o')
+plt.plot(opt_results[:, 1], opt_results[:, 2], color='k')
+plt.scatter(opt_results[-1, 1], opt_results[-1, 2], s=50, c='r', marker='o')
 ```
 
 ---
@@ -620,4 +457,8 @@ display(a)
 #     import vebio.RunFunctions
 #     reload(vebio.RunFunctions)
 #     from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
+```
+
+```python
+
 ```
