@@ -100,9 +100,9 @@ class Optimization:
         # Turn off printed outputs from unit operations
         v_flag = (self.fn_evals == 0)
         
-        self.PT_model.run_pretreatment(verbose=v_flag)          # Running the pretreatment model
-        self.EH_model.run_enzymatic_hydrolysis(verbose=v_flag)  # Run the enzymatic hydrolysis model
-        self.BR_model.run_bioreactor(verbose=v_flag)            # Run the bioreactor model
+        self.PT_model.run(verbose=v_flag)          # Running the pretreatment model
+        self.EH_model.run(verbose=v_flag)          # Run the enzymatic hydrolysis model
+        self.BR_model.run(verbose=v_flag)          # Run the bioreactor model
         
         # Read the outputs into a dictionary
         output_dict = yaml_to_dict(self.params_filename)

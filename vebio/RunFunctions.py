@@ -131,7 +131,7 @@ class Pretreatment:
         if steam_temperature is not None:
             self.steam_temperature = float(steam_temperature)
         if initial_solid_fraction is not None:
-            self.initial_solid_fraction =  float(initial_solid_fraction)
+            self.initial_solid_fraction = float(initial_solid_fraction)
         if final_time is not None:
             self.final_time = float(final_time)
         self.input2yaml(rewrite=True)
@@ -150,7 +150,7 @@ class Pretreatment:
             pt_dict = {'pretreatment_input': pt_input}
             dict_to_yaml(pt_dict, self.params_filename, merge_with_existing=True)
 
-    def run_pretreatment(self, verbose=True):
+    def run(self, verbose=True):
         """_summary_
 
         :param verbose: (bool, optional) 
@@ -238,11 +238,11 @@ class EnzymaticHydrolysis:
         # selected enzymatic hydrolysis model
         if self.model_type == 'CFD Simulation':
             assert self.hpc_run, f'Cannot run EH_CFD without HPC resources. \n {os.getcwd()}'
-            self.run_enzymatic_hydrolysis = self.run_eh_cfd_simulation
+            self.run = self.run_eh_cfd_simulation
         elif self.model_type == "CFD Surrogate":
-            self.run_enzymatic_hydrolysis = self.run_eh_cfd_surrogate
+            self.run = self.run_eh_cfd_surrogate
         else:
-            self.run_enzymatic_hydrolysis = self.run_eh_lignocellulose_model
+            self.run = self.run_eh_lignocellulose_model
 
     # TODO: Use getter and setter with property instead ?
     def update_values(self, lambda_e=None, fis_0=None, t_final=None, model_type=None):
@@ -282,14 +282,14 @@ class EnzymaticHydrolysis:
         self.ve_params = yaml_to_dict(self.params_filename)
         globalVars = {}
         globalVars['fis0'] = self.fix_0
-        globalVars['xG0'] = ve_params['pretreatment_output']['X_G']
-        globalVars['xX0'] = ve_params['pretreatment_output']['X_X']
+        globalVars['xG0'] = self.ve_params['pretreatment_output']['X_G']
+        globalVars['xX0'] = self.ve_params['pretreatment_output']['X_X']
         globalVars['XL0'] = 1.0 - globalVars['xG0'] - globalVars['xX0']
-        globalVars['yF0'] = 0.2 + 0.6*ve_params['pretreatment_output']['conv']
+        globalVars['yF0'] = 0.2 + 0.6*self.ve_params['pretreatment_output']['conv']
         globalVars['lmbdE'] = self.lambda_e
         globalVars['rhog0'] = 0.0
-        dilution_factor = self.fis_0/ve_params['pretreatment_output']['fis_0']
-        globalVars['rhox0'] = ve_params['pretreatment_output']['rho_x'] * dilution_factor
+        dilution_factor = self.fis_0/self.ve_params['pretreatment_output']['fis_0']
+        globalVars['rhox0'] = self.ve_params['pretreatment_output']['rho_x'] * dilution_factor
         globalVars['rhosl0'] = 0.0
 
         self.dilution_factor = dilution_factor
@@ -525,9 +525,9 @@ class Bioreactor:
         # selected enzymatic hydrolysis model
         if self.model_type == 'CFD Simulation':
             assert self.hpc_run, f'Cannot run bioreactor without HPC resources. \n {os.getcwd()}'
-            self.run_bioreactor = self.run_biorector_cfd_simulation
+            self.run = self.run_biorector_cfd_simulation
         elif self.model_type == "CFD Surrogate":
-            self.run_bioreactor = self.run_biorector_cfd_surrogate
+            self.run = self.run_biorector_cfd_surrogate
 
     # TODO: Use getter and setter with property instead ?
     def update_values(self, t_final=None, model_type=None):
