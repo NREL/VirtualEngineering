@@ -311,7 +311,7 @@ def sweep_button_action(b):
         fp.write('# Iteration, Acid Loading, Enzyme Loading, OUR\n')
     
     sweep_ctr = 0
-    nn = 10 # The number of points to select across each value
+    nn = 4 # The number of points to select across each value
     
     initial_acid_conc_range = np.linspace(0.00005, 0.001, nn)   #[0.00005, 0.0001, 0.00015, 0.0002, 0.00025, 0.0003] 
 #     initial_solid_fraction_range = [0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
@@ -330,12 +330,12 @@ def sweep_button_action(b):
     for initial_acid_conc in initial_acid_conc_range:
         for enz_loading in enz_loading_range:
           # Set the swept value
-            PT_model.update_values(initial_acid_conc=initial_acid_conc)
-            EH_model.update_values(lambda_e=enz_loading)
+            PT_model.initial_acid_conc=initial_acid_conc
+            EH_model.lambda_e=enz_loading
             
-            PT_model.run_pretreatment(verbose=False)         # Run the pretreatment model
-            EH_model.run_enzymatic_hydrolysis(verbose=False) # Run the enzymatic hydrolysis model
-            BR_model.run_bioreactor(verbose=True)            # Run the bioreactor model
+            PT_model.run(verbose=False)         # Run the pretreatment model
+            EH_model.run(verbose=False) # Run the enzymatic hydrolysis model
+            BR_model.run(verbose=True)            # Run the bioreactor model
 
             sweep_ctr += 1
 
@@ -343,7 +343,7 @@ def sweep_button_action(b):
                 v1 = PT_model.initial_acid_conc
 #                 v2 = pt_options.initial_solid_fraction.widget.value
 #                     v3 = pt_options.final_time.widget.value
-                v3 = EH_model.lambda_e*1000
+                v3 = EH_model.lambda_e
 
                 output_dict = yaml_to_dict(params_filename)
                 obj = output_dict['bioreactor_output']['our']
@@ -361,15 +361,18 @@ sweep_button.on_click(sweep_button_action)
 ```python
 import matplotlib.pyplot as plt
 
-sweeps = np.loadtxt(os.path.join(notebookDir, 'param_sweep.csv'), delimiter=',', skiprows=1)
-extent = np.min(sweeps[:, 1]), np.max(sweeps[:, 1]), np.min(sweeps[:, 2]), np.max(sweeps[:, 2])
-OUR = sweeps[:, 3].reshape(10, 10)
+param_sweep_fn = os.path.join(notebookDir, 'param_sweep.csv')
+if os.path.exists(param_sweep_fn):
+    sweeps = np.loadtxt(param_sweep_fn, delimiter=',', skiprows=1)
+    extent = np.min(sweeps[:, 1]), np.max(sweeps[:, 1]), np.min(sweeps[:, 2]), np.max(sweeps[:, 2])
+    nn = int(np.sqrt(len(sweeps)))
+    OUR = sweeps[:, 3].reshape(nn, nn)
 
-shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
-bar = plt.colorbar(shw)
-bar.set_label('OUR')
-plt.xlabel('initial_acid_conc')
-plt.ylabel('enz_loading')
+    shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
+    bar = plt.colorbar(shw)
+    bar.set_label('OUR')
+    plt.xlabel('initial_acid_conc')
+    plt.ylabel('enz_loading')
 ```
 
  ## Optimize
