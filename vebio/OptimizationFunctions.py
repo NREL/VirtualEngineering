@@ -86,13 +86,14 @@ class Optimization:
         dimensional_values = []
         for value, bounds in zip(free_variables, self.var_real_bounds):
             dimensional_values.append(self.scale_back(value, bounds))
+        print('dimensional_values:', dimensional_values)
 
         # Update the models with the latest values
         if self.fn_evals != 0:
             for var_name, value in zip(self.var_names, dimensional_values):
                 for model in [self.FS_model, self.PT_model, self.EH_model]:
                     if hasattr(model, var_name):
-                        model.update_values(**{var_name: value})
+                        setattr(model, var_name, value)
                     
         # Set global paths and files for communication between operations
         os.chdir(self.notebookDir)
@@ -111,8 +112,9 @@ class Optimization:
         # so the minimize function sees the correct orientation
         obj = -output_dict['bioreactor_output']['our']        
 
+        # Set objactive scaling to normalize objective function to -1 before iterations 
         if self.fn_evals == 0:
-            print('Beginning Optimization')
+            print('\nBeginning Optimization')
             self.objective_scaling = -1.0/obj
             
         self.fn_evals += 1
@@ -130,7 +132,7 @@ class Optimization:
         print('Objective = %12.9e' % (obj))
         
         obj *= self.objective_scaling
-        print(f'Objactive scaled: {obj}')
+        print(f'Scaled objective: {obj}')
         
         return obj
 
