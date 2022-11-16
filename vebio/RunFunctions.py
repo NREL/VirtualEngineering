@@ -156,8 +156,8 @@ class Pretreatment:
 
     @initial_acid_conc.setter
     def initial_acid_conc(self, a):
-        if not 0.00005 <= a <= 0.001:
-            raise ValueError(f"Value {a} is outside allowed interval [0.00005, 0.001]")
+        if not 0 <= a <= 1:
+            raise ValueError(f"Value {a} is outside allowed interval [0.0, 1.0]")
         self._initial_acid_conc = float(a)
         self.input2yaml(rewrite=True)
 
@@ -316,8 +316,8 @@ class EnzymaticHydrolysis:
 
     @lambda_e.setter
     def lambda_e(self, a):
-        if not 5 <= a <= 300:
-            raise ValueError(f"Value {a} is outside allowed interval [5, 300]")
+        if not 0 <= a <= 1000:
+            raise ValueError(f"Value {a} is outside allowed interval [0, 1000]")
         self._lambda_e = float(a) / 1000 # Conversion from mg/g to kg/kg
         self.input2yaml(rewrite=True)
 
