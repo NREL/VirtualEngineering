@@ -287,6 +287,25 @@ br_options.t_final = widgets.BoundedFloatText(
 br_options.display_all_widgets()
 ```
 
+---
+
+### Choosing objective for optimization
+
+```python
+obj_widget = widgets.RadioButtons(
+    options = ['our', 'rho_g', 'rho_x', 'rho_sL', 'rho_f', 'fis_0', 'X_X', 'X_G'],
+    value = 'our',
+    description = 'Optimization objective',
+    disabled = False,
+    description_tooltip = 'Specifies the objective to use in optimization.'
+)
+display(obj_widget)
+```
+
+---
+
+### Parameter Sweeps
+
 ```python
 #================================================================
 sweep_button = widgets.Button(
@@ -408,8 +427,8 @@ def opt_button_action(b):
     params_filename = 'virteng_params_optimization.yaml'
     opt_results_file = 'optimization_results.csv'
     
-    Opt = Optimization(fs_options, pt_options, eh_options, br_options, 
-                      hpc_run, notebookDir, params_filename, opt_results_file)
+    Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
+                       hpc_run, notebookDir, params_filename, opt_results_file)
     
     opt_result = Opt.scipy_minimize(Opt.objective_function)
     print(opt_result)

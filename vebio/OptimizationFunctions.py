@@ -12,7 +12,8 @@ from vebio.RunFunctions import Feedstock, Pretreatment, EnzymaticHydrolysis, Bio
 
 class Optimization:
 
-    def __init__(self, fs_options, pt_options, eh_options, br_options, hpc_run, notebookDir, 
+    def __init__(self, fs_options, pt_options, eh_options, br_options, obj_widjet,
+                hpc_run, notebookDir, 
                 params_filename='virteng_params_optimization.yaml', 
                 opt_results_file='optimization_results.csv'):
 
@@ -20,11 +21,15 @@ class Optimization:
         self.notebookDir = notebookDir
         self.params_filename = params_filename
         self.opt_results_file = opt_results_file 
+        self.objective_name = obj_widjet.value
 
         self.FS_model = Feedstock(params_filename, fs_options)
         self.PT_model = Pretreatment(notebookDir, params_filename, pt_options)
         self.EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
         self.BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
+
+        self.output_names = ['pretreatment_output', 'enzymatic_output', 'bioreactor_output']
+        self.models_list = [self.PT_model, self.EH_model, self.BR_model]
 
         # Do optimization only with surrogates
         assert br_options.model_type.value == 'CFD Surrogate'
@@ -80,6 +85,18 @@ class Optimization:
                                   callback=self.opt_callback)
         return self.opt_result
 
+    def objective_run(self, verbose=False):
+        """Based on where the objective, run all or fewer models.
+
+        :param verbose: Flag to display the printed output from the executed file.  Default is False
+        """
+
+        self.PT_model.run(verbose=verbose)       # Run the pretreatment model
+        if self.n >= 1:
+            self.EH_model.run(verbose=verbose)   # Run the enzymatic hydrolysis model
+        if self.n >= 2:
+            self.BR_model.run(verbose=verbose)   # Run the bioreactor model
+
     def objective_function(self, free_variables):
         
         # Scale back to dimensional values
@@ -91,7 +108,7 @@ class Optimization:
         # Update the models with the latest values
         if self.fn_evals != 0:
             for var_name, value in zip(self.var_names, dimensional_values):
-                for model in [self.FS_model, self.PT_model, self.EH_model]:
+                for model in self.models_list:
                     if hasattr(model, var_name):
                         setattr(model, var_name, value)
                     
@@ -99,18 +116,23 @@ class Optimization:
         os.chdir(self.notebookDir)
         
         # Turn off printed outputs from unit operations
-        v_flag = (self.fn_evals == 0)
-        
-        self.PT_model.run(verbose=v_flag)          # Running the pretreatment model
-        self.EH_model.run(verbose=v_flag)          # Run the enzymatic hydrolysis model
-        self.BR_model.run(verbose=v_flag)          # Run the bioreactor model
-        
+        # v_flag = (self.fn_evals == 0)
+        # If the first iteration, locate objective in output to define it need to run all models
+        if self.fn_evals == 0:
+            for i, model in enumerate(self.models_list):
+                model.run(verbose=True)       # Run the pretreatment model
+                output_dict = yaml_to_dict(self.params_filename)
+                if self.objective_name in output_dict[self.output_names[i]]:
+                    self.n = i
+                    print(f'Objective {self.objective_name} is in {self.output_names[i]}.')
+                    print(f'On each iteration running n={self.n+1} models')
+                    break
+
+        self.objective_run()
         # Read the outputs into a dictionary
         output_dict = yaml_to_dict(self.params_filename)
-        
-        # The objective function in this case is OUR, we take the negative
-        # so the minimize function sees the correct orientation
-        obj = -output_dict['bioreactor_output']['our']        
+        # We take the negative so the minimize function sees the correct orientation
+        obj = -output_dict[self.output_names[self.n]][self.objective_name]        
 
         # Set objactive scaling to normalize objective function to -1 before iterations 
         if self.fn_evals == 0:
