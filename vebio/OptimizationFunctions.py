@@ -21,19 +21,24 @@ class Optimization:
         self.notebookDir = notebookDir
         self.params_filename = params_filename
         self.opt_results_file = opt_results_file 
-        self.objective_name = obj_widjet.value
-
-        self.FS_model = Feedstock(params_filename, fs_options)
-        self.PT_model = Pretreatment(notebookDir, params_filename, pt_options)
-        self.EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
-        self.BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
 
         self.output_names = ['pretreatment_output', 'enzymatic_output', 'bioreactor_output']
-        self.models_list = [self.PT_model, self.EH_model, self.BR_model]
+        self.output_name = obj_widjet.value[0]
+        self.objective_name = obj_widjet.value[-1]
+        self.n_models = self.define_n_models()
 
-        # Do optimization only with surrogates
-        assert br_options.model_type.value == 'CFD Surrogate'
-        assert eh_options.model_type.value == 'CFD Surrogate'
+        # Initialize models
+        self.FS_model = Feedstock(params_filename, fs_options)
+        self.PT_model = Pretreatment(notebookDir, params_filename, pt_options)
+        self.models_list = [self.PT_model]
+        if self.n_models > 1:
+            assert eh_options.model_type.value == 'CFD Surrogate'
+            self.EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
+            self.models_list.append(self.EH_model)
+        if self.n_models > 2:
+            assert br_options.model_type.value == 'CFD Surrogate' # Do optimization only with surrogate
+            self.BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
+            self.models_list.append(self.BR_model)
 
         self.fn_evals = 0
         self.objective_scaling = 1.0
@@ -85,17 +90,21 @@ class Optimization:
                                   callback=self.opt_callback)
         return self.opt_result
 
+    def define_n_models(self):
+        if not self.output_name in self.output_names:
+            raise ValueError(f"Error: Output dictionary '{self.output_name}' doesn't exist. Check the widget definition")
+        n = self.output_names.index(self.output_name) + 1
+        print(f'Objective "{self.objective_name}" is in {self.output_name}.')
+        print(f'On each iteration running n={n} models')
+        return n
+
     def objective_run(self, verbose=False):
         """Based on where the objective, run all or fewer models.
 
         :param verbose: Flag to display the printed output from the executed file.  Default is False
         """
-
-        self.PT_model.run(verbose=verbose)       # Run the pretreatment model
-        if self.n >= 1:
-            self.EH_model.run(verbose=verbose)   # Run the enzymatic hydrolysis model
-        if self.n >= 2:
-            self.BR_model.run(verbose=verbose)   # Run the bioreactor model
+        for model in self.models_list:
+            model.run(verbose=verbose)
 
     def objective_function(self, free_variables):
         
@@ -114,25 +123,12 @@ class Optimization:
                     
         # Set global paths and files for communication between operations
         os.chdir(self.notebookDir)
-        
-        # Turn off printed outputs from unit operations
-        # v_flag = (self.fn_evals == 0)
-        # If the first iteration, locate objective in output to define it need to run all models
-        if self.fn_evals == 0:
-            for i, model in enumerate(self.models_list):
-                model.run(verbose=True)       # Run the pretreatment model
-                output_dict = yaml_to_dict(self.params_filename)
-                if self.objective_name in output_dict[self.output_names[i]]:
-                    self.n = i
-                    print(f'Objective {self.objective_name} is in {self.output_names[i]}.')
-                    print(f'On each iteration running n={self.n+1} models')
-                    break
-
+        # Run models
         self.objective_run()
         # Read the outputs into a dictionary
         output_dict = yaml_to_dict(self.params_filename)
         # We take the negative so the minimize function sees the correct orientation
-        obj = -output_dict[self.output_names[self.n]][self.objective_name]        
+        obj = -output_dict[self.output_name][self.objective_name]        
 
         # Set objactive scaling to normalize objective function to -1 before iterations 
         if self.fn_evals == 0:

@@ -292,6 +292,24 @@ br_options.display_all_widgets()
 ### Choosing objective for optimization
 
 ```python
+obj_widget = widgets.Dropdown(
+    options=[('Biorector:            OUR',   ('bioreactor_outpit', 'our')), 
+             ('Enzymatic Hydrolysis: rho_g', ('enzymatic_output', 'rho_g')), 
+             ('Enzymatic Hydrolysis: rho_x', ('enzymatic_output', 'rho_x')),
+             ('Enzymatic Hydrolysis: rho_sL',('enzymatic_output', 'rho_sL')),
+             ('Enzymatic Hydrolysis: rho_f', ('enzymatic_output', 'rho_f')),
+             ('Pretreatment:         fis_0', ('enzymatic_output', 'fis_0')),
+             ('Pretreatment:         X_X',   ('enzymatic_output', 'X_X')),
+             ('Pretreatment:         X_G',   ('enzymatic_output', 'X_G')),
+             ('Pretreatment:         rho_x', ('enzymatic_output', 'rho_x')),
+             ('Pretreatment:         rho_f', ('enzymatic_output', 'rho_f'))
+            ],
+    value=('bioreactor_outpit', 'our'),
+    description='Optimization objective',
+)
+
+
+
 obj_widget = widgets.RadioButtons(
     options = ['our', 'rho_g', 'rho_x', 'rho_sL', 'rho_f', 'fis_0', 'X_X', 'X_G'],
     value = 'our',
@@ -327,7 +345,7 @@ def sweep_button_action(b):
     display(sweep_button)
     
     with open('param_sweep.csv', 'w') as fp:
-        fp.write('# Iteration, Acid Loading, Enzyme Loading, OUR\n')
+        fp.write('# Iteration, -, Enzyme Loading, OUR\n')
     
     sweep_ctr = 0
     nn = 4 # The number of points to select across each value
