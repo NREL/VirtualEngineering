@@ -64,20 +64,26 @@ class Feedstock:
 
     @initial_porosity.setter
     def initial_porosity(self, a):
-        if not 0 <= a <= 1:
-            raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
+        if not 0 < a < 1:
+            raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
         self._initial_porosity = float(a)
         self.input2yaml(rewrite=True)
     ##############################################
     #
     ##############################################
 
-    def input2yaml(self):
+    def input2yaml(self, rewrite=False):
         fs_input = {'xylan_solid_fraction': self._xylan_solid_fraction,
                     'glucan_solid_fraction': self._glucan_solid_fraction,
                     'initial_porosity': self._initial_porosity}
-        fs_dict = {'feedstock': fs_input}
-        dict_to_yaml(fs_dict, self.params_filename)
+        if rewrite:
+            params_dict = yaml_to_dict(self.params_filename)
+            params_dict['feedstock'] = fs_input
+            dict_to_yaml(params_dict, self.params_filename, merge_with_existing=False)
+        else:
+            fs_dict = {'feedstock': fs_input}
+            dict_to_yaml(fs_dict, self.params_filename)
+
 
 
 class Pretreatment:
@@ -178,8 +184,8 @@ class Pretreatment:
 
     @initial_solid_fraction.setter
     def initial_solid_fraction(self, a):
-        if not 0 <= a <= 1:
-            raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
+        if not 0 < a < 1:
+            raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
         self._initial_solid_fraction = float(a)
         self.input2yaml(rewrite=True)
 
