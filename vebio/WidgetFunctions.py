@@ -71,6 +71,20 @@ class WidgetCollection:
                     height = (len(widget.options)-2)*20 + 2*24
                     widget_layout.update({'height': '%dpx' % (height)})
 
+                    desc_widg_space = 5
+                    desc_width = description_width + desc_widg_space
+                    widget_layout.update({'width': f'{widget_width-desc_width:.0f}px'})
+
+                    widget.desc_label = widgets.HTMLMath(
+                        value = widget.description,
+                        layout = {'width': f'{desc_width:.0f}px',
+                        'display': 'flex',
+                        'justify_content': 'flex-end',
+                        'padding': '0px 5px 0px 0px'}
+                    )
+
+                    widget.description = ""
+
                 if hasattr(widget, 'custom_layout'):
                     widget_layout.update(widget.custom_layout)
 
@@ -82,7 +96,10 @@ class WidgetCollection:
                 )
 
                 # Organize this widget with more layout options
-                hbox = HBox([widget, html_label], layout = box_layout)
+                if hasattr(widget, 'desc_label'):
+                    hbox = HBox([widget.desc_label, widget, html_label], layout = box_layout)
+                else:
+                    hbox = HBox([widget, html_label], layout = box_layout)
 
                 display(hbox)
 
