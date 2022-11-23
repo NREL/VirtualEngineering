@@ -4,8 +4,8 @@ import contextlib
 import subprocess
 import glob
 
-from scipy.interpolate import interp1d
 import numpy as np
+from scipy.interpolate import interp1d
 
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml
@@ -138,11 +138,9 @@ class Pretreatment:
 
         # Move into the pretreatment directory
         os.chdir('pretreatment_model/test/')
-        
-        # See if the pretreatment module exists, if not, we need to build it
-        try:
+        try:    # See if the pretreatment module exists
             import pt
-        except:
+        except: # if not, we need to build it
             print('Could not load PT module, building module from source.')
             print('(This will only happen the first time the notebook is run.)')
             os.chdir('../bld/')
@@ -150,7 +148,6 @@ class Pretreatment:
             subprocess.run(command.split())
             os.chdir('../test/')
             print('Finished building PT module.')
-            
         os.chdir(self.notebookDir)
 
     ##############################################
@@ -242,9 +239,11 @@ class Pretreatment:
         for outfile in outfiles:
             os.remove(outfile)
 
+        import ptrun as pt_run
         # Run pretreatment code specifying location of input file
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
-        run_script("ptrun.py", path_to_input_file, verbose=verbose)
+        # run_script("ptrun.py", path_to_input_file, verbose=verbose)
+        pt_run.main(path_to_input_file)
         # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
         # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
         # 1/13/21
@@ -572,8 +571,12 @@ class EnzymaticHydrolysis:
 
         print('\nRunning Enzymatic Hydrolysis Model')
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
+
         os.chdir('EH_OpenFOAM/EH_surrogate/')
-        run_script("EH_surrogate.py", path_to_input_file, verbose=verbose)
+        from EH_surrogate import main
+        main(path_to_input_file)
+        
+        # run_script("EH_surrogate.py", path_to_input_file, verbose=verbose)
         
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
@@ -583,11 +586,13 @@ class EnzymaticHydrolysis:
         print('\nRunning Enzymatic Hydrolysis Model')
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
         os.chdir('two_phase_batch_model/')
+        
         # Commenting out cellulose-only two-phase model to use lignocellulose
         # model, just in case we want to switch back or make both an
         # option. The lignocellulose model is superior.
         #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
-        run_script("driver_batch_lignocell_EH_VE.py", path_to_input_file, verbose=verbose)
+        from driver_batch_lignocell_EH_VE import main
+        main(path_to_input_file, self.show_plots)
         
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
@@ -629,6 +634,10 @@ class Bioreactor:
 
         # Bioreactor input parameters
         self._model_type = br_options.model_type.value
+        self._gas_velocity = br_options.gas_velocity.value
+        self._column_height = br_options.column_height.value
+        self._column_diameter = br_options.column_diameter.value
+        self._bubble_diameter = br_options.bubble_diameter.value
         self._t_final = br_options.t_final.value
 
         # Writing input parameters to Yaml file
@@ -638,6 +647,51 @@ class Bioreactor:
     ##############################################
     ### Properties
     ##############################################
+    @property
+    def gas_velocity(self):
+        return self._gas_velocity
+
+    @gas_velocity.setter
+    def gas_velocity(self, a):
+        if not 0.01 <= a <=0.1:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._gas_velocity = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def column_height(self):
+        return self._column_height
+
+    @column_height.setter
+    def t_final(self, a):
+        if not 10 <= a <= 50:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._column_height = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def column_diameter(self):
+        return self._column_diameter
+
+    @column_diameter.setter
+    def column_diameter(self, a):
+        if not 1 <= a <= 6:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._column_diameter = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def bubble_diameter(self):
+        return self._bubble_diameter
+
+    @bubble_diameter.setter
+    def t_final(self, a):
+        if not 0.003 <= a <= 0.008:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._bubble_diameter = float(a)
+        self.input2yaml(rewrite=True)
+
+
     @property
     def t_final(self):
         return self._t_final
@@ -674,6 +728,10 @@ class Bioreactor:
 
     def input2yaml(self, rewrite=False):
         br_input = {'model_type': self._model_type,
+                    'gas_velocity': self._gas_velocity,
+                    'column_height': self._column_height,
+                    'column_diameter': self._column_diameter,
+                    'bubble_diameter': self._bubble_diameter,
                     't_final': self._t_final}
         if rewrite:
             params_dict = yaml_to_dict(self.params_filename)
@@ -724,7 +782,8 @@ class Bioreactor:
         else:
             os.chdir('bioreactor/bubble_column/surrogate_model')
             path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
-            run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
+            from bcolumn_surrogate import main
+            main(path_to_input_file)
             os.chdir(self.notebookDir)
             print('Finished Bioreactor')
 
