@@ -367,6 +367,23 @@ if os.path.exists(param_sweep_fn):
     plt.ylabel(firstline[2])
 ```
 
+```python
+import matplotlib.pyplot as plt
+
+param_sweep_fn = os.path.join(notebookDir, 'param_sweep.csv')
+if os.path.exists(param_sweep_fn):
+    sweeps = np.loadtxt(param_sweep_fn, delimiter=',', skiprows=1)
+    extent = np.min(sweeps[:, 1]), np.max(sweeps[:, 1]), np.min(sweeps[:, 2]), np.max(sweeps[:, 2])
+    nn = int(np.sqrt(len(sweeps)))
+    OUR = sweeps[:, 3].reshape(nn, nn)
+
+    shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
+    bar = plt.colorbar(shw)
+    bar.set_label('OUR')
+    plt.xlabel('initial_acid_conc')
+    plt.ylabel('enz_loading')
+```
+
  ## Optimize
 
 Press the Optimize button below to launch the optimization of the start-to-finish operation using the above values as initial conditions.
@@ -375,7 +392,6 @@ This example **maximizes OUR** by **changing user-specified pretreatment options
 
 ```python
 # import scipy.optimize as opt
-
 
 #================================================================
 
