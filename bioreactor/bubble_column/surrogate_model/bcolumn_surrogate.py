@@ -11,7 +11,7 @@ def main(params_filename):
 
     dt = 4
 
-    our_base = 100.0 # units?
+    our_base = 100.0 # units? mol/m^3/hr
     r = 0.75  # what is this parameter?
 
     rho_g = ve_params['enzymatic_output']['rho_g']
@@ -24,16 +24,14 @@ def main(params_filename):
     column_height = ve_params['bioreactor_input']['column_height']
     column_diameter = ve_params['bioreactor_input']['column_diameter']
     bubble_diameter = ve_params['bioreactor_input']['bubble_diameter']
-
     T = ve_params['bioreactor_input']['t_final']
 
-    # these outputs should show units 
     print('\nINPUTS')
     print(f'Gas velocity = {gas_velocity:.2f} m/s')
     print(f'Column height = {column_height:.2f} m')
     print(f'Column diameter = {column_diameter:.2f} m')
     print(f'Bubble diameter = {bubble_diameter:.4f} m')
-    print(f'OUR_max = {our_max:.2f}' % (our_max))
+    print(f'OUR_max = {our_max:.2f} mol/m^3/hr')
     print(f't_final = {T:.1f} s')
 
     lb, ub = np.array([0.01, 10., 1., 5., 0.003]), np.array([0.1, 50., 6., 100., 0.008])
@@ -63,7 +61,7 @@ def main(params_filename):
         ff = our_max * ff/(0.01 + ff)
 
     print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
-    print('OUR = %.4f' % (ff))  # units???
+    print(F'OUR = {ff:.4f} mol/m^3/hr')
 
     # Save the outputs into a dictionary
     output_dict = {}
@@ -75,7 +73,6 @@ def main(params_filename):
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         params_filename = sys.argv[1]
-        print(params_filename)
         main(params_filename)
     else:
         raise Exception("VE parameters filename not provided. This model must be called with inputs specified via filename")

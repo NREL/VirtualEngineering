@@ -303,7 +303,7 @@ br_options.bubble_diameter = widgets.BoundedFloatText(
     min = 0.003,
     max = 0.008,
     description = 'Bubble diameter',
-    description_tooltip = r'Bubble diameter (m).  Must be in $[0.003, 0.008]$'
+    description_tooltip = r'Bubble diameter (m).  For surragate model must be in $[0.003, 0.008]$, for cfd must be $>=0$'
 )
 
 br_options.t_final = widgets.BoundedFloatText(
@@ -311,8 +311,7 @@ br_options.t_final = widgets.BoundedFloatText(
     min = 1.0,
     max = 1e16,
     description = 'Final Time',
-    description_tooltip = r'The total time of the simulation (h).  Must be $\geq 1$'
-                                    # is this really 'h'? current quasi-steady simulations only run tens of seconds
+    description_tooltip = r'The total time of the simulation (s).  Must be $\geq 1$'
 )
 
 #================================================================
@@ -322,31 +321,14 @@ br_options.display_all_widgets()
 ```
 
 ```python
-params_filename = 'test_ptrun.yaml'
+params_filename = 'test.yaml'
 FS_model = Feedstock(params_filename, fs_options)
-```
-
-```python
 PT_model = Pretreatment(notebookDir, params_filename, pt_options)
-```
-
-```python
-PT_model.run()
-```
-
-```python
 EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
-```
-
-```python
-EH_model.run()
-```
-
-```python
 BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
-```
 
-```python
+PT_model.run()
+EH_model.run()
 BR_model.run()
 ```
 
