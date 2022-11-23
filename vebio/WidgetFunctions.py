@@ -68,7 +68,9 @@ class WidgetCollection:
                     widget_layout.update({'padding': '0px 0px 0px %dpx ' % (shift_amt)})
 
                 elif type(widget) == RadioButtons:
-                    height = (len(widget.options)-2)*20 + 2*24
+                    height_per_option = 20
+                    top_bottom_padding = 4
+                    height = len(widget.options)*height_per_option + 2*top_bottom_padding
                     widget_layout.update({'height': '%dpx' % (height)})
 
                     desc_widg_space = 5
