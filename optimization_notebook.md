@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.7.1
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -40,6 +40,7 @@ from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
 from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bioreactor
+from vebio.OptimizationFunctions import Optimization
 # add path for no-CFD EH model
 sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
 
@@ -85,7 +86,7 @@ fs_options.glucan_solid_fraction = widgets.BoundedFloatText(
 
 initial_porosity_options = {'value': 0.8,
     'max': 1,
-    'min': 0,
+    'min': 0.5,
     'description': r'Initial Porosity',
     'description_tooltip': 'The initial porous fraction of the biomass particles.  Must be in the range [0, 1]'
 }
@@ -137,8 +138,8 @@ pt_options.steam_temperature.scaling_fn = lambda C : C + 273.15
 
 
 initial_solid_fraction_options = {'value': 0.745,
-    'max': 1,
-    'min': 0,
+    'max': 0.99,
+    'min': 0.01,
     'description': r'Initial FIS$_0$',
     'description_tooltip': 'The initial fraction of insoluble solids (kg/kg).  Must be in the range [0, 1]'
 }
@@ -208,7 +209,7 @@ eh_options.lambda_e.scaling_fn = lambda e : 0.001 * e
 eh_options.fis_0 = widgets.BoundedFloatText(
     value = 0.05,
     max = 1.0,
-    min = 0.0,
+    min = 0.1,
     description = r'FIS$_0$ Target',
     description_tooltip = 'The target value for initial fraction of insoluble solids *after* dilution (kg/kg).  Must be in the range [0, 1]'
 )
@@ -287,6 +288,35 @@ br_options.t_final = widgets.BoundedFloatText(
 br_options.display_all_widgets()
 ```
 
+---
+
+### Choosing objective for optimization
+
+```python
+obj_widget = widgets.Dropdown(
+    options=[('Biorector:            OUR',   ('bioreactor_output', 'our')), 
+             ('Enzymatic Hydrolysis: rho_g', ('enzymatic_output', 'rho_g')), 
+             ('Enzymatic Hydrolysis: rho_x', ('enzymatic_output', 'rho_x')),
+             ('Enzymatic Hydrolysis: rho_sL',('enzymatic_output', 'rho_sL')),
+             ('Enzymatic Hydrolysis: rho_f', ('enzymatic_output', 'rho_f')),
+             ('Pretreatment:         fis_0', ('enzymatic_output', 'fis_0')),
+             ('Pretreatment:         X_X',   ('enzymatic_output', 'X_X')),
+             ('Pretreatment:         X_G',   ('enzymatic_output', 'X_G')),
+             ('Pretreatment:         rho_x', ('enzymatic_output', 'rho_x')),
+             ('Pretreatment:         rho_f', ('enzymatic_output', 'rho_f'))
+            ],
+    value=('bioreactor_output', 'our'),
+    description='Objective:',
+    description_tooltip = 'Specifies the objective to use in optimization.'
+)
+
+display(obj_widget)
+```
+
+---
+
+### Parameter Sweeps
+
 ```python
 #================================================================
 sweep_button = widgets.Button(
@@ -307,55 +337,34 @@ def sweep_button_action(b):
     clear_output()
     display(sweep_button)
     
-    with open('param_sweep.csv', 'w') as fp:
-        fp.write('# Iteration, Acid Loading, Enzyme Loading, OUR\n')
-    
-    sweep_ctr = 0
-    nn = 4 # The number of points to select across each value
-    
-    initial_acid_conc_range = np.linspace(0.00005, 0.001, nn)   #[0.00005, 0.0001, 0.00015, 0.0002, 0.00025, 0.0003] 
-#     initial_solid_fraction_range = [0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
-#     final_time_range = [6, 7, 8, 9, 10, 11]
-    enz_loading_range = np.linspace(5, 300, nn)    #[10, 20, 30, 40, 50, 60]
-    
-    # Set global paths and files for communication between operations
-    os.chdir(notebookDir)
-    params_filename = 'virteng_params_opt.yaml'
-    
-    FD_model = Feedstock(params_filename, fs_options)
-    PT_model = Pretreatment(notebookDir, params_filename, pt_options)
-    EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
-    BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
-    
-    for initial_acid_conc in initial_acid_conc_range:
-        for enz_loading in enz_loading_range:
-          # Set the swept value
-            PT_model.update_values(initial_acid_conc=initial_acid_conc)
-            EH_model.update_values(lambda_e=enz_loading)
-            
-            PT_model.run(verbose=False)         # Run the pretreatment model
-            EH_model.run(verbose=False) # Run the enzymatic hydrolysis model
-            BR_model.run(verbose=True)            # Run the bioreactor model
-
-            sweep_ctr += 1
-
-            with open('param_sweep.csv', 'a') as fp:
-                v1 = PT_model.initial_acid_conc
-#                 v2 = pt_options.initial_solid_fraction.widget.value
-#                     v3 = pt_options.final_time.widget.value
-                v3 = EH_model.lambda_e*1000
-
-                output_dict = yaml_to_dict(params_filename)
-                obj = output_dict['bioreactor_output']['our']
-
-#                 fp.write(f'{sweep_ctr:.0f}, {v1:.9e}, {v2:.9e}, {v3:.9e}, {obj:.9e}\n')
-                fp.write(f'{sweep_ctr:.0f}, {v1:.9e}, {v3:.9e}, {obj:.9e}\n')
-
+    params_filename = 'virteng_params_sweep.yaml'
+    sweep_results_file = 'sweep_params.csv'
+    Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
+                       hpc_run, notebookDir, params_filename)
+    Opt.parameter_grid_sweep(nn=4, results_file=sweep_results_file)
     
 sweep_button.on_click(sweep_button_action)
 
-#================================================================
+#===============================================================
+```
 
+```python
+import matplotlib.pyplot as plt
+
+param_sweep_fn = os.path.join(notebookDir, 'sweep_params.csv')
+if os.path.exists(param_sweep_fn):
+    with open(param_sweep_fn, 'r')as f:
+        firstline = f.readline().split(',')
+    sweeps = np.loadtxt(param_sweep_fn, delimiter=',', skiprows=1)
+    extent = np.min(sweeps[:, 1]), np.max(sweeps[:, 1]), np.min(sweeps[:, 2]), np.max(sweeps[:, 2])
+    nn = int(np.sqrt(len(sweeps)))
+    OUR = sweeps[:, 3].reshape(nn, nn)
+
+    shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
+    bar = plt.colorbar(shw)
+    bar.set_label(firstline[-1])
+    plt.xlabel(firstline[1])
+    plt.ylabel(firstline[2])
 ```
 
 ```python
@@ -383,7 +392,6 @@ This example **maximizes OUR** by **changing user-specified pretreatment options
 
 ```python
 # import scipy.optimize as opt
-from vebio.OptimizationFunctions import Optimization
 
 #================================================================
 
@@ -408,10 +416,10 @@ def opt_button_action(b):
     params_filename = 'virteng_params_optimization.yaml'
     opt_results_file = 'optimization_results.csv'
     
-    Opt = Optimization(fs_options, pt_options, eh_options, br_options, 
-                      hpc_run, notebookDir, params_filename, opt_results_file)
+    Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
+                       hpc_run, notebookDir, params_filename)
     
-    opt_result = Opt.scipy_minimize(Opt.objective_function)
+    opt_result = Opt.scipy_minimize(Opt.objective_function, opt_results_file=opt_results_file)
     print(opt_result)
     
 opt_button.on_click(opt_button_action)
@@ -420,19 +428,16 @@ opt_button.on_click(opt_button_action)
 ```
 
 ```python
-
-optimization_results_fn = os.path.join(notebookDir, 'optimization_results.csv')
-if os.path.exists(optimization_results_fn) and os.path.exists(param_sweep_fn):
-    opt_results = np.loadtxt(optimization_results_fn, delimiter=',', skiprows=1)
-    print()
-    shw = plt.imshow(opt_results.T, extent=extent, aspect='auto', origin='lower')
-    bar = plt.colorbar(shw)
-    bar.set_label('OUR')
-    plt.xlabel('Acid Loading')
-    plt.ylabel('Enzymatic Load')
-    plt.scatter(opt_results[:, 1], opt_results[:, 2], s=50, c='k', marker='o')
-    plt.plot(opt_results[:, 1], opt_results[:, 2], color='k')
-    plt.scatter(opt_results[-1, 1], opt_results[-1, 2], s=50, c='r', marker='o')
+opt_results = np.loadtxt(os.path.join(notebookDir, 'optimization_results.csv'), delimiter=',', skiprows=1)
+print()
+shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
+bar = plt.colorbar(shw)
+bar.set_label('OUR')
+plt.xlabel('Acid Loading')
+plt.ylabel('Enzymatic Load')
+plt.scatter(opt_results[:, 1], opt_results[:, 2], s=50, c='k', marker='o')
+plt.plot(opt_results[:, 1], opt_results[:, 2], color='k')
+plt.scatter(opt_results[-1, 1], opt_results[-1, 2], s=50, c='r', marker='o')
 ```
 
 ---

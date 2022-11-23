@@ -28,24 +28,62 @@ class Feedstock:
             to solicit user input for feedstock properties.
         """
         self.params_filename = params_filename
-
-        if isinstance(fs_options, dict):
-            self.xylan_solid_fraction = fs_options['xylan_solid_fraction']
-            self.glucan_solid_fraction = fs_options['glucan_solid_fraction']
-            self.initial_porosity = fs_options['initial_porosity']
-        else:
-            self.xylan_solid_fraction = fs_options.xylan_solid_fraction.value
-            self.glucan_solid_fraction = fs_options.glucan_solid_fraction.value
-            self.initial_porosity = fs_options.initial_porosity.widget.value
-
+        self._xylan_solid_fraction = fs_options.xylan_solid_fraction.value
+        self._glucan_solid_fraction = fs_options.glucan_solid_fraction.value
+        self._initial_porosity = fs_options.initial_porosity.widget.value
         self.input2yaml()
 
-    def input2yaml(self):
-        fs_input = {'xylan_solid_fraction': self.xylan_solid_fraction,
-                    'glucan_solid_fraction': self.glucan_solid_fraction,
-                    'initial_porosity': self.initial_porosity}
-        fs_dict = {'feedstock': fs_input}
-        dict_to_yaml(fs_dict, self.params_filename)
+    ##############################################
+    ### Properties
+    ##############################################
+    @property
+    def xylan_solid_fraction(self):
+        return self._xylan_solid_fraction
+
+    @xylan_solid_fraction.setter
+    def xylan_solid_fraction(self, a):
+        if not 0 <= a <= 1:
+            raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
+        self._xylan_solid_fraction = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def glucan_solid_fraction(self):
+        return self._glucan_solid_fraction
+
+    @glucan_solid_fraction.setter
+    def glucan_solid_fraction(self, a):
+        if not 0 <= a <= 1:
+            raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
+        self._glucan_solid_fraction = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def initial_porosity(self):
+        return self._initial_porosity
+
+    @initial_porosity.setter
+    def initial_porosity(self, a):
+        if not 0 < a < 1:
+            raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
+        self._initial_porosity = float(a)
+        self.input2yaml(rewrite=True)
+    ##############################################
+    #
+    ##############################################
+
+    def input2yaml(self, rewrite=False):
+        fs_input = {'xylan_solid_fraction': self._xylan_solid_fraction,
+                    'glucan_solid_fraction': self._glucan_solid_fraction,
+                    'initial_porosity': self._initial_porosity}
+        if rewrite:
+            params_dict = yaml_to_dict(self.params_filename)
+            params_dict['feedstock'] = fs_input
+            dict_to_yaml(params_dict, self.params_filename, merge_with_existing=False)
+        else:
+            fs_dict = {'feedstock': fs_input}
+            dict_to_yaml(fs_dict, self.params_filename)
+
 
 
 class Pretreatment:
@@ -78,30 +116,22 @@ class Pretreatment:
 
         self.notebookDir = notebookDir
         self.params_filename = params_filename
+        self.show_plots = pt_options.show_plots.value 
 
-        # pt_options can be dict or widget
-        if isinstance(pt_options, dict):
-            self.initial_acid_conc = pt_options['initial_acid_conc']
-            self.steam_temperature = pt_options['steam_temperature'] + 273.15 # Conversion from celsius to kelvin
-            self.initial_solid_fraction = pt_options['initial_solid_fraction']
-            self.final_time = 60 * pt_options['final_time']
-            self.show_plots = pt_options['show_plots']
-        else:
-            self.initial_acid_conc = pt_options.initial_acid_conc.widget.value
-            self.steam_temperature = pt_options.steam_temperature.widget.value + 273.15 # Conversion from celsius to kelvin
-            self.initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
-            self.final_time = 60 * pt_options.final_time.widget.value
-            self.show_plots = pt_options.show_plots.value 
-
+        self._initial_acid_conc = pt_options.initial_acid_conc.widget.value
+        self._steam_temperature = pt_options.steam_temperature.widget.value + 273.15 # Conversion from celsius to kelvin
+        self._initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
+        self._final_time = 60 * pt_options.final_time.widget.value
+        
         # Obtain steam concentration from lookup table and add to dictionary
         steam_data = np.genfromtxt('pretreatment_model/lookup_tables/sat_steam_table.csv', delimiter=',', skip_header=1)
         # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
         interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
-        dens = interp_steam(self.steam_temperature)
+        dens = interp_steam(self._steam_temperature)
         # Convert to mol/ml => density in g/L / molecular weight / 1000.0
         mol_per_ml = float(dens/18.01528/1000.0)
         
-        self.bulk_steam_conc = mol_per_ml
+        self._bulk_steam_conc = mol_per_ml
 
         # Writing parameters to Yaml file
         self.input2yaml()
@@ -123,25 +153,73 @@ class Pretreatment:
             
         os.chdir(self.notebookDir)
 
-    # TODO: Use getter and setter with property instead ?
-    def update_values(self, initial_acid_conc=None, steam_temperature=None, initial_solid_fraction=None, final_time=None):
+    ##############################################
+    ### Properties
+    ##############################################
+    @property
+    def initial_acid_conc(self):
+        return self._initial_acid_conc
 
-        if initial_acid_conc is not None:
-            self.initial_acid_conc = float(initial_acid_conc)
-        if steam_temperature is not None:
-            self.steam_temperature = float(steam_temperature)
-        if initial_solid_fraction is not None:
-            self.initial_solid_fraction = float(initial_solid_fraction)
-        if final_time is not None:
-            self.final_time = float(final_time)
+    @initial_acid_conc.setter
+    def initial_acid_conc(self, a):
+        if not 0 <= a <= 1:
+            raise ValueError(f"Value {a} is outside allowed interval [0.0, 1.0]")
+        self._initial_acid_conc = float(a)
         self.input2yaml(rewrite=True)
 
+    @property
+    def steam_temperature(self):
+        return self._steam_temperature - 273.15
+
+    @steam_temperature.setter
+    def steam_temperature(self, a):
+        if not 3.8 <= a <= 250.3:
+            raise ValueError(f"Value {a} is outside allowed interval [3.8, 250.3]")
+        self._steam_temperature = float(a) + 273.15 # Conversion from celsius to kelvin
+        self.input2yaml(rewrite=True)
+
+    @property
+    def initial_solid_fraction(self):
+        return self._initial_solid_fraction
+
+    @initial_solid_fraction.setter
+    def initial_solid_fraction(self, a):
+        if not 0 < a < 1:
+            raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
+        self._initial_solid_fraction = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def final_time(self):
+        return self._final_time / 60
+
+    @final_time.setter
+    def final_time(self, a):
+        if not 1 <= a <= 1440:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1440]")
+        self._final_time = 60 * float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def bulk_steam_conc(self):
+        return self._bulk_steam_conc
+
+    @bulk_steam_conc.setter
+    def bulk_steam_conc(self, a):
+        if not 0 < a < 1:  # what are the right values
+            raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
+        self._bulk_steam_conc = float(a)
+        self.input2yaml(rewrite=True)
+    ##############################################
+    #
+    ##############################################
+
     def input2yaml(self, rewrite=False):
-        pt_input = {'initial_acid_conc': self.initial_acid_conc,
-                    'steam_temperature': self.steam_temperature,
-                    'initial_solid_fraction': self.initial_solid_fraction,
-                    'bulk_steam_conc': self.bulk_steam_conc,
-                    'final_time': self.final_time}
+        pt_input = {'initial_acid_conc': self._initial_acid_conc,
+                    'steam_temperature': self._steam_temperature,
+                    'initial_solid_fraction': self._initial_solid_fraction,
+                    'bulk_steam_conc': self._bulk_steam_conc,
+                    'final_time': self._final_time}
         if rewrite:
             params_dict = yaml_to_dict(self.params_filename)
             params_dict['pretreatment_input'] = pt_input
@@ -220,13 +298,14 @@ class EnzymaticHydrolysis:
         self.notebookDir = notebookDir
         self.params_filename = params_filename
         self.hpc_run = hpc_run
+        self.show_plots = eh_options.show_plots.value
 
         # EH input parameters
-        self.lambda_e = 0.001 * eh_options.lambda_e.widget.value    # Conversion from mg/g to kg/kg
-        self.fis_0 = eh_options.fis_0.value
-        self.t_final = eh_options.t_final.value
-        self.model_type = eh_options.model_type.value
-        self.show_plots = eh_options.show_plots.value
+        self._lambda_e = eh_options.lambda_e.widget.value / 1000   # Conversion from mg/g to kg/kg
+        self._fis_0 = eh_options.fis_0.value
+        self._t_final = eh_options.t_final.value
+        self._model_type = eh_options.model_type.value
+
 
         self.ve_params = yaml_to_dict(self.params_filename)
         self.select_run_function()
@@ -234,37 +313,72 @@ class EnzymaticHydrolysis:
         # Writing parameters to Yaml file
         self.input2yaml()
         
-    def select_run_function(self):
-        # selected enzymatic hydrolysis model
-        if self.model_type == 'CFD Simulation':
-            assert self.hpc_run, f'Cannot run EH_CFD without HPC resources. \n {os.getcwd()}'
-            self.run = self.run_eh_cfd_simulation
-        elif self.model_type == "CFD Surrogate":
-            self.run = self.run_eh_cfd_surrogate
-        else:
-            self.run = self.run_eh_lignocellulose_model
+    ##############################################
+    ### Properties
+    ##############################################
+    @property
+    def lambda_e(self):
+        return self._lambda_e * 1000 # Conversion from kg/kg to mg/g 
 
-    # TODO: Use getter and setter with property instead ?
-    def update_values(self, lambda_e=None, fis_0=None, t_final=None, model_type=None):
-
-        if lambda_e is not None:
-            self.lambda_e = 0.001 * float(lambda_e)
-        if fis_0 is not None:
-            self.fis_0 = float(fis_0)
-        if t_final is not None:
-            self.t_final =  float(t_final)
-        if model_type is not None:
-            self.model_type = float(model_type)
-            self.select_run_function()
-
+    @lambda_e.setter
+    def lambda_e(self, a):
+        if not 0 <= a <= 1000:
+            raise ValueError(f"Value {a} is outside allowed interval [0, 1000]")
+        self._lambda_e = float(a) / 1000 # Conversion from mg/g to kg/kg
         self.input2yaml(rewrite=True)
 
+    @property
+    def fis_0(self):
+        return self._fis_0
+
+    @fis_0.setter
+    def fis_0(self, a):
+        if not 0 <= a <= 1:
+            raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
+        self._fis_0 = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def t_final(self):
+        return self._t_final
+
+    @t_final.setter
+    def t_final(self, a):
+        if not 1 <= a <= 24:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 24]")
+        self._t_final = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def model_type(self):
+        return self._model_type
+
+    @model_type.setter
+    def model_type(self, a):
+        if not a in ['CFD Simulation', "CFD Surrogate", 'Lignocellulose Model']:
+            raise ValueError("Invalid value. Allowed options: 'CFD Simulation', 'CFD Surrogate', 'Lignocellulose Model'")
+        self._model_type = a
+        self.input2yaml(rewrite=True)
+        self.select_run_function()
+    ##############################################
+    #
+    ##############################################
+
+    def select_run_function(self):
+        # selected enzymatic hydrolysis model
+        if self._model_type == 'CFD Simulation':
+            assert self.hpc_run, f'Cannot run EH_CFD without HPC resources. \n {os.getcwd()}'
+            self.run = self.run_eh_cfd_simulation
+        elif self._model_type == "CFD Surrogate":
+            self.run = self.run_eh_cfd_surrogate
+        elif self._model_type == 'Lignocellulose Model':
+            self.run = self.run_eh_lignocellulose_model
+
     def input2yaml(self, rewrite=False):
-        eh_input = {'model_type': self.model_type,
-                    'lambda_e': self.lambda_e,
-                    'fis_0': self.fis_0,
-                    't_final': self.t_final,
-                    'show_plots': self.show_plots}
+        eh_input = {'model_type': self._model_type,
+                    'lambda_e': self._lambda_e,
+                    'fis_0': self._fis_0,
+                    't_final': self._t_final}
         if rewrite:
             params_dict = yaml_to_dict(self.params_filename)
             params_dict['enzymatic_input'] = eh_input
@@ -286,9 +400,9 @@ class EnzymaticHydrolysis:
         globalVars['xX0'] = self.ve_params['pretreatment_output']['X_X']
         globalVars['XL0'] = 1.0 - globalVars['xG0'] - globalVars['xX0']
         globalVars['yF0'] = 0.2 + 0.6*self.ve_params['pretreatment_output']['conv']
-        globalVars['lmbdE'] = self.lambda_e
+        globalVars['lmbdE'] = self._lambda_e
         globalVars['rhog0'] = 0.0
-        dilution_factor = self.fis_0/self.ve_params['pretreatment_output']['fis_0']
+        dilution_factor = self._fis_0/self.ve_params['pretreatment_output']['fis_0']
         globalVars['rhox0'] = self.ve_params['pretreatment_output']['rho_x'] * dilution_factor
         globalVars['rhosl0'] = 0.0
 
@@ -320,7 +434,7 @@ class EnzymaticHydrolysis:
                         fluid_steadystate_time = float(line.split(']')[-1].split(';')[0])
 
         controlDict = {}
-        fintime = fluid_steadystate_time + (self.t_final/reaction_update_time + 1.0)*fluid_update_time
+        fintime = fluid_steadystate_time + (self._t_final/reaction_update_time + 1.0)*fluid_update_time
         controlDict['endTime'] = fintime
 
         write_file_with_replacements('system/controlDict', controlDict)
@@ -514,12 +628,41 @@ class Bioreactor:
         self.hpc_run = hpc_run
 
         # Bioreactor input parameters
-        self.model_type = br_options.model_type.value
-        self.t_final = br_options.t_final.value
+        self._model_type = br_options.model_type.value
+        self._t_final = br_options.t_final.value
 
         # Writing input parameters to Yaml file
         self.input2yaml()
         self.select_run_function()
+
+    ##############################################
+    ### Properties
+    ##############################################
+    @property
+    def t_final(self):
+        return self._t_final
+
+    @t_final.setter
+    def t_final(self, a):
+        if not 1 <= a <= 1e16:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._t_final = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def model_type(self):
+        return self._model_type
+
+    @model_type.setter
+    def model_type(self, a):
+        if not a in ['CFD Simulation', "CFD Surrogate"]:
+            raise ValueError("Invalid value. Allowed options: 'CFD Simulation', 'CFD Surrogate'")
+        self._model_type = a
+        self.input2yaml(rewrite=True)
+        self.select_run_function()
+    ##############################################
+    #
+    ##############################################
 
     def select_run_function(self):
         # selected enzymatic hydrolysis model
@@ -529,20 +672,9 @@ class Bioreactor:
         elif self.model_type == "CFD Surrogate":
             self.run = self.run_biorector_cfd_surrogate
 
-    # TODO: Use getter and setter with property instead ?
-    def update_values(self, t_final=None, model_type=None):
-
-        if t_final is not None:
-            self.t_final =  float(t_final)
-        if model_type is not None:
-            self.model_type = float(model_type)
-            self.select_run_function()
-
-        self.input2yaml(rewrite=True)
-
     def input2yaml(self, rewrite=False):
-        br_input = {'model_type': self.model_type,
-                    't_final': self.t_final}
+        br_input = {'model_type': self._model_type,
+                    't_final': self._t_final}
         if rewrite:
             params_dict = yaml_to_dict(self.params_filename)
             params_dict['bioreactor_input'] = br_input
@@ -567,7 +699,7 @@ class Bioreactor:
         
         # Make changes to the controlDict file based on replacement options
         controlDict = {}
-        controlDict['endTime'] = self.t_final
+        controlDict['endTime'] = self._t_final
         
         write_file_with_replacements('system/controlDict', controlDict)
 
