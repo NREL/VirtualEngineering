@@ -67,7 +67,7 @@ with open('gp_bub_col.pkl', 'rb') as f_id:
         f_1 = gp.predict(X@W1, return_std=False)[0]
         ff = np.power(10., f_0*(1-s) + f_1*s)
     
-    ff = our_max * ff/(0.01 + ff)
+    ff = our_max * ff
 
 print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
 print('OUR = %.4f' % (ff))  # units???
