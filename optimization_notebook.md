@@ -399,8 +399,11 @@ param_sweep_fn = os.path.join(notebookDir, 'sweep_params.csv')
 if os.path.exists(param_sweep_fn):
     with open(param_sweep_fn, 'r')as f:
         firstline = f.readline().split(',')
+    Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
+                       hpc_run, notebookDir, params_filename)
     sweeps = np.loadtxt(param_sweep_fn, delimiter=',', skiprows=1)
-    extent = np.min(sweeps[:, 1]), np.max(sweeps[:, 1]), np.min(sweeps[:, 2]), np.max(sweeps[:, 2])
+    bounds = Opt.var_real_bounds
+    extent = bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]
     nn = int(np.sqrt(len(sweeps)))
     OUR = sweeps[:, 3].reshape(nn, nn)
 

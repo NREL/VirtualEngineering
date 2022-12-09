@@ -68,6 +68,7 @@ def main(params_filename):
     output_dict['our'] = float(ff)
     ve_params['bioreactor_output'] = output_dict
     dict_to_yaml(ve_params, params_filename)
+    return ve_params
 
 
 if __name__ == '__main__':

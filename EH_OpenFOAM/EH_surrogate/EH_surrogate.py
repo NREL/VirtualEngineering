@@ -111,6 +111,7 @@ def main(params_filename):
     ve_params['enzymatic_output'] = output_dict
 
     dict_to_yaml(ve_params, params_filename)
+    return ve_params
 
 
 if __name__ == '__main__':
