@@ -15,8 +15,122 @@ outputfilebase = 'ptsim_'
 
 inputfile = open(inputfilename, 'r')
 
-meshp, scales, IBCs, rrates, Egtcs, deto =\
-    pt_input.readinpfile('pretreat_defs.inp')
+    # run pretreatment model
+    inputfilename='pretreat_defs.inp'
+    meshp, scales, IBCs, rrates, Egtcs, deto = pt_input.readinpfile('pretreat_defs.inp')
+    # outputfilebase = 'ptsim_'
+
+    # If params_filename passed update defualt patameters 
+    if not params_filename is None:
+        ve_params = yaml_to_dict(params_filename)
+
+        # read in final time in order to calculate a "print time"
+        finaltime = ve_params['pretreatment_input']['final_time']
+        N = 10 # could make this a user preference
+        prnttime = finaltime/(N-1) + 0.001*finaltime
+
+        # Override pretreat_defs.inp definitions with those from the pretreatment widgets
+        IBCs['acid'] = ve_params['pretreatment_input']['initial_acid_conc']
+        IBCs['stmT'] = ve_params['pretreatment_input']['steam_temperature']
+        IBCs['bkst'] = ve_params['pretreatment_input']['bulk_steam_conc']
+        meshp['ftime'] = finaltime
+        meshp['ptime'] = prnttime
+        IBCs['xyfr'] = ve_params['feedstock']['xylan_solid_fraction']
+        IBCs['lifr'] = 1.0 - ve_params['pretreatment_input']['initial_solid_fraction']
+        IBCs['poro'] = ve_params['feedstock']['initial_porosity']
+        glucan_solid_fraction = ve_params['feedstock']['glucan_solid_fraction']
+        # trial-and-error adjustment to model parameters to account for auger
+        # reactor rather than steam-explosion reactor -- didn't end up using any
+        # adjustments, but keeping in case we want to try in the future
+        #Egtcs['chtr'] = 0.01 # "convective heat transfer", original: 0.5
+        #deto['togs'] = 5.0 # "tortuosity gas", original:  1.0
+        #deto['toli'] = 5.0 # "turtuosity liquid", original:  1.0
+        #rrates['stdf'][0] = 5 # "pore diameter", original:  15
+        #scales['xscl'] = 5.0 # "length scale", original:  1.0
+        # ratemult = 0.1 
+        # rrates['kxylog'][0] = ratemult*rrates['kxylog'][0]
+        # rrates['kxyl1'][0] = ratemult*rrates['kxyl1'][0]
+        # rrates['kxyl2'][0] = ratemult*rrates['kxyl2'][0]
+        # rrates['kfurf'][0] = ratemult*rrates['kfurf'][0]
+        inputfilename = 'pretreat_defs_updated.inp'
+        pt_input.writeinpfile(inputfilename, meshp, scales, IBCs, rrates, Egtcs, deto)  
+    else:
+        ve_params = {}
+        glucan_solid_fraction = 0.4
+
+    # read in number of elements from input file
+    nelem = meshp['enum']
+    ppelem = meshp['ppnts']
+    gneq = 7
+    # calculate the shape of the output array
+    m = nelem*(ppelem - 1) + 1
+    n = gneq + 1
+
+    #establish parameters for porosity and time dependent [acid] calcs
+    fx0 = IBCs['xyfr'] # initial fraction of xylan in the solids, a.k.a., X_X0 
+    ep0 = IBCs['poro']
+    # cacid0 = IBCs['acid']
+    # eL0 = IBCs['lifr']
+    l = meshp['maxx']
+
+    ###### Run the simulation
+    simtime=-timerlib.default_timer()
+    # with suppress_stdout():
+    #     solnvec = pt.main(m, n, inputfilename)
+    # np.savetxt('pt_solnvec.csv', solnvec, delimiter=',')
+    
+    # Make the call to pt.main(m, n, filename) using subprocess
+    # TODO: rid of pt_solve.py script. Right now needed 
+    # to supress all step-by-step output from the model 
+    command = f'python pt_solve.py {m} {n} {inputfilename}'
+    out = subprocess.run(command.split(), capture_output=True, text=True)
+    solnvec = np.genfromtxt('pt_solnvec.csv', delimiter=',')
+    assert np.shape(solnvec) == (m, n)
+    simtime=simtime+timerlib.default_timer()
+    ########################
+
+    #solnvec=pt.ptmain.interpsoln
+
+    x=solnvec[:,0]
+    # steam=solnvec[:,1]
+    liquid=solnvec[:,2]
+    # Temp=solnvec[:,3]
+    xylan=solnvec[:,4] # what is this? units? dimensionless concentration? what
+                    # basis? JJS 3/22/20
+    xylog=solnvec[:,5]
+    xylose=solnvec[:,6]
+    furfural=solnvec[:,7]
+    porosity=ep0+fx0*(1.0-ep0)-xylan
+    # cacid = cacid0*eL0/liquid
+
+    # integrate concentrations to determine bulk xylose, xylog, and furfural concentrations
+    solidvfrac = 1.0-porosity
+    xylanweight = np.trapz(xylan,x)
+    solidweight = np.trapz(solidvfrac,x)
+    liquid_bulk = np.trapz(liquid,x)
+    # gas_bulk    = np.trapz(porosity-liquid,x)
+
+    xylan_bulk    = xylanweight/solidweight # this looks like X_X (fraction of solids)?
+    xylose_bulk   = np.trapz(xylose,x)/liquid_bulk
+    xylog_bulk    = np.trapz(xylog,x)/liquid_bulk
+    furfural_bulk = np.trapz(furfural,x)/liquid_bulk
+    # steam_bulk    = np.trapz(steam*(porosity-liquid),x)/gas_bulk
+
+    M_xylose = 150.0
+    M_furf   = 100.0
+    M_xylog  = 450.0
+
+    xylanweight0 = fx0*(1-ep0)*l
+    #print( "initial xylan mass   (density =  1 g/ml):%4.4g" %    xylanweight0)
+    #print( "final xylan mass     (density =  1 g/ml):%4.4g" %    xylanweight)
+    #print( "reacted xylan mass   (density =  1 g/ml):%4.4g" %    (fx0*(1-ep0)*l-xylanweight))
+
+    prodmass = liquid_bulk*(xylose_bulk*M_xylose + xylog_bulk*M_xylog + furfural_bulk*M_furf)
+    reactmass = xylanweight0 - xylanweight
+    conv = reactmass/xylanweight0  # I _think_ this is correct now, but should be
+                                # double-checked, JJS 3/14/21
+    # compute an updated glucan fraction based on xylan conversion
+    X_G = glucan_solid_fraction/(1 - IBCs['xyfr']*conv)
 
 
 # If applicable, load the input file into a dictionary
@@ -30,34 +144,24 @@ if len(sys.argv) > 1:
     N = 10 # could make this a user preference
     prnttime = finaltime/(N-1) + 0.001*finaltime
 
-    # Override pretreat_defs.inp definitions with those from the pretreatment widgets
-    IBCs['acid'] = ve_params['pretreatment_input']['initial_acid_conc']
-    IBCs['stmT'] = ve_params['pretreatment_input']['steam_temperature']
-    IBCs['bkst'] = ve_params['pretreatment_input']['bulk_steam_conc']
-    meshp['ftime'] = finaltime
-    meshp['ptime'] = prnttime
-    IBCs['xyfr'] = ve_params['feedstock']['xylan_solid_fraction']
-    IBCs['lifr'] = 1.0 - ve_params['pretreatment_input']['initial_solid_fraction']
-    IBCs['poro'] = ve_params['feedstock']['initial_porosity']
-    # trial-and-error adjustment to model parameters to account for auger
-    # reactor rather than steam-explosion reactor -- didn't end up using any
-    # adjustments, but keeping in case we want to try in the future
-    #Egtcs['chtr'] = 0.01 # "convective heat transfer", original: 0.5
-    #deto['togs'] = 5.0 # "tortuosity gas", original:  1.0
-    #deto['toli'] = 5.0 # "turtuosity liquid", original:  1.0
-    #rrates['stdf'][0] = 5 # "pore diameter", original:  15
-    #scales['xscl'] = 5.0 # "length scale", original:  1.0
-    # ratemult = 0.1 
-    # rrates['kxylog'][0] = ratemult*rrates['kxylog'][0]
-    # rrates['kxyl1'][0] = ratemult*rrates['kxyl1'][0]
-    # rrates['kxyl2'][0] = ratemult*rrates['kxyl2'][0]
-    # rrates['kfurf'][0] = ratemult*rrates['kfurf'][0]
-else:
-    ve_params = {}
+    # Save the outputs into a dictionary
+    output_dict = {}
+    output_dict['fis_0'] = float(solidweight/(solidweight+liquid_bulk))
+    output_dict['conv'] = float(conv)
+    output_dict['X_X'] = float(xylan_bulk) # is this correct? JJS 3/22/20
+    output_dict['X_G'] = float(X_G)
+    # adding xylo-oligomers to xylose, based on the assumption that these will be
+    # converted to xylose during enzymatic hydrolysis (otherwise, these sugars are
+    # "lost"), JJS 3/21/21
+    output_dict['rho_x'] = 1000*float(xylose_bulk*M_xylose + xylog_bulk*M_xylog)
+    output_dict['rho_f'] = 1000*float(furfural_bulk*M_furf)
+    output_dict['rho_f_init'] = float(furfural[0])
+    output_dict['rho_f_final'] = float(furfural[-1])
 
 
-# read in number of elements from input file
-nelem = meshp['enum']
+    if not params_filename is None:
+        dict_to_yaml(ve_params, params_filename)
+    return ve_params
 
 ppelem = meshp['ppnts']
 gneq = 7

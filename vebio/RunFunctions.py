@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 import numpy as np
 
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import yaml_to_dict, dict_to_yaml
+from vebio.Utilities import yaml_to_dict, dict_to_yaml, check_dict_for_nans
 
 
 class Feedstock:
@@ -84,7 +84,8 @@ class Feedstock:
             fs_dict = {'feedstock': fs_input}
             dict_to_yaml(fs_dict, self.params_filename)
 
-
+    def run(self):
+        return False
 
 class Pretreatment:
 
@@ -229,7 +230,7 @@ class Pretreatment:
             dict_to_yaml(pt_dict, self.params_filename, merge_with_existing=True)
 
     def run(self, verbose=True):
-        """_summary_
+        """Run pretreatment code specified in pretreatment_model/test/ptrun.py
 
         :param verbose: (bool, optional) 
             Option to show print messages from executed file, default True.
@@ -238,25 +239,31 @@ class Pretreatment:
         # Move into the pretreatment directory
         os.chdir('pretreatment_model/test/')
         # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
+        # TODO: shoud move cleaning in ptrun.py? OD
         outfiles = glob.glob("out*.dat")
         for outfile in outfiles:
             os.remove(outfile)
 
         # Run pretreatment code specifying location of input file
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
-        run_script("ptrun.py", path_to_input_file, verbose=verbose)
+        # run_script("ptrun.py", path_to_input_file, verbose=verbose)
+        ve_params = pt_run.main(path_to_input_file)
+        dict_to_yaml(ve_params, path_to_input_file)
         # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
         # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
         # 1/13/21
         #pt_run_command = 'python ptrun.py %s' % (path_to_input_file)
         #pt_cli = subprocess.run(pt_run_command.split(), capture_output=True, text=True)
         #print(pt_cli.stdout[-1394:])
-
         if self.show_plots:
             run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
         os.chdir(self.notebookDir)
         print('Finished Pretreatment')
+
+        if check_dict_for_nans(ve_params['pretreatment_output']):
+            return True
+        return False
 
 
 class EnzymaticHydrolysis:
@@ -526,13 +533,10 @@ class EnzymaticHydrolysis:
         # integrated_quantities = np.genfromtxt('integrated_quantities.dat', delimiter=' ') # mol/L
 
         '''
-
-
         This code represents the conversion that used to be necessary for the NEK 5000 simulation
         outputs, it's preserved here for reference but shouldn't be necessary for the new
         OpenFOAM version of EH.  Although it still may be necessary to calculate a version of
         dilution_factor_final and use it to scale the final four output values.
-
 
         rho_g_final = float(c_g_output[-1, 1])*180 # g/L
         
@@ -552,7 +556,6 @@ class EnzymaticHydrolysis:
         dilution_factor_final = 1.0
         rho_x_final = rho_x0*dilution_factor_final
         rho_f_final = rho_f0*dilution_factor_final
-
         '''
         
         # output_dict = {'enzymatic_output': {}}
@@ -562,21 +565,28 @@ class EnzymaticHydrolysis:
         # output_dict['enzymatic_output']['rho_f'] = ve_params['pretreatment_output']['rho_f']*dilution_factor
         
         os.chdir(self.notebookDir)
-
         dict_to_yaml([self.ve_params, output_dict], self.params_filename)
-
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
+        if check_dict_for_nans(output_dict):
+            return True
+        return False
 
     def run_eh_cfd_surrogate(self, verbose=True):
 
         print('\nRunning Enzymatic Hydrolysis Model')
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
         os.chdir('EH_OpenFOAM/EH_surrogate/')
-        run_script("EH_surrogate.py", path_to_input_file, verbose=verbose)
+        from EH_surrogate import main
+        ve_params = main(path_to_input_file) 
+        # run_script("EH_surrogate.py", path_to_input_file, verbose=verbose)
         
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
+        if check_dict_for_nans(ve_params['enzymatic_output']):
+            return True
+        return False
+
 
     def run_eh_lignocellulose_model(self, verbose=True):
         
@@ -587,10 +597,14 @@ class EnzymaticHydrolysis:
         # model, just in case we want to switch back or make both an
         # option. The lignocellulose model is superior.
         #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
-        run_script("driver_batch_lignocell_EH_VE.py", path_to_input_file, verbose=verbose)
+        from driver_batch_lignocell_EH_VE import main
+        ve_params = main(path_to_input_file, self.show_plots)
         
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
+        if check_dict_for_nans(ve_params['enzymatic_output']):
+            return True
+        return False
 
     
 class Bioreactor:
@@ -638,6 +652,55 @@ class Bioreactor:
     ##############################################
     ### Properties
     ##############################################
+    @property
+    def gas_velocity(self):
+        return self._gas_velocity
+
+    @gas_velocity.setter
+    def gas_velocity(self, a):
+        if self._model_type is 'surrogate':
+            if not 0.01 <= a <=0.1:
+                raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        else: 
+            if not 0.0 <= a:
+                raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._gas_velocity = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def column_height(self):
+        return self._column_height
+
+    @column_height.setter
+    def t_final(self, a):
+        if not 10 <= a <= 50:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._column_height = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def column_diameter(self):
+        return self._column_diameter
+
+    @column_diameter.setter
+    def column_diameter(self, a):
+        if not 1 <= a <= 6:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._column_diameter = float(a)
+        self.input2yaml(rewrite=True)
+
+    @property
+    def bubble_diameter(self):
+        return self._bubble_diameter
+
+    @bubble_diameter.setter
+    def t_final(self, a):
+        if not 0.003 <= a <= 0.008:
+            raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
+        self._bubble_diameter = float(a)
+        self.input2yaml(rewrite=True)
+
+
     @property
     def t_final(self):
         return self._t_final
@@ -714,6 +777,9 @@ class Bioreactor:
         os.chdir(self.notebookDir)
         dict_to_yaml(output_dict, self.params_filename, merge_with_existing=True)
         print('Finished Bioreactor')
+        if check_dict_for_nans(output_dict):
+            return True
+        return False
 
     def run_biorector_cfd_surrogate(self, verbose=True):
         
@@ -724,9 +790,14 @@ class Bioreactor:
         else:
             os.chdir('bioreactor/bubble_column/surrogate_model')
             path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
-            run_script("bcolumn_surrogate.py", path_to_input_file, verbose=verbose)
+            from bcolumn_surrogate import main
+            ve_params = main(path_to_input_file)
             os.chdir(self.notebookDir)
             print('Finished Bioreactor')
+            if check_dict_for_nans(ve_params['bioreactor_output']):
+                return True
+            return False
+
 
 
 def run_script(filename, *args, verbose=True):

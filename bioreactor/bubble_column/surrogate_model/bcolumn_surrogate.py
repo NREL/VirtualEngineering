@@ -76,4 +76,20 @@ print('OUR = %.4f' % (ff))  # units???
 output_dict = {'bioreactor_output': {}}
 output_dict['bioreactor_output']['our'] = float(ff)
 
-dict_to_yaml([ve_params, output_dict], params_filename)
+    print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
+    print(F'OUR = {ff:.4f} mol/m^3/hr')
+
+    # Save the outputs into a dictionary
+    output_dict = {}
+    output_dict['our'] = float(ff)
+    ve_params['bioreactor_output'] = output_dict
+    dict_to_yaml(ve_params, params_filename)
+    return ve_params
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        params_filename = sys.argv[1]
+        main(params_filename)
+    else:
+        raise Exception("VE parameters filename not provided. This model must be called with inputs specified via filename")

@@ -75,6 +75,7 @@ conditions = {'fis0': fis0,
               'rhosL0': 0}
 batch.SetParams(conditions)
 
+    return ve_params
 
 # run simulation
 N = 200

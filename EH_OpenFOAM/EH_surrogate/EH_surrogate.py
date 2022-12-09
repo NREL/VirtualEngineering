@@ -94,10 +94,64 @@ with open('gp_EH.pkl', 'rb') as f_id:
         gp = load(f_id)
         f1_rhoL = gp.predict(X@W1[:, :, 3], return_std=False)[0]
 
-        f_convRate = f0_convRate*(1-s) + f1_convRate*s
-        f_rhoG = f0_rhoG*(1-s) + f1_rhoG*s
-        f_rhoX = f0_rhoX*(1-s) + f1_rhoX*s
-        f_rhoL = f0_rhoL*(1-s) + f1_rhoL*s
+        if (s > 0):
+            gp = load(f_id)
+            f1_convRate = gp.predict(X@W1[:, :, 0], return_std=False)[0]
+            gp = load(f_id)
+            f1_rhoG = gp.predict(X@W1[:, :, 1], return_std=False)[0]
+            gp = load(f_id)
+            f1_rhoX = gp.predict(X@W1[:, :, 2], return_std=False)[0]
+            gp = load(f_id)
+            f1_rhoL = gp.predict(X@W1[:, :, 3], return_std=False)[0]
+
+            f_convRate = f0_convRate*(1-s) + f1_convRate*s
+            f_rhoG = f0_rhoG*(1-s) + f1_rhoG*s
+            f_rhoX = f0_rhoX*(1-s) + f1_rhoX*s
+            f_rhoL = f0_rhoL*(1-s) + f1_rhoL*s
+        else:
+            f_convRate = f0_convRate
+            f_rhoG = f0_rhoG
+            f_rhoX = f0_rhoX
+            f_rhoL = f0_rhoL
+
+        f_convRate = np.power(10., f_convRate)
+        f_rhoG = fis0*f_rhoG
+        f_rhoX = f_rhoX + rhox0
+        f_rhoL = fis0*f_rhoL
+
+    #f_rhoF = 
+
+    print('\nFINAL OUTPUTS (at t = %4.4g hours)' % (T))
+    print('Conversion Rate = %.4f' % f_convRate)
+    print('rho_g = %4.4g g/L' % f_rhoG)
+    print('rho_x = %4.4g g/L' % f_rhoX)
+    print('rho_sL = %4.4g g/L' % f_rhoL)
+    print('rho_f = %4.4g g/L' % rho_f)
+
+    # Save the outputs into a dictionary for use as inputs for bioreactor sims
+    output_dict = {}
+    output_dict['rho_g'] = float(f_rhoG)
+    output_dict['rho_x'] = float(f_rhoX)
+    # Soluble lignin is not currently used in bioreaction models, but we might want to.
+    output_dict['rho_sL'] = float(f_rhoL)
+    '''
+    # compute dilution of furfural (which does not react during EH)
+    fliq0 = 1 - fis0
+    fliqend = 1 - result["fis"].iloc[-1]
+    rhof = fliq0/fliqend*rhof0
+    output_dict['enzymatic_output']['rho_f'] = float(rhof)
+    '''
+    output_dict['rho_f'] = float(rho_f)
+    ve_params['enzymatic_output'] = output_dict
+
+    dict_to_yaml(ve_params, params_filename)
+    return ve_params
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        params_filename = sys.argv[1]
+        main(params_filename)
     else:
         f_convRate = f0_convRate
         f_rhoG = f0_rhoG
