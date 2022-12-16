@@ -43,6 +43,7 @@ from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bio
 from vebio.OptimizationFunctions import Optimization
 # add path for no-CFD EH model
 sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
+sys.path.append(os.path.join(notebookDir, "pretreatment_model/test/"))
 
 #================================================================
 # See if we're running on Eagle or on a laptop
@@ -273,19 +274,62 @@ br_options.model_type = widgets.RadioButtons(
     description_tooltip = 'Specifies the solver to use for the bioreaction step, "CFD Simulation" requires HPC resources.'
 )
 
+br_options.gas_velocity = widgets.BoundedFloatText(
+    value = 0.08, 
+    min = 0.01,
+    max = 0.1,
+    description = 'Gas velocity',
+    description_tooltip = r'Gas velocity in the simulation (m/s).  Must be in $[0.01, 0.1]$'
+)
+
+br_options.column_height = widgets.BoundedFloatText(
+    value = 40., 
+    min = 10.,
+    max = 50.,
+    description = 'Column height',
+    description_tooltip = r'Column height (m).  Must be in $[10, 50]$'
+)
+
+br_options.column_diameter = widgets.BoundedFloatText(
+    value = 5.0, 
+    min = 1.,
+    max = 6.,
+    description = 'Column diameter',
+    description_tooltip = r'Column diameter (m).  Must be in $[1, 6]$'
+)
+
+br_options.bubble_diameter = widgets.BoundedFloatText(
+    value = 0.006,
+    min = 0.003,
+    max = 0.008,
+    description = 'Bubble diameter',
+    description_tooltip = r'Bubble diameter (m).  For surragate model must be in $[0.003, 0.008]$, for cfd must be $>=0$'
+)
+
 br_options.t_final = widgets.BoundedFloatText(
     value = 100.0, # default 500
     min = 1.0,
     max = 1e16,
     description = 'Final Time',
-    description_tooltip = r'The total time of the simulation (h).  Must be $\geq 1$'
-                                    # is this really 'h'? current quasi-steady simulations only run tens of seconds
+    description_tooltip = r'The total time of the simulation (s).  Must be $\geq 1$'
 )
 
 #================================================================
 
 # Display the widgets
 br_options.display_all_widgets()
+```
+
+```python
+params_filename = 'test.yaml'
+FS_model = Feedstock(params_filename, fs_options)
+PT_model = Pretreatment(notebookDir, params_filename, pt_options)
+EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
+BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
+
+PT_model.run()
+EH_model.run()
+BR_model.run()
 ```
 
 ---
@@ -365,23 +409,7 @@ if os.path.exists(param_sweep_fn):
     bar.set_label(firstline[-1])
     plt.xlabel(firstline[1])
     plt.ylabel(firstline[2])
-```
-
-```python
-import matplotlib.pyplot as plt
-
-param_sweep_fn = os.path.join(notebookDir, 'param_sweep.csv')
-if os.path.exists(param_sweep_fn):
-    sweeps = np.loadtxt(param_sweep_fn, delimiter=',', skiprows=1)
-    extent = np.min(sweeps[:, 1]), np.max(sweeps[:, 1]), np.min(sweeps[:, 2]), np.max(sweeps[:, 2])
-    nn = int(np.sqrt(len(sweeps)))
-    OUR = sweeps[:, 3].reshape(nn, nn)
-
-    shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
-    bar = plt.colorbar(shw)
-    bar.set_label('OUR')
-    plt.xlabel('initial_acid_conc')
-    plt.ylabel('enz_loading')
+    
 ```
 
  ## Optimize
@@ -443,22 +471,22 @@ plt.scatter(opt_results[-1, 1], opt_results[-1, 2], s=50, c='r', marker='o')
 ---
 
 ```python
-a = HTML('''<script>
-code_show=true; 
-function code_toggle() {
- if (code_show){
- $('div.input').hide();
- } else {
- $('div.input').show();
- }
- code_show = !code_show
-} 
-$( document ).ready(code_toggle);
-</script>
-<form action="javascript:code_toggle()"><input type="submit" \
-value="Toggle code visibility (hidden by default)."></form>''')
+# a = HTML('''<script>
+# code_show=true; 
+# function code_toggle() {
+#  if (code_show){
+#  $('div.input').hide();
+#  } else {
+#  $('div.input').show();
+#  }
+#  code_show = !code_show
+# } 
+# $( document ).ready(code_toggle);
+# </script>
+# <form action="javascript:code_toggle()"><input type="submit" \
+# value="Toggle code visibility (hidden by default)."></form>''')
 
-display(a)
+# display(a)
 ```
 
 ```python
@@ -468,6 +496,10 @@ display(a)
 #     import vebio.RunFunctions
 #     reload(vebio.RunFunctions)
 #     from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
+```
+
+```python
+
 ```
 
 ```python
