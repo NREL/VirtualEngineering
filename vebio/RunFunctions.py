@@ -586,7 +586,6 @@ class EnzymaticHydrolysis:
         print('\nRunning Enzymatic Hydrolysis Model')
         path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
         os.chdir('two_phase_batch_model/')
-        
         # Commenting out cellulose-only two-phase model to use lignocellulose
         # model, just in case we want to switch back or make both an
         # option. The lignocellulose model is superior.

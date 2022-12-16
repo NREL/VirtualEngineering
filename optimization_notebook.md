@@ -409,6 +409,7 @@ if os.path.exists(param_sweep_fn):
     bar.set_label(firstline[-1])
     plt.xlabel(firstline[1])
     plt.ylabel(firstline[2])
+    
 ```
 
  ## Optimize
@@ -419,7 +420,6 @@ This example **maximizes OUR** by **changing user-specified pretreatment options
 
 ```python
 # import scipy.optimize as opt
-
 
 #================================================================
 
