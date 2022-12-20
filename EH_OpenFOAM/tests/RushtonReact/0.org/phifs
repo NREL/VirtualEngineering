@@ -17,7 +17,7 @@ FoamFile
 
 dimensions      [0 0 0 0 0 0 0];
 
-#include "../constant/globalVars"
+#include "${FOAM_CASE}/constant/globalVars"
 
 internalField   uniform $phifs0;
 

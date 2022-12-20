@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.7.1
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -41,7 +41,7 @@ from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import get_host_computer, yaml_to_dict, dict_to_yaml
 from vebio.RunFunctions import run_pretreatment, run_enzymatic_hydrolysis, run_bioreactor
 # add path for no-CFD EH model
-sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
+sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/src/core/"))
 
 #================================================================
 # See if we're running on Eagle or on a laptop
