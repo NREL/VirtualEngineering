@@ -554,7 +554,7 @@ class EnzymaticHydrolysis:
         dilution_factor_final = 1.0
         rho_x_final = rho_x0*dilution_factor_final
         rho_f_final = rho_f0*dilution_factor_final
-=
+
         '''
         
         # output_dict = {'enzymatic_output': {}}
@@ -809,7 +809,6 @@ class Bioreactor:
             if check_dict_for_nans(ve_params['bioreactor_output']):
                 return True
             return False
-
 
 def run_script(filename, *args, verbose=True):
     """ Execute the contents of a file.
