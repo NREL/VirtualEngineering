@@ -170,6 +170,7 @@ def main(params_filename, show_plots=False):
         # plt.ylabel('fraction adsorbed')
         # plt.legend(loc='best')
 
+    return ve_params
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
