@@ -322,10 +322,10 @@ br_options.display_all_widgets()
 
 ```python
 params_filename = 'test.yaml'
-FS_model = Feedstock(params_filename, fs_options)
-PT_model = Pretreatment(notebookDir, params_filename, pt_options)
-EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
-BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
+FS_model = Feedstock(fs_options)
+PT_model = Pretreatment(notebookDir, pt_options)
+EH_model = EnzymaticHydrolysis(notebookDir, eh_options, hpc_run)
+BR_model = Bioreactor(notebookDir, br_options, hpc_run)
 
 PT_model.run()
 EH_model.run()

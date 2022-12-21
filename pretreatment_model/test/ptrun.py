@@ -20,10 +20,9 @@ def main(ve_params=None):
 
     # If params_filename passed update defualt patameters 
     if not ve_params is None:
-        ve_params = yaml_to_dict(params_filename)
 
         # read in final time in order to calculate a "print time"
-        finaltime = ve_params['final_time']
+        finaltime = ve_params.pt_in['final_time']
         N = 10 # could make this a user preference
         prnttime = finaltime/(N-1) + 0.001*finaltime
 

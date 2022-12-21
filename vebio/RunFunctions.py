@@ -58,33 +58,33 @@ class Feedstock:
     ##############################################
     @property
     def xylan_solid_fraction(self):
-        return self.ve.feedstock.xylan_solid_fraction
+        return self.ve.feedstock['xylan_solid_fraction']
 
     @xylan_solid_fraction.setter
     def xylan_solid_fraction(self, a):
         if not 0 <= a <= 1:
             raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
-        self.ve.feedstock.xylan_solid_fraction = float(a)
+        self.ve.feedstock['xylan_solid_fraction'] = float(a)
 
     @property
     def glucan_solid_fraction(self):
-        return self.ve.feedstock.glucan_solid_fraction
+        return self.ve.feedstock['glucan_solid_fraction']
 
     @glucan_solid_fraction.setter
     def glucan_solid_fraction(self, a):
         if not 0 <= a <= 1:
             raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
-        self.ve.feedstock.glucan_solid_fraction = float(a)
+        self.ve.feedstock['glucan_solid_fraction'] = float(a)
 
     @property
     def initial_porosity(self):
-        return self.ve.feedstock.initial_porosity
+        return self.ve.feedstock['initial_porosity']
 
     @initial_porosity.setter
     def initial_porosity(self, a):
         if not 0 < a < 1:
             raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
-        self.ve.feedstock.initial_porosity = float(a)
+        self.ve.feedstock['initial_porosity'] = float(a)
 
 
 class Pretreatment:
@@ -126,10 +126,10 @@ class Pretreatment:
         steam_data = np.genfromtxt('pretreatment_model/lookup_tables/sat_steam_table.csv', delimiter=',', skip_header=1)
         # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
         interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
-        dens = interp_steam(self._steam_temperature)
+        dens = interp_steam(self.ve.pt_in['steam_temperature'])
         # Convert to mol/ml => density in g/L / molecular weight / 1000.0
         mol_per_ml = float(dens/18.01528/1000.0)
-        self.ve.bulk_steam_conc = mol_per_ml
+        self.ve.pt_in['bulk_steam_conc'] = mol_per_ml
 
         # Move into the pretreatment directory
         os.chdir('pretreatment_model/test/')
@@ -187,17 +187,6 @@ class Pretreatment:
         if not 1 <= a <= 1440:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1440]")
         self.ve.pt_in['final_time'] = 60 * float(a)
-
-    # @property
-    # def bulk_steam_conc(self):
-    #     return self.ve.bulk_steam_conc
-
-    # @bulk_steam_conc.setter
-    # def bulk_steam_conc(self, a):
-    #     if not 0 < a < 1:  # what are the right values
-    #         raise ValueError(f"Value {a} is outside allowed interval [0, 1]")
-    #     self.ve.bulk_steam_conc = float(a)
-    #     # self.input2yaml(rewrite=True)
 
     ##############################################
     #
@@ -269,6 +258,7 @@ class EnzymaticHydrolysis:
         self.show_plots = eh_options.show_plots.value
 
         self.ve = VE_params()
+        self.ve.eh_in = {}
         # EH input parameters
         self.lambda_e = eh_options.lambda_e.widget.value  # Conversion from mg/g to kg/kg
         self.fis_0 = eh_options.fis_0.value
@@ -328,12 +318,12 @@ class EnzymaticHydrolysis:
 
     def select_run_function(self):
         # selected enzymatic hydrolysis model
-        if self.eh_model_type == 'CFD Simulation':
+        if self.model_type == 'CFD Simulation':
             assert self.hpc_run, f'Cannot run EH_CFD without HPC resources. \n {os.getcwd()}'
             self.run = self.run_eh_cfd_simulation
-        elif self.eh_model_type == "CFD Surrogate":
+        elif self.model_type == "CFD Surrogate":
             self.run = self.run_eh_cfd_surrogate
-        elif self.eh_model_type == 'Lignocellulose Model':
+        elif self.model_type == 'Lignocellulose Model':
             self.run = self.run_eh_lignocellulose_model
 
     def get_globalVars(self):
@@ -584,7 +574,7 @@ class Bioreactor:
         return self.ve.br_in['column_height']
 
     @column_height.setter
-    def t_final(self, a):
+    def column_height(self, a):
         if not 10 <= a <= 50:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
         self.ve.br_in['column_height'] = float(a)
@@ -604,7 +594,7 @@ class Bioreactor:
         return self.ve.br_in['bubble_diameter']
 
     @bubble_diameter.setter
-    def t_final(self, a):
+    def bubble_diameter(self, a):
         if not 0.003 <= a <= 0.008:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
         self.ve.br_in['bubble_diameter'] = float(a)
@@ -618,7 +608,6 @@ class Bioreactor:
         if not 1 <= a <= 1e16:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
         self.ve.br_in['t_final'] = float(a)
-        self.input2yaml(rewrite=True)
 
     @property
     def model_type(self):
@@ -629,7 +618,6 @@ class Bioreactor:
         if not a in ['CFD Simulation', "CFD Surrogate"]:
             raise ValueError("Invalid value. Allowed options: 'CFD Simulation', 'CFD Surrogate'")
         self.ve.br_in['model_type'] = a
-        self.input2yaml(rewrite=True)
         self.select_run_function()
     ##############################################
     #
