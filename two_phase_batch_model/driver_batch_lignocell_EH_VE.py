@@ -20,9 +20,7 @@ import ehk_batch as ehk
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 
-def main(params_filename, show_plots=False):
-    
-    ve_params = yaml_to_dict(params_filename)
+def main(ve_params, show_plots=False):
 
     ### Set kinetics parameters - these are from Lischeske and Stickel, 2019
     fitOuts = {'KdR': 0.05000000000000001,
@@ -38,21 +36,21 @@ def main(params_filename, show_plots=False):
     batch = ehk.Batch(**fitOuts) # initial creation
 
     ### Set conditions for modeled hydrolysate systemfrom user input
-    lmbdE = ve_params['enzymatic_input']['lambda_e'] # [g/g], enzyme loading
-    fis0 = ve_params['enzymatic_input']['fis_0'] # this is a target, not the output
+    lmbdE = ve_params.eh_in['lambda_e'] # [g/g], enzyme loading
+    fis0 = ve_params.eh_in['fis_0'] # this is a target, not the output
                                                 # from pretreatment
-    tfin = ve_params['enzymatic_input']['t_final']
+    tfin = ve_params.eh_in['t_final']
     # from pretreatment
-    XG0 = ve_params['pretreatment_output']['X_G']
-    XX0 = ve_params['pretreatment_output']['X_X']
+    XG0 = ve_params.pt_out['X_G']
+    XX0 = ve_params.pt_out['X_X']
     # Compute the amount of dilution required to reach the fis_0_target based on
     # the output from the pretreatment step
-    dilution_factor = fis0/ve_params['pretreatment_output']['fis_0']
+    dilution_factor = fis0/ve_params.pt_out['fis_0']
     rhog0 = 0.0 # g/L; no conversion of glucan in current PT -- this should be specified in
                 # params file! JJS 3/14/21
-    rhox0 = ve_params['pretreatment_output']['rho_x']*dilution_factor
-    rhof0 = ve_params['pretreatment_output']['rho_f']*dilution_factor # furfural
-    conversion_xylan = ve_params['pretreatment_output']['conv'] 
+    rhox0 = ve_params.pt_out['rho_x']*dilution_factor
+    rhof0 = ve_params.pt_out['rho_f']*dilution_factor # furfural
+    conversion_xylan = ve_params.pt_out['conv'] 
     yF0 = 0.2 + 0.6*conversion_xylan # our simple "empirical guess" model
 
     print('\nINPUTS')
@@ -106,9 +104,6 @@ def main(params_filename, show_plots=False):
                 result['mbE'].max())
     print("Max mass balance error:  %4.4g" % mbmax)
     print() 
-
-    ve_params['enzymatic_output'] = output_dict
-    dict_to_yaml(ve_params, params_filename)
 
     if show_plots:
 
@@ -170,14 +165,16 @@ def main(params_filename, show_plots=False):
         # plt.ylabel('fraction adsorbed')
         # plt.legend(loc='best')
 
-    return ve_params
+    return output_dict
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        params_filename = sys.argv[1]
-        show_plots=False
-        if len(sys.argv) > 2:
-            show_plots = sys.argv[2]
-        main(params_filename, show_plots)
+        # TODO: fix it
+        # params_filename = sys.argv[1]
+        # show_plots=False
+        # if len(sys.argv) > 2:
+        #     show_plots = sys.argv[2]
+        # main(params_filename, show_plots)
+        pass
     else:
         raise Exception("VE parameters filename not provided. This model must be called with inputs specified via filename")

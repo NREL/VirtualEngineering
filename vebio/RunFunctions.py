@@ -8,7 +8,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import yaml_to_dict, dict_to_yaml
+from vebio.Utilities import yaml_to_dict, dict_to_yaml, check_dict_for_nans
 
 
 class VE_params(object):
@@ -32,9 +32,6 @@ class VE_params(object):
     # def from_file(params_filename):
 
     # def write_to_file():
-
-
-
 
 
 class Feedstock:
@@ -212,7 +209,7 @@ class Pretreatment:
     #
     ##############################################
     def run(self, verbose=True):
-        """_summary_
+        """Run pretreatment code specified in pretreatment_model/test/ptrun.py
 
         :param verbose: (bool, optional) 
             Option to show print messages from executed file, default True.
@@ -221,27 +218,23 @@ class Pretreatment:
         # Move into the pretreatment directory
         os.chdir('pretreatment_model/test/')
         # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
+        # TODO: shoud move cleaning in ptrun.py? OD
         outfiles = glob.glob("out*.dat")
         for outfile in outfiles:
             os.remove(outfile)
 
         import ptrun as pt_run
-        # Run pretreatment code specifying location of input file
-        # path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
-        # run_script("ptrun.py", path_to_input_file, verbose=verbose)
-        pt_run.main(self.ve)
-        # unwinding the below because a fix to `f2pymain.f90` now allows rerunning
-        # `ptrun.py`; not sure if capturing the output is still wanted, though; JJS
-        # 1/13/21
-        #pt_run_command = 'python ptrun.py %s' % (path_to_input_file)
-        #pt_cli = subprocess.run(pt_run_command.split(), capture_output=True, text=True)
-        #print(pt_cli.stdout[-1394:])
+        self.ve.pt_out = pt_run.main(self.ve)
 
         if self.show_plots:
             run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
         os.chdir(self.notebookDir)
         print('Finished Pretreatment')
+
+        if check_dict_for_nans(self.ve.pt_out):
+            return True
+        return False
 
 
 class EnzymaticHydrolysis:
@@ -509,32 +502,37 @@ class EnzymaticHydrolysis:
         
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
+        if check_dict_for_nans(self.ve.eh_out):
+            return True
+        return False
 
     def run_eh_cfd_surrogate(self, verbose=True):
 
         print('\nRunning Enzymatic Hydrolysis Model')
         os.chdir('EH_OpenFOAM/EH_surrogate/')
         from EH_surrogate import main
-        main(self.ve)        
+        self.ve.eh_out = main(self.ve)        
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
+
+        if check_dict_for_nans(self.ve.eh_out):
+            return True
+        return False
 
     def run_eh_lignocellulose_model(self, verbose=True):
         
         print('\nRunning Enzymatic Hydrolysis Model')
-        path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
         os.chdir('two_phase_batch_model/')
         # Commenting out cellulose-only two-phase model to use lignocellulose
         # model, just in case we want to switch back or make both an
         # option. The lignocellulose model is superior.
         #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
         from driver_batch_lignocell_EH_VE import main
-        main(path_to_input_file, self.show_plots)
-        
+        self.ve.eh_out = main(self.ve, self.show_plots)
         os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
 
-    
+
 class Bioreactor:
     def __init__(self, notebookDir, params_filename, br_options, hpc_run):
         """ Initialize the aerobic bioreaction operation using 
