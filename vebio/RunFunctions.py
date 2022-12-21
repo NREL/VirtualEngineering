@@ -43,9 +43,6 @@ class Feedstock:
                 * The initial fraction of solids due to glucan (X_G)
                 * The initial porous fraction of the biomass particles
 
-        :param params_filename: (str)
-            The filename for the parameters yaml file including
-            extension, e.g., ``'virteng_params.yaml'``
         :param fs_options: (WidgetCollection)
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for feedstock properties.
@@ -106,9 +103,6 @@ class Pretreatment:
             The path to the Jupyter Notebook, used to specify the location
             of the input file and reset the working directory after this operation
             is finished.
-        :param params_filename: (str)
-            The filename for the parameters yaml file including
-            extension, e.g., ``'virteng_params.yaml'``
         :param pt_options: (WidgetCollection) or (dict)
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for pretreatment properties.
@@ -238,7 +232,7 @@ class Pretreatment:
 
 
 class EnzymaticHydrolysis:
-    def __init__(self, notebookDir, params_filename, eh_options, hpc_run):
+    def __init__(self, notebookDir, eh_options, hpc_run):
         """ Initialize enzymatic hydrolysis class. Three 
             distinct variants are included in the virtual engineering code:
             (1) a two-phase model which makes a well-mixed assumption, (2)
@@ -260,9 +254,6 @@ class EnzymaticHydrolysis:
             The path to the Jupyter Notebook, used to specify the location
             of the input file and reset the working directory after this operation
             is finished.
-        :param params_filename: (str):
-            The filename for the parameters yaml file including
-            extension, e.g., ``'virteng_params.yaml'``
         :param eh_options: (WidgetCollection):
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for enzymatic hydrolysis properties.
@@ -429,7 +420,8 @@ class EnzymaticHydrolysis:
         # host_list = subprocess.run(command.split(), capture_output=True).stdout.decode()
         # num_nodes = len(host_list)
         # max_cores = int(36*num_nodes)
-
+        
+        # Fill output dict with nans, so Bioreactor know we are still running
         self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
 
         username = os.environ['USER']
@@ -534,7 +526,7 @@ class EnzymaticHydrolysis:
 
 
 class Bioreactor:
-    def __init__(self, notebookDir, params_filename, br_options, hpc_run):
+    def __init__(self, notebookDir, br_options, hpc_run):
         """ Initialize the aerobic bioreaction operation using 
             user-specified properties. Two distinct models exist: (1) a 
             pre-trained surrogate model informed from CFD runs and (2) the
@@ -551,9 +543,6 @@ class Bioreactor:
             The path to the Jupyter Notebook, used to specify the location
             of the input file and reset the working directory after this operation
             is finished.
-        :param params_filename: (str):
-            The filename for the parameters yaml file including
-            extension, e.g., ``'virteng_params.yaml'``
         :param br_options: (WidgetCollection):
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for bioreaction properties.
@@ -564,89 +553,82 @@ class Bioreactor:
 
         print('Initializing Bioreactor Model')
         self.notebookDir = notebookDir
-        self.params_filename = params_filename
         self.hpc_run = hpc_run
 
+        self.ve = VE_params()
+        self.ve.br_in = {}
         # Bioreactor input parameters
-        self._model_type = br_options.model_type.value
-        self._gas_velocity = br_options.gas_velocity.value
-        self._column_height = br_options.column_height.value
-        self._column_diameter = br_options.column_diameter.value
-        self._bubble_diameter = br_options.bubble_diameter.value
-        self._t_final = br_options.t_final.value
+        self.model_type = br_options.model_type.value
+        self.gas_velocity = br_options.gas_velocity.value
+        self.column_height = br_options.column_height.value
+        self.column_diameter = br_options.column_diameter.value
+        self.bubble_diameter = br_options.bubble_diameter.value
+        self.t_final = br_options.t_final.value
 
-        # Writing input parameters to Yaml file
-        self.input2yaml()
         self.select_run_function()
-
     ##############################################
     ### Properties
     ##############################################
     @property
     def gas_velocity(self):
-        return self._gas_velocity
+        return self.ve.br_in['gas_velocity']
 
     @gas_velocity.setter
     def gas_velocity(self, a):
         if not 0.01 <= a <=0.1:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
-        self._gas_velocity = float(a)
-        self.input2yaml(rewrite=True)
+        self.ve.br_in['gas_velocity'] = float(a)
 
     @property
     def column_height(self):
-        return self._column_height
+        return self.ve.br_in['column_height']
 
     @column_height.setter
     def t_final(self, a):
         if not 10 <= a <= 50:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
-        self._column_height = float(a)
-        self.input2yaml(rewrite=True)
+        self.ve.br_in['column_height'] = float(a)
 
     @property
     def column_diameter(self):
-        return self._column_diameter
+        return self.ve.br_in['column_diameter']
 
     @column_diameter.setter
     def column_diameter(self, a):
         if not 1 <= a <= 6:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
-        self._column_diameter = float(a)
-        self.input2yaml(rewrite=True)
+        self.ve.br_in['column_diameter'] = float(a)
 
     @property
     def bubble_diameter(self):
-        return self._bubble_diameter
+        return self.ve.br_in['bubble_diameter']
 
     @bubble_diameter.setter
     def t_final(self, a):
         if not 0.003 <= a <= 0.008:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
-        self._bubble_diameter = float(a)
-        self.input2yaml(rewrite=True)
-
+        self.ve.br_in['bubble_diameter'] = float(a)
 
     @property
     def t_final(self):
-        return self._t_final
+        return self.ve.br_in['t_final']
 
     @t_final.setter
     def t_final(self, a):
         if not 1 <= a <= 1e16:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1e16]")
-        self._t_final = float(a)
+        self.ve.br_in['t_final'] = float(a)
         self.input2yaml(rewrite=True)
 
     @property
     def model_type(self):
-        return self._model_type
+        return self.ve.br_in['model_type']
 
     @model_type.setter
     def model_type(self, a):
         if not a in ['CFD Simulation', "CFD Surrogate"]:
             raise ValueError("Invalid value. Allowed options: 'CFD Simulation', 'CFD Surrogate'")
-        self._model_type = a
+        self.ve.br_in['model_type'] = a
         self.input2yaml(rewrite=True)
         self.select_run_function()
     ##############################################
@@ -661,64 +643,46 @@ class Bioreactor:
         elif self.model_type == "CFD Surrogate":
             self.run = self.run_biorector_cfd_surrogate
 
-    def input2yaml(self, rewrite=False):
-        br_input = {'model_type': self._model_type,
-                    'gas_velocity': self._gas_velocity,
-                    'column_height': self._column_height,
-                    'column_diameter': self._column_diameter,
-                    'bubble_diameter': self._bubble_diameter,
-                    't_final': self._t_final}
-        if rewrite:
-            params_dict = yaml_to_dict(self.params_filename)
-            params_dict['bioreactor_input'] = br_input
-            dict_to_yaml(params_dict, self.params_filename, merge_with_existing=False)
-        else:
-            br_dict = {'bioreactor_input': br_input}
-            dict_to_yaml(br_dict, self.params_filename, merge_with_existing=True)
-
     def run_biorector_cfd_simulation(self, verbose=True):
 
         print('\nRunning Bioreactor')
         os.chdir('bioreactor/bubble_column/')
-        ve_params = yaml_to_dict(self.params_filename)
         # Make changes to the fvOptions file based on replacement options
         fvOptions = {}
-
-        fvOptions['rho_g'] = ve_params['enzymatic_output']['rho_g']
-        fvOptions['rho_x'] = ve_params['enzymatic_output']['rho_x']
-        fvOptions['rho_f'] = ve_params['enzymatic_output']['rho_f']
-
+        fvOptions['rho_g'] = self.ve.eh_in['rho_g']
+        fvOptions['rho_x'] = self.ve.eh_in['rho_x']
+        fvOptions['rho_f'] = self.ve.eh_in['rho_f']
         write_file_with_replacements('constant/fvOptions', fvOptions)
         
         # Make changes to the controlDict file based on replacement options
         controlDict = {}
-        controlDict['endTime'] = self._t_final
-        
+        controlDict['endTime'] = self.t_final
         write_file_with_replacements('system/controlDict', controlDict)
 
         # Run the bioreactor model
         # call function to update ovOptions # fvOptions?
         command = "sbatch ofoamjob"
         subprocess.run(command.split())
-            
-        output_dict = {'bioreactor_output': {}}
-        output_dict['bioreactor_output']['placeholder'] = 123
-
+        self.ve.br_out = {'OUR': np.nan}
         os.chdir(self.notebookDir)
-        dict_to_yaml(output_dict, self.params_filename, merge_with_existing=True)
         print('Finished Bioreactor')
+
+        if check_dict_for_nans(self.ve.br_out):
+            return True
+        return False
+
 
     def run_biorector_cfd_surrogate(self, verbose=True):
         
         print('\nRunning Bioreactor')
-        ve_params = yaml_to_dict(self.params_filename)
-        if np.isnan(ve_params['enzymatic_output']['rho_g']):
+        
+        if np.isnan(self.ve.eh_out['rho_g']):
+            # TODO: Why we don't check it in CFD run_biorector_cfd_simulation? OD
             print('Waiting for EH CFD results.')
         else:
             os.chdir('bioreactor/bubble_column/surrogate_model')
-            path_to_input_file = os.path.join(self.notebookDir, self.params_filename)
             from bcolumn_surrogate import main
-            main(path_to_input_file)
+            self.ve.br_out = main(self.ve)
             os.chdir(self.notebookDir)
             print('Finished Bioreactor')
 
