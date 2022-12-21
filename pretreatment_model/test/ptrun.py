@@ -54,7 +54,6 @@ def main(params_filename=None):
         pt_input.writeinpfile(inputfilename, meshp, scales, IBCs, rrates, Egtcs, deto)  
     else:
         ve_params = {}
-        # Temperary set to 0.4
         glucan_solid_fraction = 0.4
 
     # read in number of elements from input file
@@ -80,13 +79,14 @@ def main(params_filename=None):
     # np.savetxt('pt_solnvec.csv', solnvec, delimiter=',')
     
     # Make the call to pt.main(m, n, filename) using subprocess
+    # TODO: rid of pt_solve.py script. Right now needed 
+    # to supress all step-by-step output from the model 
     command = f'python pt_solve.py {m} {n} {inputfilename}'
     out = subprocess.run(command.split(), capture_output=True, text=True)
     solnvec = np.genfromtxt('pt_solnvec.csv', delimiter=',')
-    ########################
-    
     assert np.shape(solnvec) == (m, n)
     simtime=simtime+timerlib.default_timer()
+    ########################
 
     #solnvec=pt.ptmain.interpsoln
 
@@ -170,9 +170,8 @@ def main(params_filename=None):
     # adding xylo-oligomers to xylose, based on the assumption that these will be
     # converted to xylose during enzymatic hydrolysis (otherwise, these sugars are
     # "lost"), JJS 3/21/21
-    output_dict['rho_x'] = float(xylose_bulk*1000*M_xylose
-                                                        + xylog_bulk*1000*M_xylog)
-    output_dict['rho_f'] = float(furfural_bulk*1000*M_furf)
+    output_dict['rho_x'] = 1000*float(xylose_bulk*M_xylose + xylog_bulk*M_xylog)
+    output_dict['rho_f'] = 1000*float(furfural_bulk*M_furf)
     output_dict['rho_f_init'] = float(furfural[0])
     output_dict['rho_f_final'] = float(furfural[-1])
 
@@ -180,8 +179,8 @@ def main(params_filename=None):
 
     if not params_filename is None:
         dict_to_yaml(ve_params, params_filename)
-    else: 
-        return ve_params
+
+    return ve_params
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
