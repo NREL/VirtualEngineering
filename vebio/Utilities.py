@@ -1,5 +1,6 @@
 import os
 import yaml
+import numpy as np
 
 def get_host_computer():
     """ Check if environment is running on the HPC.
@@ -164,3 +165,11 @@ def yaml_to_dict(yaml_filename, verbose=False):
         print('From the File: %s\n' % (yaml_filename))
 
     return output_dictionary
+
+
+def check_dict_for_nans(dictionary):
+    for v in dictionary.values():
+        if np.isnan(v):
+            print('WARNING!!! there is nan in output dictionary')
+            return True
+    return False

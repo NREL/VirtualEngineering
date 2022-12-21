@@ -100,7 +100,6 @@ class Optimization:
 
     def run_models_with_new_values(self, dimensional_values, verbose=False):
         # Update the models with the latest values
-        # if self.fn_evals != 0:
         for var_name, value in zip(self.var_names, dimensional_values):
             for model in self.models_list:
                 if hasattr(model, var_name):
@@ -109,8 +108,10 @@ class Optimization:
         # Set global paths and files for communication between operations
         os.chdir(self.notebookDir)
         # Run models
-        for model in self.models_list[1:]:
-            model.run(verbose=verbose)
+        for model in self.models_list:
+            flag_nan = model.run()
+            if flag_nan:
+                return np.nan
         # Read the outputs into a dictionary
         output_dict = yaml_to_dict(self.params_filename)
         obj = output_dict[self.output_name][self.objective_name]
@@ -174,7 +175,11 @@ class Optimization:
             fp.write(f'# Iteration, {str_names}{self.objective_name}\n')
         
         # Make parameter grid
-        grid_x = [np.linspace(bound[0], bound[1], nn) for bound in self.var_real_bounds]
+        def uniform_grid(bounds, nn):
+            C_tmp = np.linspace(bounds[0], bounds[1], nn + 1)
+            return C_tmp[:-1] + (C_tmp[1] - C_tmp[0]) / 2
+
+        grid_x = [uniform_grid(bounds, nn) for bounds in self.var_real_bounds]
         grid_mesh = np.meshgrid(*grid_x, indexing='ij')
         dimension = len(self.var_names)
         grid_ravel = np.empty((dimension, nn**dimension))
