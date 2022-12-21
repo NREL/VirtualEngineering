@@ -338,18 +338,18 @@ BR_model.run()
 
 ```python
 obj_widget = widgets.Dropdown(
-    options=[('Biorector:            OUR',   ('bioreactor_output', 'our')), 
-             ('Enzymatic Hydrolysis: rho_g', ('enzymatic_output', 'rho_g')), 
-             ('Enzymatic Hydrolysis: rho_x', ('enzymatic_output', 'rho_x')),
-             ('Enzymatic Hydrolysis: rho_sL',('enzymatic_output', 'rho_sL')),
-             ('Enzymatic Hydrolysis: rho_f', ('enzymatic_output', 'rho_f')),
-             ('Pretreatment:         fis_0', ('enzymatic_output', 'fis_0')),
-             ('Pretreatment:         X_X',   ('enzymatic_output', 'X_X')),
-             ('Pretreatment:         X_G',   ('enzymatic_output', 'X_G')),
-             ('Pretreatment:         rho_x', ('enzymatic_output', 'rho_x')),
-             ('Pretreatment:         rho_f', ('enzymatic_output', 'rho_f'))
+    options=[('Biorector:            OUR',   ('br_out', 'our')), 
+             ('Enzymatic Hydrolysis: rho_g', ('eh_out', 'rho_g')), 
+             ('Enzymatic Hydrolysis: rho_x', ('eh_out', 'rho_x')),
+             ('Enzymatic Hydrolysis: rho_sL',('eh_out', 'rho_sL')),
+             ('Enzymatic Hydrolysis: rho_f', ('eh_out', 'rho_f')),
+             ('Pretreatment:         fis_0', ('eh_out', 'fis_0')),
+             ('Pretreatment:         X_X',   ('eh_out', 'X_X')),
+             ('Pretreatment:         X_G',   ('eh_out', 'X_G')),
+             ('Pretreatment:         rho_x', ('eh_out', 'rho_x')),
+             ('Pretreatment:         rho_f', ('eh_out', 'rho_f'))
             ],
-    value=('bioreactor_output', 'our'),
+    value=('br_out', 'our'),
     description='Objective:',
     description_tooltip = 'Specifies the objective to use in optimization.'
 )
@@ -384,7 +384,7 @@ def sweep_button_action(b):
     params_filename = 'virteng_params_sweep.yaml'
     sweep_results_file = 'sweep_params.csv'
     Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
-                       hpc_run, notebookDir, params_filename)
+                       hpc_run, notebookDir)
     Opt.parameter_grid_sweep(nn=4, results_file=sweep_results_file)
     
 sweep_button.on_click(sweep_button_action)
@@ -400,7 +400,7 @@ if os.path.exists(param_sweep_fn):
     with open(param_sweep_fn, 'r')as f:
         firstline = f.readline().split(',')
     Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
-               hpc_run, notebookDir, params_filename)
+               hpc_run, notebookDir)
     sweeps = np.loadtxt(param_sweep_fn, delimiter=',', skiprows=1)
     bounds = Opt.var_real_bounds
     extent = bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]
@@ -448,7 +448,7 @@ def opt_button_action(b):
     opt_results_file = 'optimization_results.csv'
     
     Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
-                       hpc_run, notebookDir, params_filename)
+                       hpc_run, notebookDir)
     
     opt_result = Opt.scipy_minimize(Opt.objective_function, opt_results_file=opt_results_file)
     print(opt_result)

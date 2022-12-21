@@ -7,36 +7,36 @@ import numpy as np
 # imports from vebio modules
 from vebio.WidgetFunctions import OptimizationWidget
 from vebio.Utilities import  yaml_to_dict
-from vebio.RunFunctions import Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor
+from vebio.RunFunctions import Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor, VE_params
 # # add path for no-CFD EH model
 # sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
 
 class Optimization:
 
     def __init__(self, fs_options, pt_options, eh_options, br_options, obj_widjet,
-                hpc_run, notebookDir, 
-                params_filename='virteng_params_optimization.yaml'):
+                hpc_run, notebookDir):
 
         self.hpc_run  = hpc_run
         self.notebookDir = notebookDir
-        self.params_filename = params_filename 
-
-        self.output_names = ['pretreatment_output', 'enzymatic_output', 'bioreactor_output']
+        
+        self.ve = VE_params()
+        
+        self.output_names = [key for key in self.ve.__dict__.keys() if "out" in key]
         self.output_name = obj_widjet.value[0]
         self.objective_name = obj_widjet.value[-1]
         self.n_models = self.define_n_models()
 
         # Initialize models
-        self.FS_model = Feedstock(params_filename, fs_options)
-        self.PT_model = Pretreatment(notebookDir, params_filename, pt_options)
+        self.FS_model = Feedstock(fs_options)
+        self.PT_model = Pretreatment(notebookDir, pt_options)
         self.models_list = [self.FS_model, self.PT_model]
         if self.n_models > 1:
             assert eh_options.model_type.value == 'CFD Surrogate'
-            self.EH_model = EnzymaticHydrolysis(notebookDir, params_filename, eh_options, hpc_run)
+            self.EH_model = EnzymaticHydrolysis(notebookDir, eh_options, hpc_run)
             self.models_list.append(self.EH_model)
         if self.n_models > 2:
             assert br_options.model_type.value == 'CFD Surrogate' # Do optimization only with surrogate
-            self.BR_model = Bioreactor(notebookDir, params_filename, br_options, hpc_run)
+            self.BR_model = Bioreactor(notebookDir, br_options, hpc_run)
             self.models_list.append(self.BR_model)
 
         self.fn_evals = 0
@@ -113,8 +113,7 @@ class Optimization:
             if flag_nan:
                 return np.nan
         # Read the outputs into a dictionary
-        output_dict = yaml_to_dict(self.params_filename)
-        obj = output_dict[self.output_name][self.objective_name]
+        obj = getattr(self.ve, self.output_name)[self.objective_name]
         return obj
 
     def objective_function(self, free_variables):

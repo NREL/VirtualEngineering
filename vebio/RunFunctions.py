@@ -86,6 +86,9 @@ class Feedstock:
             raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
         self.ve.feedstock['initial_porosity'] = float(a)
 
+    def run(self):
+        return False
+
 
 class Pretreatment:
 
