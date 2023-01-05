@@ -5,26 +5,24 @@ from joblib import dump, load
 import matplotlib as mpl
 
 
-def main(params_filename):
-
-    ve_params = yaml_to_dict(params_filename)
+def main(ve_params):
 
     dt = 4
 
     our_base = 100.0 # units? mol/m^3/hr
     r = 0.75  # what is this parameter?
 
-    rho_g = ve_params['enzymatic_output']['rho_g']
-    rho_x = ve_params['enzymatic_output']['rho_x']
-    rho_f = ve_params['enzymatic_output']['rho_f']
+    rho_g = ve_params.eh_out['rho_g']
+    rho_x = ve_params.eh_out['rho_x']
+    rho_f = ve_params.eh_out['rho_f']
     # what is the source for this expression?
     our_max = our_base * np.exp(-rho_f/100.0) * (r + (1.0-r) * rho_g/(rho_g+rho_x))
 
-    gas_velocity = ve_params['bioreactor_input']['gas_velocity']
-    column_height = ve_params['bioreactor_input']['column_height']
-    column_diameter = ve_params['bioreactor_input']['column_diameter']
-    bubble_diameter = ve_params['bioreactor_input']['bubble_diameter']
-    T = ve_params['bioreactor_input']['t_final']
+    gas_velocity = ve_params.br_in['gas_velocity']
+    column_height = ve_params.br_in['column_height']
+    column_diameter = ve_params.br_in['column_diameter']
+    bubble_diameter = ve_params.br_in['bubble_diameter']
+    T = ve_params.br_in['t_final']
 
     print('\nINPUTS')
     print(f'Gas velocity = {gas_velocity:.2f} m/s')
@@ -66,13 +64,14 @@ def main(params_filename):
     # Save the outputs into a dictionary
     output_dict = {}
     output_dict['our'] = float(ff)
-    ve_params['bioreactor_output'] = output_dict
-    dict_to_yaml(ve_params, params_filename)
-    return ve_params
+    
+    return output_dict
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        params_filename = sys.argv[1]
-        main(params_filename)
+        # TODO: fix it
+        # params_filename = sys.argv[1]
+        # main(params_filename)
+        pass
     else:
         raise Exception("VE parameters filename not provided. This model must be called with inputs specified via filename")

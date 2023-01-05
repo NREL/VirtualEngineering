@@ -4,22 +4,19 @@ from vebio.Utilities import dict_to_yaml, yaml_to_dict
 from joblib import dump, load
 import matplotlib as mpl
 
-def main(params_filename):
+def main(ve_params):
 
-    ve_params = yaml_to_dict(params_filename)
-
-    fis0 = ve_params['enzymatic_input']['fis_0']
-    xG0 = ve_params['pretreatment_output']['X_G']
-    xX0 = ve_params['pretreatment_output']['X_X']
-    yF0 = 0.2 + 0.6*ve_params['pretreatment_output']['conv']
-    lmbdE = ve_params['enzymatic_input']['lambda_e']
-    dilution_factor = ve_params['enzymatic_input']['fis_0']/ve_params['pretreatment_output']['fis_0']
-    rhox0 = ve_params['pretreatment_output']['rho_x']*dilution_factor
+    fis0 = ve_params.eh_in['fis_0']
+    xG0 = ve_params.pt_out['X_G']
+    xX0 = ve_params.pt_out['X_X']
+    yF0 = 0.2 + 0.6*ve_params.pt_out['conv']
+    lmbdE = ve_params.eh_in['lambda_e']
+    dilution_factor = ve_params.eh_in['fis_0']/ve_params.pt_out['fis_0']
+    rhox0 = ve_params.pt_out['rho_x']*dilution_factor
     omega = 3.14
+    rho_f = ve_params.pt_out['rho_f']*dilution_factor
 
-    rho_f = ve_params['pretreatment_output']['rho_f']*dilution_factor
-
-    T = ve_params['enzymatic_input']['t_final']
+    T = ve_params.eh_in['t_final']
     '''
     'insoluble_solids', 'solid_cellulose', 'solid_xylan', 'facile_glucan',
                         'enzyme_loading', 'xylose_conc', 'rot_vel'
@@ -108,17 +105,16 @@ def main(params_filename):
     output_dict['enzymatic_output']['rho_f'] = float(rhof)
     '''
     output_dict['rho_f'] = float(rho_f)
-    ve_params['enzymatic_output'] = output_dict
 
-    dict_to_yaml(ve_params, params_filename)
-
-    return ve_params
+    return output_dict
 
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        params_filename = sys.argv[1]
-        main(params_filename)
+        # TODO: fix it
+        # params_filename = sys.argv[1]
+        # main(params_filename)
+        pass
     else:
         raise Exception("VE parameters filename not provided. This model must be called with inputs specified via filename")
         

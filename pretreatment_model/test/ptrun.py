@@ -11,7 +11,7 @@ import pt_input_file_io as pt_input
 import pt 
 
 
-def main(params_filename=None):
+def main(ve_params=None):
 
     # run pretreatment model
     inputfilename='pretreat_defs.inp'
@@ -19,24 +19,23 @@ def main(params_filename=None):
     # outputfilebase = 'ptsim_'
 
     # If params_filename passed update defualt patameters 
-    if not params_filename is None:
-        ve_params = yaml_to_dict(params_filename)
+    if not ve_params is None:
 
         # read in final time in order to calculate a "print time"
-        finaltime = ve_params['pretreatment_input']['final_time']
+        finaltime = ve_params.pt_in['final_time']
         N = 10 # could make this a user preference
         prnttime = finaltime/(N-1) + 0.001*finaltime
 
         # Override pretreat_defs.inp definitions with those from the pretreatment widgets
-        IBCs['acid'] = ve_params['pretreatment_input']['initial_acid_conc']
-        IBCs['stmT'] = ve_params['pretreatment_input']['steam_temperature']
-        IBCs['bkst'] = ve_params['pretreatment_input']['bulk_steam_conc']
+        IBCs['acid'] = ve_params.pt_in['initial_acid_conc']
+        IBCs['stmT'] = ve_params.pt_in['steam_temperature']
+        IBCs['bkst'] = ve_params.pt_in['bulk_steam_conc']
         meshp['ftime'] = finaltime
         meshp['ptime'] = prnttime
-        IBCs['xyfr'] = ve_params['feedstock']['xylan_solid_fraction']
-        IBCs['lifr'] = 1.0 - ve_params['pretreatment_input']['initial_solid_fraction']
-        IBCs['poro'] = ve_params['feedstock']['initial_porosity']
-        glucan_solid_fraction = ve_params['feedstock']['glucan_solid_fraction']
+        IBCs['xyfr'] = ve_params.feedstock['xylan_solid_fraction']
+        IBCs['lifr'] = 1.0 - ve_params.pt_in['initial_solid_fraction']
+        IBCs['poro'] = ve_params.feedstock['initial_porosity']
+        glucan_solid_fraction = ve_params.feedstock['glucan_solid_fraction']
         # trial-and-error adjustment to model parameters to account for auger
         # reactor rather than steam-explosion reactor -- didn't end up using any
         # adjustments, but keeping in case we want to try in the future
@@ -53,7 +52,6 @@ def main(params_filename=None):
         inputfilename = 'pretreat_defs_updated.inp'
         pt_input.writeinpfile(inputfilename, meshp, scales, IBCs, rrates, Egtcs, deto)  
     else:
-        ve_params = {}
         glucan_solid_fraction = 0.4
 
     # read in number of elements from input file
@@ -175,17 +173,14 @@ def main(params_filename=None):
     output_dict['rho_f_init'] = float(furfural[0])
     output_dict['rho_f_final'] = float(furfural[-1])
 
-    ve_params['pretreatment_output'] = output_dict
-
-    if not params_filename is None:
-        dict_to_yaml(ve_params, params_filename)
-
-    return ve_params
+    return output_dict
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        params_filename = sys.argv[1]
-        main(params_filename)
+        # TODO: fix it
+        # params_filename = sys.argv[1]
+        # main(params_filename)
+        pass
     else:
-        ve_params = main()
-        dict_to_yaml(ve_params, 'pretreatment_output.yaml')
+        output_dict = main()
+        dict_to_yaml(output_dict, 'pretreatment_output.yaml')
