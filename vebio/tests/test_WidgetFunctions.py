@@ -4,6 +4,7 @@ from ipywidgets import *
 
 from vebio.WidgetFunctions import WidgetCollection, ValueRangeWidget
 
+@pytest.mark.unit
 def test_widget_collection():
     test_options = WidgetCollection()
 
@@ -30,6 +31,7 @@ def test_widget_collection():
         assert test_dict[key] == pytest.approx(val)
 
 
+@pytest.mark.unit
 def test_value_range_widget():
     vrw = ValueRangeWidget('Porosity', 'The value of porosity.', [0.0, 1.0], [0.1, 0.9], 0.01)
 
