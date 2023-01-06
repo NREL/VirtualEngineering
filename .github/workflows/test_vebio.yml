@@ -11,13 +11,21 @@ on:
 
 jobs:
   build:
-    name: test_vebio
-    runs-on: ubuntu-latest
+    name: test_vebio - ${{ matrix.os }}
+    runs-on: ${{ matrix.os-version }}
     strategy:
       fail-fast: false
       matrix:
         python-version:
           - '3.7'
+        os:
+          - linux
+          - macos
+        include:
+          - os: linux
+            os-version: ubuntu-20.04
+          - os: macos
+            os-version: macos-10.15
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
