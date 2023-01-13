@@ -10,6 +10,14 @@ from scipy.interpolate import interp1d
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml, check_dict_for_nans
 
+pt_model_path = os.path.abspath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir ,'pretreatment_model', ))
+# eh_module_path = os.path.join(os.path.realpath(__file__), os.pardir, os.pardir ,'pretreatment_model', 'test')
+# br_module_path = os.path.join(os.path.realpath(__file__), os.pardir, os.pardir ,'pretreatment_model', 'test')
+print('1111111111111111')
+print(os.path.realpath(__file__))
+print(os.path.abspath(pt_model_path))
+sys.path.append(os.path.join(pt_model_path, 'test', ))
+print(sys.path)
 
 class VE_params(object):
     ''' This  class is used for storing Virtual Engineering parameters 
@@ -92,7 +100,7 @@ class Feedstock:
 
 class Pretreatment:
 
-    def __init__(self, notebookDir, pt_options):
+    def __init__(self, pt_options):
         """ Through the ``pt_options`` widgets, the user controls the following
             values:
 
@@ -102,10 +110,6 @@ class Pretreatment:
                 * Final Time (float)
                 * Show plots (bool)
 
-        :param notebookDir: (str)
-            The path to the Jupyter Notebook, used to specify the location
-            of the input file and reset the working directory after this operation
-            is finished.
         :param pt_options: (WidgetCollection) or (dict)
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for pretreatment properties.
@@ -115,7 +119,6 @@ class Pretreatment:
 
         print('Initializing Pretreatment Model')
 
-        self.notebookDir = notebookDir
         self.show_plots = pt_options.show_plots.value 
 
         self.ve = VE_params()
@@ -126,7 +129,8 @@ class Pretreatment:
         self.final_time = pt_options.final_time.widget.value
         
         # Obtain steam concentration from lookup table and add to dictionary
-        steam_data = np.genfromtxt('pretreatment_model/lookup_tables/sat_steam_table.csv', delimiter=',', skip_header=1)
+        steam_data_path = os.path.join(pt_model_path, 'lookup_tables/sat_steam_table.csv')
+        steam_data = np.loadtxt(steam_data_path, delimiter=',', skiprows=1)
         # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
         interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
         dens = interp_steam(self.ve.pt_in['steam_temperature'])
@@ -134,19 +138,15 @@ class Pretreatment:
         mol_per_ml = float(dens/18.01528/1000.0)
         self.ve.pt_in['bulk_steam_conc'] = mol_per_ml
 
-        # Move into the pretreatment directory
-        os.chdir('pretreatment_model/test/')
         try:    # See if the pretreatment module exists
             import pt
         except: # if not, we need to build it
             print('Could not load PT module, building module from source.')
             print('(This will only happen the first time the notebook is run.)')
-            os.chdir('../bld/')
+            os.chdir(os.path.join(pt_model_path, 'bld', ))
             command = "sh build_first_time.sh"
             subprocess.run(command.split())
-            os.chdir('../test/')
             print('Finished building PT module.')
-        os.chdir(self.notebookDir)
 
     ##############################################
     ### Properties
@@ -201,13 +201,12 @@ class Pretreatment:
             Option to show print messages from executed file, default True.
         """
         print('\nRunning Pretreatment')
-        # Move into the pretreatment directory
-        os.chdir('pretreatment_model/test/')
+    
         # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
         # TODO: shoud move cleaning in ptrun.py? OD
-        outfiles = glob.glob("out*.dat")
-        for outfile in outfiles:
-            os.remove(outfile)
+        # outfiles = glob.glob("out*.dat")
+        # for outfile in outfiles:
+        #     os.remove(outfile)
 
         import ptrun as pt_run
         self.ve.pt_out = pt_run.main(self.ve)
@@ -215,7 +214,6 @@ class Pretreatment:
         if self.show_plots:
             run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
-        os.chdir(self.notebookDir)
         print('Finished Pretreatment')
 
         if check_dict_for_nans(self.ve.pt_out):
