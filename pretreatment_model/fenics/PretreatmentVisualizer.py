@@ -107,7 +107,8 @@ def finalize_figures(PT):
     # plot truth curves:
     for ctr_truth, tt_truth in enumerate([30, 300, 600, 1200]):
 
-        for z, truth_file in enumerate(["truth", "old_truth"]):
+        # for z, truth_file in enumerate(["truth", "old_truth"]):
+        for z, truth_file in enumerate(["truth"]):
             try:
                 truth_data = np.genfromtxt(f"{truth_file}_{tt_truth}s.dat", skip_header=1)
             except:
