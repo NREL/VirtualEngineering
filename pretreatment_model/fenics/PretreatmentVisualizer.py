@@ -1,8 +1,13 @@
 import matplotlib.pyplot as plt
 from fenics import FunctionSpace, project
 import numpy as np
+import matplotlib.cm as cm
 
-def update_figure_1(PT, tt, line_id):
+def get_plot_color(cmap, tt_frac):
+
+    return cmap(0.9*tt_frac)
+
+def update_figure_1(PT, tt, t_final):
     if not hasattr(PT, "ax1"):
         PT.fig1, PT.ax1 = plt.subplots(2, 2, figsize=(8, 6), dpi=300)
 
@@ -21,7 +26,9 @@ def update_figure_1(PT, tt, line_id):
 
         PT.dpS = FunctionSpace(PT.mesh, 'DP', 0)
 
-    color = PT.color_arr[line_id]
+        PT.cmap = cm.get_cmap('viridis')
+
+    color = get_plot_color(PT.cmap, tt/t_final)
     PT.mew = 0.5
 
     # Steam
@@ -55,7 +62,7 @@ def update_figure_1(PT, tt, line_id):
 
     return PT
 
-def update_figure_2(PT, tt, line_id):
+def update_figure_2(PT, tt, t_final):
     if not hasattr(PT, "ax2"):
         PT.fig2, PT.ax2 = plt.subplots(2, 2, figsize=(8, 6), dpi=300)
 
@@ -69,7 +76,7 @@ def update_figure_2(PT, tt, line_id):
         PT.ax2[1, 1].set_xlabel("Distance (cm)")
         PT.ax2[1, 1].set_ylabel("Furfural (mM)")
 
-    color = PT.color_arr[line_id]
+    color = get_plot_color(PT.cmap, tt/t_final)
 
     # Xylan
     f_x_vec = project(PT.u[PT.fstar_x_id] / (1.0 - PT.eps_p), PT.S, solver_type="cg")
@@ -100,19 +107,17 @@ def update_figure_2(PT, tt, line_id):
 
     return PT
 
-def finalize_figures(PT):
+def finalize_figures(PT, t_final):
     # x(cm)   Steam(molcm3)   Liquidfrac   Temperature(K)   Xylanfrac   Xylog(molcm3)   Xylose(molcm3)   Furfural(molcm3)
 
 
     # plot truth curves:
-    for ctr_truth, tt_truth in enumerate([30, 300, 600, 1200]):
-
-        # for z, truth_file in enumerate(["truth", "old_truth"]):
-        for z, truth_file in enumerate(["truth"]):
+    for z, truth_file in enumerate(["truth", "old_truth"]):
+        for ctr_truth, tt_truth in enumerate([30, 300, 600, 1200]):
             try:
                 truth_data = np.genfromtxt(f"{truth_file}_{tt_truth}s.dat", skip_header=1)
             except:
-                print(f'Could not find "{truth_file}_{tt_truth}s.dat" file to read.')
+                print('Could not find truth data file to read.')
                 break
 
 
@@ -130,18 +135,19 @@ def finalize_figures(PT):
 
             ls_list = ['-', '--']
             ls = ls_list[z]
-            lw = 1.0
+            lw = 0.75
 
+            color = get_plot_color(PT.cmap, tt_truth/t_final)
 
-            PT.ax1[0, 0].plot(truth_data[:, 0], 1e3*truth_data[:, 1], linestyle=ls, linewidth=lw, color=f"C{ctr_truth}", label=f'{truth_file} {tt_truth}.0s')
-            PT.ax1[0, 1].plot(truth_data[:, 0], truth_data[:, 2], linestyle=ls, linewidth=lw, color=f"C{ctr_truth}")
-            PT.ax1[1, 0].plot(truth_data[:, 0], truth_data[:, 3], linestyle=ls, linewidth=lw, color=f"C{ctr_truth}")
-            PT.ax1[1, 1].plot(truth_data[:, 0], 1e-3*PT.c_acid0*PT.eps_l0/truth_data[:, 2], linestyle=ls, linewidth=lw, color=f"C{ctr_truth}")
+            PT.ax1[0, 0].plot(truth_data[:, 0], 1e3*truth_data[:, 1], linestyle=ls, linewidth=lw, color=color, label=f'{truth_file} {tt_truth}.0s')
+            PT.ax1[0, 1].plot(truth_data[:, 0], truth_data[:, 2], linestyle=ls, linewidth=lw, color=color)
+            PT.ax1[1, 0].plot(truth_data[:, 0], truth_data[:, 3], linestyle=ls, linewidth=lw, color=color)
+            PT.ax1[1, 1].plot(truth_data[:, 0], 1e-3*PT.c_acid0*PT.eps_l0/truth_data[:, 2], linestyle=ls, linewidth=lw, color=color)
 
-            PT.ax2[0, 0].plot(truth_data[:, 0], truth_data[:, 4]/(1-np_eps_p), linestyle=ls, linewidth=lw, color=f"C{ctr_truth}", label=f'{truth_file} {tt_truth}.0s')
-            PT.ax2[0, 1].plot(truth_data[:, 0], 1e3*truth_data[:, 5]/truth_data[:, 2], linestyle=ls, linewidth=lw, color=f"C{ctr_truth}")
-            PT.ax2[1, 0].plot(truth_data[:, 0], 1e3*truth_data[:, 6]/truth_data[:, 2], linestyle=ls, linewidth=lw, color=f"C{ctr_truth}")
-            PT.ax2[1, 1].plot(truth_data[:, 0], 1e6*truth_data[:, 7]/truth_data[:, 2], linestyle=ls, linewidth=lw, color=f"C{ctr_truth}")
+            PT.ax2[0, 0].plot(truth_data[:, 0], truth_data[:, 4]/(1-np_eps_p), linestyle=ls, linewidth=lw, color=color, label=f'{truth_file} {tt_truth}.0s')
+            PT.ax2[0, 1].plot(truth_data[:, 0], 1e3*truth_data[:, 5]/truth_data[:, 2], linestyle=ls, linewidth=lw, color=color)
+            PT.ax2[1, 0].plot(truth_data[:, 0], 1e3*truth_data[:, 6]/truth_data[:, 2], linestyle=ls, linewidth=lw, color=color)
+            PT.ax2[1, 1].plot(truth_data[:, 0], 1e6*truth_data[:, 7]/truth_data[:, 2], linestyle=ls, linewidth=lw, color=color)
 
     # PT.ax1[0, 0].set_ylim(0, 0.16)
     # PT.ax1[0, 1].set_ylim(0.24, 0.41)
