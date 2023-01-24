@@ -1,4 +1,5 @@
 # fun comment
+# fun comment from eky
 from fenics import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -318,6 +319,7 @@ class Pretreatment:
         self.reac[self.cstar_xo_id] = -self.k_x2 * self.c_acid
         self.reac[self.cstar_xy_id] = -self.k_f * self.c_acid
         self.reac[self.cstar_f_id] = 0
+
         self.reac[self.T_id] = -4.0 * self.h / (self.rho_eff_c_eff * self.diam)
         # self.reac[self.T_id] = -4.0 * self.h / self.diam
 
@@ -471,9 +473,8 @@ class Pretreatment:
                 self._save_solution(tt)
 
             if np.amin(np.abs(tt - plot_line_at)) < 1e-6:
-                line_id = np.argmin(np.abs(tt - plot_line_at))
-                self = update_figure_1(self, tt, line_id)
-                self = update_figure_2(self, tt, line_id)
+                self = update_figure_1(self, tt, t_final)
+                self = update_figure_2(self, tt, t_final)
 
         self = finalize_figures(self)
 
