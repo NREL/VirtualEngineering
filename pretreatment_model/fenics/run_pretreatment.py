@@ -2,11 +2,11 @@ from Pretreatment import Pretreatment
 import cProfile
 import time
 
-def run_pt(ve_params=None):
+def run_pt(ve_params=None, verbose=True, show_plots=True):
 
     t1 = time.time()
 
-    PT = Pretreatment(ve_params)
+    PT = Pretreatment(ve_params, verbose, show_plots)
 
     PT.generate_mesh(nn=16)
 

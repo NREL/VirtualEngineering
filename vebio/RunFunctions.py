@@ -12,12 +12,6 @@ from vebio.Utilities import yaml_to_dict, dict_to_yaml, check_dict_for_nans
 
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-pt_module_path = os.path.join(root_path,'pretreatment_model')
-
-eh_module_path = os.path.join(root_path ,'two_phase_batch_model')
-print(eh_module_path)
-print(root_path)
-
 
 class VE_params(object):
     ''' This  class is used for storing Virtual Engineering parameters 
@@ -128,9 +122,9 @@ class Pretreatment:
         self.initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
         self.final_time = pt_options.final_time.widget.value
 
+        pt_module_path = os.path.join(root_path,'pretreatment_model')
         sys.path.append(os.path.join(pt_module_path, 'fenics'))
         
-
         # Obtain steam concentration from lookup table and add to dictionary
         steam_datafile = os.path.join(pt_module_path, 'lookup_tables', 'sat_steam_table.csv')
         steam_data = np.loadtxt(steam_datafile, delimiter=',', skiprows=1)
@@ -140,16 +134,6 @@ class Pretreatment:
         # Convert to mol/ml => density in g/L / molecular weight / 1000.0
         mol_per_ml = float(dens/18.01528/1000.0)
         self.ve.pt_in['bulk_steam_conc'] = mol_per_ml
-
-        # try:    # See if the pretreatment module exists
-        #     import pt
-        # except: # if not, we need to build it
-        #     print('Could not load PT module, building module from source.')
-        #     print('(This will only happen the first time the notebook is run.)')
-        #     os.chdir(os.path.join(pt_model_path, 'bld', ))
-        #     command = "sh build_first_time.sh"
-        #     subprocess.run(command.split())
-        #     print('Finished building PT module.')
 
     ##############################################
     ### Properties
@@ -197,7 +181,7 @@ class Pretreatment:
     ##############################################
     #
     ##############################################
-    def run(self, verbose=True):
+    def run(self, verbose=True, show_plots=None):
         """Run pretreatment code specified in pretreatment_model/test/ptrun.py
 
         :param verbose: (bool, optional) 
@@ -210,8 +194,10 @@ class Pretreatment:
         # outfiles = glob.glob("out*.dat")
         # for outfile in outfiles:
         #     os.remove(outfile)
+        if show_plots is None:
+            show_plots = self.show_plots
         from run_pretreatment import run_pt
-        self.ve.pt_out = run_pt(self.ve)
+        self.ve.pt_out = run_pt(self.ve, verbose, show_plots)
 
         # if self.show_plots:
         #     run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)

@@ -116,7 +116,7 @@ def test_br_init(build_br_options):
 def test_pt_run(build_pt_options):
     pt_options = build_pt_options
     PT_model = Pretreatment(pt_options)
-    PT_model.run()
+    PT_model.run(verbose=False, show_plots=False)
     for k, it in PT_model.ve.pt_out.items():
         print(k, it)
     truth_values = {'fis_0': 0.2010949806796157,

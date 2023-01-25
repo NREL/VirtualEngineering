@@ -6,11 +6,13 @@ from Utilities import linstep, smoothstep
 
 
 class Pretreatment:
-    def __init__(self, ve_params):
+    def __init__(self, ve_params, verbose, show_plots):
 
         set_log_level(LogLevel.ERROR)
 
         self._init_constants(ve_params)
+        self.verbose = verbose
+        self.show_plots = show_plots
 
     # ================================================================
 
@@ -470,11 +472,11 @@ class Pretreatment:
             if (k + 1) % save_every_n == 0:
                 self._save_solution(tt)
 
-            if np.amin(np.abs(tt - plot_line_at)) < 1e-6:
+            if self.show_plots and np.amin(np.abs(tt - plot_line_at)) < 1e-6:
                 self = update_figure_1(self, tt, t_final)
                 self = update_figure_2(self, tt, t_final)
-
-        self = finalize_figures(self, t_final)
+        if self.show_plots:
+            self = finalize_figures(self, t_final)
 
     # ================================================================
 
@@ -599,12 +601,13 @@ class Pretreatment:
 
         fis = self.rho_s*eps_p_bar/(self.rho_s*eps_p_bar + self.rho_l*eps_l_bar)
 
-        print(f"Time {tt} of {self.t_final}.")
-        print(f"| Xylan (g/g):    {fstar_x_bar}")
-        print(f"| Xylog (g/L):    {cstar_xo_bar*self.M_xo}")
-        print(f"| Xylose (g/L):   {cstar_xy_bar*self.M_xy}")
-        print(f"| Furfural (g/L): {cstar_f_bar*self.M_f}")
-        print(f"| FIS (g/g):      {fis}")
-        print()
+        if self.verbose:
+            print(f"Time {tt} of {self.t_final}.")
+            print(f"| Xylan (g/g):    {fstar_x_bar}")
+            print(f"| Xylog (g/L):    {cstar_xo_bar*self.M_xo}")
+            print(f"| Xylose (g/L):   {cstar_xy_bar*self.M_xy}")
+            print(f"| Furfural (g/L): {cstar_f_bar*self.M_f}")
+            print(f"| FIS (g/g):      {fis}")
+            print()
 
     # ================================================================
