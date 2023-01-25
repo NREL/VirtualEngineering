@@ -10,14 +10,14 @@ from scipy.interpolate import interp1d
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml, check_dict_for_nans
 
-pt_model_path = os.path.abspath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir ,'pretreatment_model', ))
-# eh_module_path = os.path.join(os.path.realpath(__file__), os.pardir, os.pardir ,'pretreatment_model', 'test')
-# br_module_path = os.path.join(os.path.realpath(__file__), os.pardir, os.pardir ,'pretreatment_model', 'test')
-print('1111111111111111')
-print(os.path.realpath(__file__))
-print(os.path.abspath(pt_model_path))
-sys.path.append(os.path.join(pt_model_path, 'test', ))
-print(sys.path)
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+pt_module_path = os.path.join(root_path,'pretreatment_model')
+
+eh_module_path = os.path.join(root_path ,'two_phase_batch_model')
+print(eh_module_path)
+print(root_path)
+
 
 class VE_params(object):
     ''' This  class is used for storing Virtual Engineering parameters 
@@ -127,10 +127,13 @@ class Pretreatment:
         self.steam_temperature = pt_options.steam_temperature.widget.value
         self.initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
         self.final_time = pt_options.final_time.widget.value
+
+        sys.path.append(os.path.join(pt_module_path, 'fenics'))
         
+
         # Obtain steam concentration from lookup table and add to dictionary
-        steam_data_path = os.path.join(pt_model_path, 'lookup_tables/sat_steam_table.csv')
-        steam_data = np.loadtxt(steam_data_path, delimiter=',', skiprows=1)
+        steam_datafile = os.path.join(pt_module_path, 'lookup_tables', 'sat_steam_table.csv')
+        steam_data = np.loadtxt(steam_datafile, delimiter=',', skiprows=1)
         # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
         interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
         dens = interp_steam(self.ve.pt_in['steam_temperature'])
@@ -138,15 +141,15 @@ class Pretreatment:
         mol_per_ml = float(dens/18.01528/1000.0)
         self.ve.pt_in['bulk_steam_conc'] = mol_per_ml
 
-        try:    # See if the pretreatment module exists
-            import pt
-        except: # if not, we need to build it
-            print('Could not load PT module, building module from source.')
-            print('(This will only happen the first time the notebook is run.)')
-            os.chdir(os.path.join(pt_model_path, 'bld', ))
-            command = "sh build_first_time.sh"
-            subprocess.run(command.split())
-            print('Finished building PT module.')
+        # try:    # See if the pretreatment module exists
+        #     import pt
+        # except: # if not, we need to build it
+        #     print('Could not load PT module, building module from source.')
+        #     print('(This will only happen the first time the notebook is run.)')
+        #     os.chdir(os.path.join(pt_model_path, 'bld', ))
+        #     command = "sh build_first_time.sh"
+        #     subprocess.run(command.split())
+        #     print('Finished building PT module.')
 
     ##############################################
     ### Properties
@@ -207,12 +210,11 @@ class Pretreatment:
         # outfiles = glob.glob("out*.dat")
         # for outfile in outfiles:
         #     os.remove(outfile)
+        from run_pretreatment import run_pt
+        self.ve.pt_out = run_pt(self.ve)
 
-        import ptrun as pt_run
-        self.ve.pt_out = pt_run.main(self.ve)
-
-        if self.show_plots:
-            run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
+        # if self.show_plots:
+        #     run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
 
         print('Finished Pretreatment')
 
@@ -222,7 +224,7 @@ class Pretreatment:
 
 
 class EnzymaticHydrolysis:
-    def __init__(self, notebookDir, eh_options, hpc_run):
+    def __init__(self, eh_options, hpc_run):
         """ Initialize enzymatic hydrolysis class. Three 
             distinct variants are included in the virtual engineering code:
             (1) a two-phase model which makes a well-mixed assumption, (2)
@@ -254,7 +256,6 @@ class EnzymaticHydrolysis:
 
         print('Initializing Enzymatic Hydrolysis Model')
 
-        self.notebookDir = notebookDir
         self.hpc_run = hpc_run
         self.show_plots = eh_options.show_plots.value
 
@@ -264,9 +265,7 @@ class EnzymaticHydrolysis:
         self.lambda_e = eh_options.lambda_e.widget.value  # Conversion from mg/g to kg/kg
         self.fis_0 = eh_options.fis_0.value
         self.t_final = eh_options.t_final.value
-        self.model_type = eh_options.model_type.value
-
-        self.select_run_function()
+        self.model_type = eh_options.model_type.value # running select_run_function() inside
         
     ##############################################
     ### Properties
@@ -322,10 +321,18 @@ class EnzymaticHydrolysis:
         if self.model_type == 'CFD Simulation':
             assert self.hpc_run, f'Cannot run EH_CFD without HPC resources. \n {os.getcwd()}'
             self.run = self.run_eh_cfd_simulation
+            # TODO: add import path 
         elif self.model_type == "CFD Surrogate":
             self.run = self.run_eh_cfd_surrogate
+            eh_module_path = os.path.join(root_path,'EH_OpenFOAM', 'EH_surrogate')
+            if not eh_module_path in sys.path:
+                sys.path.append(os.path.join(root_path, eh_module_path))
+                
         elif self.model_type == 'Lignocellulose Model':
             self.run = self.run_eh_lignocellulose_model
+            eh_module_path = os.path.join(root_path ,'two_phase_batch_model')
+            if not eh_module_path in sys.path:
+                sys.path.append(os.path.join(root_path, eh_module_path))
 
     def get_globalVars(self):
         """ Prepare input values for EH CFD operation
@@ -492,12 +499,9 @@ class EnzymaticHydrolysis:
     def run_eh_cfd_surrogate(self, verbose=True):
 
         print('\nRunning Enzymatic Hydrolysis Model')
-        os.chdir('EH_OpenFOAM/EH_surrogate/')
         from EH_surrogate import main
         self.ve.eh_out = main(self.ve)        
-        os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
-
         if check_dict_for_nans(self.ve.eh_out):
             return True
         return False
@@ -505,15 +509,16 @@ class EnzymaticHydrolysis:
     def run_eh_lignocellulose_model(self, verbose=True):
         
         print('\nRunning Enzymatic Hydrolysis Model')
-        os.chdir('two_phase_batch_model/')
         # Commenting out cellulose-only two-phase model to use lignocellulose
         # model, just in case we want to switch back or make both an
         # option. The lignocellulose model is superior.
         #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
         from driver_batch_lignocell_EH_VE import main
         self.ve.eh_out = main(self.ve, self.show_plots)
-        os.chdir(self.notebookDir)
         print('Finished Enzymatic Hydrolysis')
+        if check_dict_for_nans(self.ve.eh_out):
+            return True
+        return False
 
 
 class Bioreactor:
@@ -549,14 +554,12 @@ class Bioreactor:
         self.ve = VE_params()
         self.ve.br_in = {}
         # Bioreactor input parameters
-        self.model_type = br_options.model_type.value
+        self.model_type = br_options.model_type.value # running select_run_function() inside
         self.gas_velocity = br_options.gas_velocity.value
         self.column_height = br_options.column_height.value
         self.column_diameter = br_options.column_diameter.value
         self.bubble_diameter = br_options.bubble_diameter.value
         self.t_final = br_options.t_final.value
-
-        self.select_run_function()
     ##############################################
     ### Properties
     ##############################################

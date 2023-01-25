@@ -2,11 +2,11 @@ from Pretreatment import Pretreatment
 import cProfile
 import time
 
-def main():
+def run_pt(ve_params=None):
 
     t1 = time.time()
 
-    PT = Pretreatment()
+    PT = Pretreatment(ve_params)
 
     PT.generate_mesh(nn=16)
 
@@ -20,10 +20,13 @@ def main():
 
     print(f'Pretreatment wallclock time: {t2-t1:.2f} s.')
 
+    output_dict = {}
+    return output_dict
+
 
 if __name__ == "__main__":
     profiler = cProfile.Profile()
     profiler.enable()
-    main()
+    run_pt()
     profiler.disable()
     profiler.dump_stats("profiling.prof")

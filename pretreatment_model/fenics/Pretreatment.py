@@ -6,16 +6,17 @@ from Utilities import linstep, smoothstep
 
 
 class Pretreatment:
-    def __init__(self):
+    def __init__(self, ve_params):
 
         set_log_level(LogLevel.ERROR)
 
-        self._init_constants()
+        self._init_constants(ve_params)
 
     # ================================================================
 
-    def _init_constants(self):
+    def _init_constants(self, ve_params):
 
+        
         # Physical Constants
         self.k_b = 1.380649e-23
         self.eta = 2.8e-4  # dynamic viscosity of solvent (water)
