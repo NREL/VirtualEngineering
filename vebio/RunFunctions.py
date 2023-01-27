@@ -5,7 +5,7 @@ import subprocess
 import glob
 
 import numpy as np
-from scipy.interpolate import interp1d
+
 
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import yaml_to_dict, dict_to_yaml, check_dict_for_nans
@@ -124,16 +124,6 @@ class Pretreatment:
 
         pt_module_path = os.path.join(root_path,'pretreatment_model')
         sys.path.append(os.path.join(pt_module_path, 'fenics'))
-        
-        # Obtain steam concentration from lookup table and add to dictionary
-        steam_datafile = os.path.join(pt_module_path, 'lookup_tables', 'sat_steam_table.csv')
-        steam_data = np.loadtxt(steam_datafile, delimiter=',', skiprows=1)
-        # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
-        interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
-        dens = interp_steam(self.ve.pt_in['steam_temperature'])
-        # Convert to mol/ml => density in g/L / molecular weight / 1000.0
-        mol_per_ml = float(dens/18.01528/1000.0)
-        self.ve.pt_in['bulk_steam_conc'] = mol_per_ml
 
     ##############################################
     ### Properties
@@ -186,24 +176,17 @@ class Pretreatment:
 
         :param verbose: (bool, optional) 
             Option to show print messages from executed file, default True.
+        :param verbose: (bool, optional) 
+            Option to show plots, default True.
         """
         print('\nRunning Pretreatment')
     
-        # clear out old data files (`postprocess.py` will pick up longer-run stale data files)
-        # TODO: shoud move cleaning in ptrun.py? OD
-        # outfiles = glob.glob("out*.dat")
-        # for outfile in outfiles:
-        #     os.remove(outfile)
         if show_plots is None:
             show_plots = self.show_plots
         from run_pretreatment import run_pt
         self.ve.pt_out = run_pt(self.ve, verbose, show_plots)
 
-        # if self.show_plots:
-        #     run_script("postprocess.py", "out_*.dat", "exptdata_150C_1acid.dat", verbose=verbose)
-
         print('Finished Pretreatment')
-
         if check_dict_for_nans(self.ve.pt_out):
             return True
         return False

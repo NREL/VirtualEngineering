@@ -6,15 +6,18 @@ def run_pt(ve_params=None, verbose=True, show_plots=True):
 
     t1 = time.time()
 
-    PT = Pretreatment(ve_params, verbose, show_plots)
+    PT = Pretreatment(verbose, show_plots)
 
     PT.generate_mesh(nn=16)
 
     PT.build_functions(degree=2)
 
-    PT.build_problem()
+    PT.build_problem(ve_params)
 
-    PT.solve(t_final=1200.0, dt=2.0, save_every=60.0)
+    t_final = ve_params.pt_in['final_time'] # in seconds
+    if ve_params is None:
+        t_final = 1200.0   
+    PT.solve(t_final=t_final, dt=2.0, save_every=60.0)
 
     t2 = time.time()
 

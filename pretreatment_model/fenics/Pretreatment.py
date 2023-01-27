@@ -1,22 +1,24 @@
 from fenics import *
 import numpy as np
+import os
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 from PretreatmentVisualizer import update_figure_1, update_figure_2, finalize_figures
 from Utilities import linstep, smoothstep
 
 
 class Pretreatment:
-    def __init__(self, ve_params, verbose, show_plots):
+    def __init__(self, verbose, show_plots):
 
         set_log_level(LogLevel.ERROR)
 
-        self._init_constants(ve_params)
+        self._init_constants()
         self.verbose = verbose
         self.show_plots = show_plots
 
     # ================================================================
 
-    def _init_constants(self, ve_params):
+    def _init_constants(self):
 
         
         # Physical Constants
@@ -98,11 +100,11 @@ class Pretreatment:
 
     # ================================================================
 
-    def build_problem(self):
+    def build_problem(self, ve_params):
 
         self._define_reaction_rates()
 
-        self._set_initial_conditions()
+        self._set_initial_conditions(ve_params)
         self._set_boundary_conditions()
 
         self._build_general_forms()
@@ -125,20 +127,37 @@ class Pretreatment:
 
     # ================================================================
 
-    def _set_initial_conditions(self):
-        self.c_acid0 = 0.1 * 1e3  # Convert mol/self.length to mol/m^3
-        self.c_sbulk = 0.14 * 1e3
+    def _set_initial_conditions(self, ve_params):
 
-        self.f_x0 = 0.26
+        if ve_params is None:
+            self.c_acid0 = 0.1 * 1e3    # initial acid concentration: Convert mol/self.length to mol/m^3
+            self.c_sbulk = 0.14 * 1e3   # bulk steam concentration
+            self.f_x0 = 0.26            # xylan mass fraction
+            self.eps_p0 = 0.8           # initial porosity
+            self.f_is0 = 0.44           # initial solid fraction
+            self.T_s = 423.0            # steam temperature
+        else:
+            self.c_acid0 = ve_params.pt_in['initial_acid_conc']
 
-        self.eps_p0 = 0.8
-        self.eps_lt = self.eps_p0
-        self.eps_l0 = 0.25
+            self.f_x0 = ve_params.feedstock['xylan_solid_fraction']
+            self.eps_p0 = ve_params.feedstock['initial_porosity']
+            self.f_is0 = ve_params.pt_in['initial_solid_fraction']
+            self.T_s = ve_params.pt_in['steam_temperature']
 
-        self.f_is0 = 0.44
+        # Obtain steam concentration from lookup table and add to dictionary
+        pt_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        steam_datafile = os.path.join(pt_path, 'lookup_tables', 'sat_steam_table.csv')
+        steam_data = np.loadtxt(steam_datafile, delimiter=',', skiprows=1)
+        # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
+        interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
+        dens = interp_steam(self.T_s)
+        # Convert to mol/ml => density in g/L / molecular weight / 1000.0
+        mol_per_ml = float(dens/18.01528/1000.0)
+        self.c_sbulk = mol_per_ml
 
+        self.eps_lt = self.eps_p0   # initial liquid+gas (= 1-solid) volumetric fraction
+        self.eps_l0 = 0.25          # initial liquid volumetric fraction
         self.T_0 = 300.0
-        self.T_s = 423.0
 
         ic = Function(self.S)
 
