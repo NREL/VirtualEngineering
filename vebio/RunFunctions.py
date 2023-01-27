@@ -92,6 +92,11 @@ class Feedstock:
         return False
 
 
+###################################################################################
+####
+####        PRETREATMENT
+####
+##################################################################################
 class Pretreatment:
 
     def __init__(self, pt_options):
@@ -191,7 +196,11 @@ class Pretreatment:
             return True
         return False
 
-
+###################################################################################
+####
+####        ENZYMATIC HYDROLYSIS
+####
+##################################################################################
 class EnzymaticHydrolysis:
     def __init__(self, eh_options, hpc_run):
         """ Initialize enzymatic hydrolysis class. Three 
@@ -295,13 +304,13 @@ class EnzymaticHydrolysis:
             self.run = self.run_eh_cfd_surrogate
             eh_module_path = os.path.join(root_path,'EH_OpenFOAM', 'EH_surrogate')
             if not eh_module_path in sys.path:
-                sys.path.append(os.path.join(root_path, eh_module_path))
+                sys.path.append(eh_module_path)
                 
         elif self.model_type == 'Lignocellulose Model':
             self.run = self.run_eh_lignocellulose_model
             eh_module_path = os.path.join(root_path ,'two_phase_batch_model')
             if not eh_module_path in sys.path:
-                sys.path.append(os.path.join(root_path, eh_module_path))
+                sys.path.append(eh_module_path)
 
     def get_globalVars(self):
         """ Prepare input values for EH CFD operation
@@ -468,8 +477,10 @@ class EnzymaticHydrolysis:
     def run_eh_cfd_surrogate(self, verbose=True):
 
         print('\nRunning Enzymatic Hydrolysis Model')
-        from EH_surrogate import main
-        self.ve.eh_out = main(self.ve)        
+        
+        from EH_surrogate import run_eh
+        self.ve.eh_out = run_eh(self.ve)        
+        
         print('Finished Enzymatic Hydrolysis')
         if check_dict_for_nans(self.ve.eh_out):
             return True
@@ -489,9 +500,13 @@ class EnzymaticHydrolysis:
             return True
         return False
 
-
+###################################################################################
+####
+####        BIOREACTOR
+####
+##################################################################################
 class Bioreactor:
-    def __init__(self, notebookDir, br_options, hpc_run):
+    def __init__(self, br_options, hpc_run):
         """ Initialize the aerobic bioreaction operation using 
             user-specified properties. Two distinct models exist: (1) a 
             pre-trained surrogate model informed from CFD runs and (2) the
@@ -517,11 +532,12 @@ class Bioreactor:
         """
 
         print('Initializing Bioreactor Model')
-        self.notebookDir = notebookDir
         self.hpc_run = hpc_run
 
         self.ve = VE_params()
         self.ve.br_in = {}
+
+        self.br_module_path = os.path.join(root_path,'bioreactor', 'bubble_column')
         # Bioreactor input parameters
         self.model_type = br_options.model_type.value # running select_run_function() inside
         self.gas_velocity = br_options.gas_velocity.value
@@ -529,6 +545,7 @@ class Bioreactor:
         self.column_diameter = br_options.column_diameter.value
         self.bubble_diameter = br_options.bubble_diameter.value
         self.t_final = br_options.t_final.value
+
     ##############################################
     ### Properties
     ##############################################
@@ -603,6 +620,9 @@ class Bioreactor:
             self.run = self.run_biorector_cfd_simulation
         elif self.model_type == "CFD Surrogate":
             self.run = self.run_biorector_cfd_surrogate
+            br_surrogate_path = os.path.join(self.br_module_path,'surrogate_model')
+            if not br_surrogate_path in sys.path:
+                sys.path.append(br_surrogate_path)
 
     def run_biorector_cfd_simulation(self, verbose=True):
 
@@ -641,12 +661,13 @@ class Bioreactor:
             # TODO: Why we don't check it in CFD run_biorector_cfd_simulation? OD
             print('Waiting for EH CFD results.')
         else:
-            os.chdir('bioreactor/bubble_column/surrogate_model')
-            from bcolumn_surrogate import main
-            self.ve.br_out = main(self.ve)
-            os.chdir(self.notebookDir)
+            from bcolumn_surrogate import run_br_surrogate
+            self.ve.br_out = run_br_surrogate(self.ve)
+            
             print('Finished Bioreactor')
-
+            if check_dict_for_nans(self.ve.br_out):
+                return True
+            return False
 
 def run_script(filename, *args, verbose=True):
     """ Execute the contents of a file.

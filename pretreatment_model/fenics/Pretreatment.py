@@ -138,7 +138,6 @@ class Pretreatment:
             self.T_s = 423.0            # steam temperature
         else:
             self.c_acid0 = ve_params.pt_in['initial_acid_conc']
-
             self.f_x0 = ve_params.feedstock['xylan_solid_fraction']
             self.eps_p0 = ve_params.feedstock['initial_porosity']
             self.f_is0 = ve_params.pt_in['initial_solid_fraction']

@@ -8,8 +8,8 @@ from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget
 from vebio.Utilities import yaml_to_dict
 
 
-notebook_dir = os.getcwd()
-# params_filename = 'test_params.yaml'
+# notebook_dir = os.getcwd()
+# # params_filename = 'test_params.yaml'
 
 
 @pytest.fixture()
@@ -21,6 +21,7 @@ def build_fs_options():
     fs_options.initial_porosity = OptimizationWidget('BoundedFloatText', {'value': 0.8})
 
     return fs_options
+
 
 @pytest.fixture()
 def build_pt_options():
@@ -34,6 +35,7 @@ def build_pt_options():
 
     return pt_options
 
+
 @pytest.fixture()
 def build_eh_options():
     eh_options = WidgetCollection()
@@ -46,6 +48,7 @@ def build_eh_options():
     eh_options.show_plots = widgets.Checkbox(value = False)
 
     return eh_options
+
 
 @pytest.fixture()
 def build_br_options():
@@ -61,6 +64,7 @@ def build_br_options():
 
     return br_options
 
+
 @pytest.mark.regression
 def test_fd_init(build_fs_options):
     fs_options = build_fs_options
@@ -73,6 +77,7 @@ def test_fd_init(build_fs_options):
 
     _assert_dictionary_agreement(FS_model.ve.feedstock, truth_values)
 
+
 @pytest.mark.regression
 def test_pt_init(build_pt_options):
     pt_options = build_pt_options
@@ -81,10 +86,10 @@ def test_pt_init(build_pt_options):
     truth_values = {'initial_acid_conc': 0.0001,
                     'steam_temperature': 150.0 + 273.15,
                     'initial_solid_fraction': 0.745, 
-                    'final_time': 8.3 * 60.0,
-                    'bulk_steam_conc': 0.0001415638557935263}
+                    'final_time': 8.3 * 60.0}
     
     _assert_dictionary_agreement(PT_model.ve.pt_in, truth_values)
+
 
 @pytest.mark.regression
 def test_eh_init(build_eh_options):
@@ -98,11 +103,12 @@ def test_eh_init(build_eh_options):
     
     _assert_dictionary_agreement(EH_model.ve.eh_in, truth_values)
 
+
 @pytest.mark.regression
 def test_br_init(build_br_options):
     br_options = build_br_options
 
-    BR_model = Bioreactor(os.getcwd(), br_options, hpc_run=False)
+    BR_model = Bioreactor(br_options, hpc_run=False)
     truth_values = {'gas_velocity': 0.08,
                     'column_height': 40,
                     'column_diameter': 5.0, 
@@ -111,6 +117,7 @@ def test_br_init(build_br_options):
                     'model_type': 'CFD Surrogate'}
     
     _assert_dictionary_agreement(BR_model.ve.br_in, truth_values)
+
 
 @pytest.mark.regression
 def test_pt_run(build_pt_options):
@@ -129,33 +136,32 @@ def test_pt_run(build_pt_options):
     PT_model.ve.pt_out = truth_values
     _assert_dictionary_agreement(PT_model.ve.pt_out, truth_values)
 
-# @pytest.mark.regression
-# def test_eh_run(build_eh_options):
-#     eh_options = build_eh_options
 
-#     EH_model = EnzymaticHydrolysis(eh_options, hpc_run=False)
-#     EH_model.run()
+@pytest.mark.regression
+def test_eh_run(build_eh_options):
+    eh_options = build_eh_options
 
-#     truth_values = {'rho_g': 11.419105159857235,
-#                     'rho_x': 10.406950179753244,
-#                     'rho_sL': 7.7044046618903765,
-#                     'rho_f': 7.240033383230595e-05}
+    EH_model = EnzymaticHydrolysis(eh_options, hpc_run=False)
+    EH_model.run()
+
+    truth_values = {'rho_g': 25.127440984079108,
+                    'rho_x': 20.281328074966446,
+                    'rho_sL': 3.1924432596337073,
+                    'rho_f': 0.14277508741539058}
     
-#     _assert_dictionary_agreement(EH_model.ve.eh_out, truth_values)
+    _assert_dictionary_agreement(EH_model.ve.eh_out, truth_values)
 
 
+@pytest.mark.regression
+def test_br_run(build_br_options):
 
+    br_options = build_br_options
+    BR_model = Bioreactor(br_options, hpc_run=False)
+    BR_model.run()
 
-# @pytest.mark.regression
-# def test_br_run(build_br_options):
-
-#     br_options = build_br_options
-#     BR_model = Bioreactor(os.getcwd(), br_options, hpc_run=False)
-#     BR_model.run()
-
-#     truth_values = {'our': 0.05755705710733422}
+    truth_values = {'our': 68.81723044845536}
     
-#     _assert_dictionary_agreement(BR_model.ve.br_out, truth_values)
+    _assert_dictionary_agreement(BR_model.ve.br_out, truth_values)
 
 
 @pytest.mark.regression
