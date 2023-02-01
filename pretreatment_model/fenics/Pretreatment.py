@@ -20,7 +20,6 @@ class Pretreatment:
 
     def _init_constants(self):
 
-        
         # Physical Constants
         self.k_b = 1.380649e-23
         self.eta = 2.8e-4  # dynamic viscosity of solvent (water)
@@ -130,32 +129,37 @@ class Pretreatment:
     def _set_initial_conditions(self, ve_params):
 
         if ve_params is None:
-            self.c_acid0 = 0.1 * 1e3    # initial acid concentration: Convert mol/self.length to mol/m^3
-            self.c_sbulk = 0.14 * 1e3   # bulk steam concentration
-            self.f_x0 = 0.26            # xylan mass fraction
-            self.eps_p0 = 0.8           # initial porosity
-            self.f_is0 = 0.44           # initial solid fraction
-            self.T_s = 423.0            # steam temperature
+            # self.c_sbulk = 0.14 * 1e3   # bulk steam concentration (from paper, now set by lookup table)
+            self.c_acid0 = (
+                0.1 * 1e3
+            )  # initial acid concentration: Convert mol/self.length to mol/m^3
+            self.f_x0 = 0.26  # xylan mass fraction
+            self.eps_p0 = 0.8  # initial porosity
+            self.f_is0 = 0.44  # initial solid fraction
+            self.T_s = 423.0  # steam temperature
+            self.glucan_solid_fraction_0 = 0.4
         else:
-            self.c_acid0 = ve_params.pt_in['initial_acid_conc']
-            self.f_x0 = ve_params.feedstock['xylan_solid_fraction']
-            self.eps_p0 = ve_params.feedstock['initial_porosity']
-            self.f_is0 = ve_params.pt_in['initial_solid_fraction']
-            self.T_s = ve_params.pt_in['steam_temperature']
+            self.c_acid0 = ve_params.pt_in["initial_acid_conc"]
+            self.f_x0 = ve_params.feedstock["xylan_solid_fraction"]
+            self.eps_p0 = ve_params.feedstock["initial_porosity"]
+            self.f_is0 = ve_params.pt_in["initial_solid_fraction"]
+            self.T_s = ve_params.pt_in["steam_temperature"]
+            self.glucan_solid_fraction_0 = ve_params.feedstock["glucan_solid_fraction"]
 
         # Obtain steam concentration from lookup table and add to dictionary
         pt_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-        steam_datafile = os.path.join(pt_path, 'lookup_tables', 'sat_steam_table.csv')
-        steam_data = np.loadtxt(steam_datafile, delimiter=',', skiprows=1)
+        steam_datafile = os.path.join(pt_path, "lookup_tables", "sat_steam_table.csv")
+        steam_data = np.loadtxt(steam_datafile, delimiter=",", skiprows=1)
+
         # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
         interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
-        dens = interp_steam(self.T_s)
-        # Convert to mol/ml => density in g/L / molecular weight / 1000.0
-        mol_per_ml = float(dens/18.01528/1000.0)
-        self.c_sbulk = mol_per_ml
+        steam_density = interp_steam(self.T_s)
 
-        self.eps_lt = self.eps_p0   # initial liquid+gas (= 1-solid) volumetric fraction
-        self.eps_l0 = 0.25          # initial liquid volumetric fraction
+        # Convert c_sbulk to (mol/m^3) => density (kg/m^3) / molecular weight (kg/mol)
+        self.c_sbulk = steam_density / self.M_w
+
+        self.eps_lt = self.eps_p0  # initial liquid+gas (= 1-solid) volumetric fraction
+        self.eps_l0 = 0.25  # initial liquid volumetric fraction
         self.T_0 = 300.0
 
         ic = Function(self.S)
@@ -166,8 +170,8 @@ class Pretreatment:
         assign(self.u_n.sub(self.eps_l_id), ic)
 
         # u[self.fstar_x_id]
-        fstar_x0 = self.f_x0 * (1.0 - self.eps_p0)
-        ic.vector()[:] = fstar_x0
+        self.fstar_x0 = self.f_x0 * (1.0 - self.eps_p0)
+        ic.vector()[:] = self.fstar_x0
         assign(self.u.sub(self.fstar_x_id), ic)
         assign(self.u_n.sub(self.fstar_x_id), ic)
 
@@ -216,9 +220,9 @@ class Pretreatment:
         bb = self.f_x0 / (1.0 - self.f_x0) + aa
         cc = 1.0 - self.eps_p0
 
-        ss1 = aa**2 * cc**2
+        ss1 = aa ** 2 * cc ** 2
         ss2 = 2.0 * (aa - 2.0) * bb * cc * self.u_n[self.fstar_x_id]
-        ss3 = bb**2 * self.u_n[self.fstar_x_id] ** 2
+        ss3 = bb ** 2 * self.u_n[self.fstar_x_id] ** 2
 
         ss = sqrt(ss1 - ss2 + ss3)
 
@@ -450,16 +454,16 @@ class Pretreatment:
         save_every_n = int(save_every / self.dt)
 
         tt = 0
-        self._save_solution(tt)
+        self.write_solution(tt)
 
         plot_line_at = np.array([self.dt, 30.0, 300.0, 600.0, 1200.0])
         # plot_line_at = 60.0*np.array([1.7, 5.0, 10.0, 20.0])
 
         du = TrialFunction(self.Q)
-        J  = derivative(self.F, self.u, du)
+        J = derivative(self.F, self.u, du)
 
         nonlinear_problem = NonlinearVariationalProblem(self.F, self.u, self.bcs, J)
-        nonlinear_solver  = NonlinearVariationalSolver(nonlinear_problem)
+        nonlinear_solver = NonlinearVariationalSolver(nonlinear_problem)
 
         # Set some of the solver options
         solver_parameters = nonlinear_solver.parameters
@@ -488,7 +492,7 @@ class Pretreatment:
             tt = (k + 1) * self.dt
 
             if (k + 1) % save_every_n == 0:
-                self._save_solution(tt)
+                self.write_solution(tt)
 
             if self.show_plots and np.amin(np.abs(tt - plot_line_at)) < 1e-6:
                 self = update_figure_1(self, tt, t_final)
@@ -516,7 +520,7 @@ class Pretreatment:
 
         eps_lt_tol = 0.1
         del_eps_lt = eps_lt_tol * self.eps_lt
-        out_vec_2 = linstep(liq, self.eps_lt, self.eps_lt+del_eps_lt, 0.0, 1.0)
+        out_vec_2 = linstep(liq, self.eps_lt, self.eps_lt + del_eps_lt, 0.0, 1.0)
         out_vec *= out_vec_2
         # TODO: needed to soften the transition to nonzero k_evap on
         # only one side of eps_lt
@@ -538,7 +542,7 @@ class Pretreatment:
             k_evap_old = self.k_evap.vector()[:]
 
             relaxation_time = 10.0
-            delta_k_evap = 1.0/relaxation_time * (out_vec - k_evap_old)
+            delta_k_evap = 1.0 / relaxation_time * (out_vec - k_evap_old)
 
             k_evap_new = k_evap_old + delta_k_evap
 
@@ -551,7 +555,13 @@ class Pretreatment:
 
     # ================================================================
 
-    def _save_solution(self, tt):
+    def write_solution(self, tt):
+
+        self._write_xdmf_file(tt)
+        self._write_integrated_quantities(tt)
+
+    def _write_xdmf_file(self, tt):
+
         if not hasattr(self, "xdmf_file"):
 
             self.xdmf_file = XDMFFile("output/solution.xdmf")
@@ -609,15 +619,40 @@ class Pretreatment:
         self.xdmf_file.write(self._u[self.T_id], tt)
         self.xdmf_file.write(self.c_acid_save, tt)
 
-        eps_l_bar = assemble(self.u[self.eps_l_id]*dx)
-        eps_p_bar = assemble((1.0 - self.eps_p)*dx)
+    def _write_integrated_quantities(self, tt):
+        eps_l_bar = assemble(self.u[self.eps_l_id] * dx)
+        eps_p_bar = assemble((1.0 - self.eps_p) * dx)
 
-        fstar_x_bar = assemble(self.u[self.fstar_x_id]*dx)/eps_p_bar
-        cstar_xo_bar = assemble(self.u[self.cstar_xo_id]*dx)/eps_l_bar
-        cstar_xy_bar = assemble(self.u[self.cstar_xy_id]*dx)/eps_l_bar
-        cstar_f_bar = assemble(self.u[self.cstar_f_id]*dx)/eps_l_bar
+        # This is equivalent to assemble(...) since fstar_x0 is scalar
+        fstar_x0_bar = self.fstar_x0 * self.length / eps_p_bar
+        fstar_x_bar = assemble(self.u[self.fstar_x_id] * dx) / eps_p_bar
+        cstar_xo_bar = assemble(self.u[self.cstar_xo_id] * dx) / eps_l_bar
+        cstar_xy_bar = assemble(self.u[self.cstar_xy_id] * dx) / eps_l_bar
+        cstar_f_bar = assemble(self.u[self.cstar_f_id] * dx) / eps_l_bar
 
-        fis = self.rho_s*eps_p_bar/(self.rho_s*eps_p_bar + self.rho_l*eps_l_bar)
+        fis = self.rho_s * eps_p_bar / (self.rho_s * eps_p_bar + self.rho_l * eps_l_bar)
+
+        converted_mass = fstar_x0_bar - fstar_x_bar
+        conversion_percent = converted_mass / fstar_x0_bar
+
+        glucan_solid_fraction = self.glucan_solid_fraction_0 / (
+            1.0 - self.f_x0 * conversion_percent
+        )
+
+        # Olga's version from intuition (very close to above!)
+        # glucan_f = (1.0 - fstar_x_bar)*(self.glucan_solid_fraction_0)/(1.0 - self.f_x0)
+
+        if not hasattr(self, "integrated_quantities"):
+            self.integrated_quantities = {}
+
+        self.integrated_quantities["fis_0"] = fis
+        self.integrated_quantities["conv"] = conversion_percent
+        self.integrated_quantities["X_X"] = fstar_x_bar
+        self.integrated_quantities["X_G"] = glucan_solid_fraction
+        self.integrated_quantities["rho_x"] = (
+            cstar_xo_bar * self.M_xo + cstar_xy_bar * self.M_xy
+        )
+        self.integrated_quantities["rho_f"] = cstar_f_bar * self.M_f
 
         if self.verbose:
             print(f"Time {tt} of {self.t_final}.")
@@ -626,6 +661,11 @@ class Pretreatment:
             print(f"| Xylose (g/L):   {cstar_xy_bar*self.M_xy}")
             print(f"| Furfural (g/L): {cstar_f_bar*self.M_f}")
             print(f"| FIS (g/g):      {fis}")
+            print(
+                f"| rho_x (g/g):    {cstar_xo_bar*self.M_xo + cstar_xy_bar*self.M_xy}"
+            )
+            print(f"| X_G (g/g):      {glucan_solid_fraction}")
+            print(f"| conv:           {conversion_percent}")
             print()
 
     # ================================================================
