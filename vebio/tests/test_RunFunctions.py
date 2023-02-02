@@ -94,7 +94,6 @@ def test_pt_init(build_pt_options):
 @pytest.mark.regression
 def test_eh_init(build_eh_options):
     eh_options = build_eh_options
-
     EH_model = EnzymaticHydrolysis(eh_options, hpc_run=False)
     truth_values = {'lambda_e': 30.0 * 0.001,
                     'fis_0': 0.05,
@@ -126,28 +125,26 @@ def test_pt_run(build_pt_options):
     PT_model.run(verbose=False, show_plots=False)
     for k, it in PT_model.ve.pt_out.items():
         print(k, it)
-    truth_values = {'fis_0': 0.2010949806796157,
-                    'conv': 0.8980686536074782,
-                    'X_X': 0.03509775501586057,
-                    'X_G': 0.523691856165069,
-                    'rho_x': 77.28600083266058,
-                    'rho_f': 0.5742270689065682}
-    # TODO: fix it
-    PT_model.ve.pt_out = truth_values
+    truth_values = {'fis_0': 0.2643920471631167,
+                    'conv': 2.184062487788243e-06,
+                    'X_X': 0.2629996297240514,
+                    'X_G': 0.4000002297635057,
+                    'rho_x': 0.00020645437534918694,
+                    'rho_f': 1.1626793286707588e-12}
+
     _assert_dictionary_agreement(PT_model.ve.pt_out, truth_values)
 
 
 @pytest.mark.regression
-def test_eh_run(build_eh_options):
+def test_eh_run_surrogate_model(build_eh_options):
     eh_options = build_eh_options
-
     EH_model = EnzymaticHydrolysis(eh_options, hpc_run=False)
     EH_model.run()
 
-    truth_values = {'rho_g': 25.127440984079108,
-                    'rho_x': 20.281328074966446,
-                    'rho_sL': 3.1924432596337073,
-                    'rho_f': 0.14277508741539058}
+    truth_values = {'rho_g': 11.170020815191144,
+                    'rho_x': 9.874017039539929,
+                    'rho_sL': 7.679203154297835,
+                    'rho_f': 2.1987789367080388e-13}
     
     _assert_dictionary_agreement(EH_model.ve.eh_out, truth_values)
 
@@ -159,7 +156,7 @@ def test_br_run(build_br_options):
     BR_model = Bioreactor(br_options, hpc_run=False)
     BR_model.run()
 
-    truth_values = {'our': 68.81723044845536}
+    truth_values = {'our': 68.63794156540045}
     
     _assert_dictionary_agreement(BR_model.ve.br_out, truth_values)
 

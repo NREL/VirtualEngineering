@@ -493,8 +493,9 @@ class EnzymaticHydrolysis:
         # model, just in case we want to switch back or make both an
         # option. The lignocellulose model is superior.
         #run_script("two_phase_batch_model.py", path_to_input_file, verbose=verbose)
-        from driver_batch_lignocell_EH_VE import main
-        self.ve.eh_out = main(self.ve, self.show_plots)
+        
+        from driver_batch_lignocell_EH_VE import run_eh_lingocell
+        self.ve.eh_out = run_eh_lingocell(self.ve, self.show_plots)
         print('Finished Enzymatic Hydrolysis')
         if check_dict_for_nans(self.ve.eh_out):
             return True

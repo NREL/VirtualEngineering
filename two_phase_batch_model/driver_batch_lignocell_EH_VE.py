@@ -17,10 +17,9 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 
 import ehk_batch as ehk
-from vebio.Utilities import dict_to_yaml, yaml_to_dict
 
 
-def main(ve_params, show_plots=False):
+def run_eh_lingocell(ve_params, show_plots=False):
 
     ### Set kinetics parameters - these are from Lischeske and Stickel, 2019
     fitOuts = {'KdR': 0.05000000000000001,
