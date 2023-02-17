@@ -501,10 +501,8 @@ class Pretreatment:
 
             tt = (k + 1) * self.dt
 
-            if (k + 1) % save_every_n == 0:
+            if (k + 1) % save_every_n == 0 or (k+1) == t_steps:
                 self.write_solution(tt)
-
-        self.write_solution(t_final)
 
     # ================================================================
 
