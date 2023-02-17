@@ -153,7 +153,7 @@ class Pretreatment:
             self.f_x0 = 0.26  # xylan mass fraction
             self.eps_p0 = 0.8  # initial porosity
             self.f_is0 = 0.44  # initial solid fraction
-            self.T_s = 423.0  # steam temperature
+            self.T_s = 423.15  # steam temperature
             self.glucan_solid_fraction_0 = 0.4
         else:
             self.c_acid0 = ve_params.pt_in["initial_acid_conc"]
@@ -503,6 +503,8 @@ class Pretreatment:
 
             if (k + 1) % save_every_n == 0:
                 self.write_solution(tt)
+
+        self.write_solution(t_final)
 
     # ================================================================
 

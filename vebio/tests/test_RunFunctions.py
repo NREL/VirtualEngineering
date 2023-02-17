@@ -125,12 +125,20 @@ def test_pt_run(build_pt_options):
     PT_model.run(verbose=False, show_plots=False)
     for k, it in PT_model.ve.pt_out.items():
         print(k, it)
-    truth_values = {'fis_0': 0.2643920471631167,
-                    'conv': 2.184062487788243e-06,
-                    'X_X': 0.2629996297240514,
-                    'X_G': 0.4000002297635057,
-                    'rho_x': 0.00020645437534918694,
-                    'rho_f': 1.1626793286707588e-12}
+    # truth_values = {'fis_0': 0.2643920471631167,
+    #                 'conv': 2.184062487788243e-06,
+    #                 'X_X': 0.2629996297240514,
+    #                 'X_G': 0.4000002297635057,
+    #                 'rho_x': 0.00020645437534918694,
+    #                 'rho_f': 1.1626793286707588e-12}
+
+    truth_values = {"fis_0": 0.26396977377852415,
+                    "conv": 2.2371895054690545e-06,
+                    "X_X": 0.2629996207171339,
+                    "X_G": 0.4000002353524745,
+                    "rho_x": 0.00021101698779835924,
+                    "rho_f": 1.2168205554390875e-12}
+
 
     _assert_dictionary_agreement(PT_model.ve.pt_out, truth_values)
 
