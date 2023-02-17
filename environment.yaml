@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - fenics=2019
+  - dolfinx
   - matplotlib
   - jupyter
   - jupytext
