@@ -9,7 +9,12 @@ def get_plot_color(cmap, tt_frac):
     return cmap(0.9 * tt_frac)
 
 
-def draw_figures(t_final, path_to_data_files, tt_list=[0, 30, 300, 600, 1200], plot_fortran_truth=True):
+def draw_figures(
+    t_final,
+    path_to_data_files,
+    tt_list=[0, 30, 300, 600, 1200],
+    plot_fortran_truth=True,
+):
 
     cmap = cm.get_cmap("viridis")
 
@@ -44,50 +49,81 @@ def draw_figures(t_final, path_to_data_files, tt_list=[0, 30, 300, 600, 1200], p
 
         color = get_plot_color(cmap, tt / t_final)
         mew = 0.5
+        marker = "."
 
         ax1[0, 0].plot(
             data[:, 0],
             data[:, 1],
-            "x",
+            marker,
             markeredgewidth=mew,
             markersize=2,
-            label=f"{tt:.1f} s",
+            label=f"{tt:.0f} s",
             color=color,
         )
         # Liquid Fraction
         ax1[0, 1].plot(
-            data[:, 0], data[:, 2], "x", markeredgewidth=mew, markersize=2, color=color
+            data[:, 0],
+            data[:, 2],
+            marker,
+            markeredgewidth=mew,
+            markersize=2,
+            color=color,
         )
         # Temperature
         ax1[1, 0].plot(
-            data[:, 0], data[:, 3], "x", markeredgewidth=mew, markersize=2, color=color
+            data[:, 0],
+            data[:, 3],
+            marker,
+            markeredgewidth=mew,
+            markersize=2,
+            color=color,
         )
         # Acid
         ax1[1, 1].plot(
-            data[:, 0], data[:, 4], "x", markeredgewidth=mew, markersize=2, color=color
+            data[:, 0],
+            data[:, 4],
+            marker,
+            markeredgewidth=mew,
+            markersize=2,
+            color=color,
         )
 
         # Xylan Fraction
         ax2[0, 0].plot(
             data[:, 0],
             data[:, 5],
-            "x",
+            marker,
             markeredgewidth=mew,
             markersize=2,
-            label=f"{tt:.1f} s",
+            label=f"{tt:.0f} s",
             color=color,
         )
         # Xylooligomer
         ax2[0, 1].plot(
-            data[:, 0], data[:, 6], "x", markeredgewidth=mew, markersize=2, color=color
+            data[:, 0],
+            data[:, 6],
+            marker,
+            markeredgewidth=mew,
+            markersize=2,
+            color=color,
         )
         # Xylose
         ax2[1, 0].plot(
-            data[:, 0], data[:, 7], "x", markeredgewidth=mew, markersize=2, color=color
+            data[:, 0],
+            data[:, 7],
+            marker,
+            markeredgewidth=mew,
+            markersize=2,
+            color=color,
         )
         # Furfural
         ax2[1, 1].plot(
-            data[:, 0], data[:, 8], "x", markeredgewidth=mew, markersize=2, color=color
+            data[:, 0],
+            data[:, 8],
+            marker,
+            markeredgewidth=mew,
+            markersize=2,
+            color=color,
         )
 
     # plot truth curves:
@@ -95,11 +131,19 @@ def draw_figures(t_final, path_to_data_files, tt_list=[0, 30, 300, 600, 1200], p
         for z, truth_file in enumerate(["truth"]):
             for ctr_truth, tt_truth in enumerate([30, 300, 600, 1200]):
                 try:
-                    truth_filename = os.path.join("truth", f"{truth_file}_{tt_truth}s.dat")
+                    truth_filename = os.path.join(
+                        "truth", f"{truth_file}_{tt_truth}s.dat"
+                    )
                     truth_data = np.genfromtxt(truth_filename, skip_header=1)
                 except:
                     print("Could not find truth data file to read.")
                     break
+
+                if include_reflected:
+                    truth_data_reflected = np.copy(truth_data)
+                    truth_data_reflected = np.flipud(truth_data_reflected)
+                    truth_data_reflected[:, 0] *= -1
+                    truth_data = np.vstack((truth_data_reflected[:-1, :], truth_data))
 
                 rho_x = 730.0
                 rho_os = 1400.0
@@ -132,7 +176,7 @@ def draw_figures(t_final, path_to_data_files, tt_list=[0, 30, 300, 600, 1200], p
                     linestyle=ls,
                     linewidth=lw,
                     color=color,
-                    label=f"{truth_file} {tt_truth}.0s",
+                    label=f"{truth_file} {tt_truth} s",
                 )
                 ax1[0, 1].plot(
                     truth_data[:, 0],
@@ -162,7 +206,7 @@ def draw_figures(t_final, path_to_data_files, tt_list=[0, 30, 300, 600, 1200], p
                     linestyle=ls,
                     linewidth=lw,
                     color=color,
-                    label=f"{truth_file} {tt_truth}.0s",
+                    label=f"{truth_file} {tt_truth} s",
                 )
                 ax2[0, 1].plot(
                     truth_data[:, 0],

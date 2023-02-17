@@ -685,18 +685,50 @@ class Pretreatment:
         )
         self.integrated_quantities["rho_f"] = cstar_f_bar * self.M_f
 
+        if not hasattr(self, "integrated_quantities_array"):
+            self.integrated_quantities_array = []
+
+        data_header = [
+            "Time (s)",
+            "Xylan (g/g)",
+            "Xylog (g/L)",
+            "Xylose (g/L)",
+            "Furfural (g/L)",
+            "FIS (g/g)",
+            "rho_x (g/g)",
+            "X_G (g/g)",
+            "conv",
+        ]
+
+        self.integrated_quantities_array.append(
+            [
+                tt,
+                fstar_x_bar,
+                cstar_xo_bar * self.M_xo,
+                cstar_xy_bar * self.M_xy,
+                cstar_f_bar * self.M_f,
+                fis,
+                cstar_xo_bar * self.M_xo + cstar_xy_bar * self.M_xy,
+                glucan_solid_fraction,
+                conversion_percent,
+            ]
+        )
+
         if self.verbose:
-            print(f"Time {tt} of {self.t_final}.")
-            print(f"| Xylan (g/g):    {fstar_x_bar}")
-            print(f"| Xylog (g/L):    {cstar_xo_bar*self.M_xo}")
-            print(f"| Xylose (g/L):   {cstar_xy_bar*self.M_xy}")
-            print(f"| Furfural (g/L): {cstar_f_bar*self.M_f}")
-            print(f"| FIS (g/g):      {fis}")
-            print(
-                f"| rho_x (g/g):    {cstar_xo_bar*self.M_xo + cstar_xy_bar*self.M_xy}"
-            )
-            print(f"| X_G (g/g):      {glucan_solid_fraction}")
-            print(f"| conv:           {conversion_percent}")
+            for label, value in zip(data_header, self.integrated_quantities_array[-1]):
+                print(f"{label}: {value}")
             print()
+
+        output_array = np.array(self.integrated_quantities_array)
+        output_array_filename = os.path.join(
+            self.path_to_output, f"spatially_averaged_timeseries.csv"
+        )
+
+        np.savetxt(
+            output_array_filename,
+            output_array,
+            delimiter=",",
+            header=",".join(data_header),
+        )
 
     # ================================================================
