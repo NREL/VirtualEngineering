@@ -1,20 +1,30 @@
-from fenics import *
+import dolfinx
+import ufl
+from mpi4py import MPI
+
 import numpy as np
+
 import os
-import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-from PretreatmentVisualizer import update_figure_1, update_figure_2, finalize_figures
-from Utilities import linstep, smoothstep
+
+from Utilities import linstep, project
 
 
 class Pretreatment:
     def __init__(self, verbose, show_plots):
 
-        set_log_level(LogLevel.ERROR)
-
         self._init_constants()
         self.verbose = verbose
         self.show_plots = show_plots
+
+        self.comm = MPI.COMM_WORLD
+        self.rank = self.comm.Get_rank()
+        self.num_procs = self.comm.Get_size()
+
+        self.path_to_output = "output"
+        self.path_to_data_files = os.path.join(self.path_to_output, "spatially_varying")
+
+        os.makedirs(self.path_to_data_files, exist_ok=True)
 
     # ================================================================
 
@@ -70,24 +80,31 @@ class Pretreatment:
         self.length = 5e-3 / 2.0
         self.diam = 2.0 * self.length / 20.0
 
-        self.mesh = IntervalMesh(nn, 0.0, self.length)
-        self.ndim = self.mesh.topology().dim()
+        self.mesh = dolfinx.mesh.create_interval(self.comm, nn, [0.0, self.length])
+        self.ndim = self.mesh.topology.dim
 
     # ================================================================
 
     def build_functions(self, degree=2):
-        d1p3 = FiniteElement("P", interval, degree)
-        self.S = FunctionSpace(self.mesh, d1p3)
+        d1p3 = ufl.FiniteElement("P", self.mesh.ufl_cell(), degree)
+        self.S = dolfinx.fem.FunctionSpace(self.mesh, d1p3)
 
         self.num_comp = 7
 
-        d1p3_mix = MixedElement([d1p3 for k in range(self.num_comp)])
-        self.Q = FunctionSpace(self.mesh, d1p3_mix)
+        d1p3_mix = ufl.MixedElement([d1p3 for k in range(self.num_comp)])
+        self.Q = dolfinx.fem.FunctionSpace(self.mesh, d1p3_mix)
 
-        self.v = TestFunctions(self.Q)
+        self.spaces = []
+        self.maps = []
+        for i in range(self.num_comp):
+            space_i, map_i = self.Q.sub(i).collapse()
+            self.spaces.append(space_i)
+            self.maps.append(map_i)
 
-        self.u = Function(self.Q)
-        self.u_n = Function(self.Q)
+        self.v = ufl.TestFunctions(self.Q)
+
+        self.u = dolfinx.fem.Function(self.Q)
+        self.u_n = dolfinx.fem.Function(self.Q)
 
         self.c_s_id = 0
         self.eps_l_id = 1
@@ -119,10 +136,10 @@ class Pretreatment:
 
     def _define_reaction_rates(self):
         # Reaction rates (originally in A:cm^3/mol/s and E_A:kJ/mol)
-        self.k_xo = 1.0e9 * exp(-110.0e3 / (self.R * self.u[self.T_id]))
-        self.k_x1 = 8.0e11 * exp(-130.0e3 / (self.R * self.u[self.T_id]))
-        self.k_x2 = 2.5e8 * exp(-110.0e3 / (self.R * self.u[self.T_id]))
-        self.k_f = 7.0e5 * exp(-98.0e3 / (self.R * self.u[self.T_id]))
+        self.k_xo = 1.0e9 * ufl.exp(-110.0e3 / (self.R * self.u[self.T_id]))
+        self.k_x1 = 8.0e11 * ufl.exp(-130.0e3 / (self.R * self.u[self.T_id]))
+        self.k_x2 = 2.5e8 * ufl.exp(-110.0e3 / (self.R * self.u[self.T_id]))
+        self.k_f = 7.0e5 * ufl.exp(-98.0e3 / (self.R * self.u[self.T_id]))
 
     # ================================================================
 
@@ -162,54 +179,65 @@ class Pretreatment:
         self.eps_l0 = 0.25  # initial liquid volumetric fraction
         self.T_0 = 300.0
 
-        ic = Function(self.S)
+        ic = dolfinx.fem.Function(self.S)
 
         # u[self.eps_l_id]
-        ic.vector()[:] = self.eps_l0
-        assign(self.u.sub(self.eps_l_id), ic)
-        assign(self.u_n.sub(self.eps_l_id), ic)
+        ic.x.array[:] = self.eps_l0
+        self.u.x.array[self.maps[self.eps_l_id]] = ic.x.array[:]
+        self.u_n.x.array[self.maps[self.eps_l_id]] = ic.x.array[:]
+        # assign(self.u.sub(self.eps_l_id), ic)
+        # assign(self.u_n.sub(self.eps_l_id), ic)
 
         # u[self.fstar_x_id]
         self.fstar_x0 = self.f_x0 * (1.0 - self.eps_p0)
-        ic.vector()[:] = self.fstar_x0
-        assign(self.u.sub(self.fstar_x_id), ic)
-        assign(self.u_n.sub(self.fstar_x_id), ic)
+        ic.x.array[:] = self.fstar_x0
+        self.u.x.array[self.maps[self.fstar_x_id]] = ic.x.array[:]
+        self.u_n.x.array[self.maps[self.fstar_x_id]] = ic.x.array[:]
 
         # u[self.T_id]
-        ic.vector()[:] = self.T_0
-        assign(self.u.sub(self.T_id), ic)
-        assign(self.u_n.sub(self.T_id), ic)
+        ic.x.array[:] = self.T_0
+        self.u.x.array[self.maps[self.T_id]] = ic.x.array[:]
+        self.u_n.x.array[self.maps[self.T_id]] = ic.x.array[:]
 
     # ================================================================
 
     def _set_boundary_conditions(self):
+        def xlo_wall(x):
+            return np.isclose(x[0], 0.0)
 
-        # TODO: there's probably a better way of making this accessible from subdomain
-        domain_length = self.length
-        tol = 1e-12
+        def xhi_wall(x):
+            return np.isclose(x[0], self.length)
 
-        class x0_lo(SubDomain):
-            def inside(self, x, on_boundary):
-                return on_boundary and x[0] < tol
+        xlo_facets = dolfinx.mesh.locate_entities_boundary(
+            self.mesh, self.ndim - 1, xlo_wall
+        )
+        xhi_facets = dolfinx.mesh.locate_entities_boundary(
+            self.mesh, self.ndim - 1, xhi_wall
+        )
 
-        class x0_hi(SubDomain):
-            def inside(self, x, on_boundary):
-                return on_boundary and x[0] > (domain_length - tol)
+        xhi_c_s_dofs = dolfinx.fem.locate_dofs_topological(
+            self.Q.sub(self.c_s_id), self.ndim - 1, xhi_facets
+        )
+        xhi_T_dofs = dolfinx.fem.locate_dofs_topological(
+            self.Q.sub(self.T_id), self.ndim - 1, xhi_facets
+        )
 
         self.bcs = []
         self.bcs.append(
-            DirichletBC(self.Q.sub(self.c_s_id), Constant(self.c_sbulk), x0_hi(123))
+            dolfinx.fem.dirichletbc(
+                dolfinx.fem.Constant(self.mesh, self.c_sbulk),
+                xhi_c_s_dofs,
+                self.Q.sub(self.c_s_id),
+            )
         )
+
         self.bcs.append(
-            DirichletBC(self.Q.sub(self.T_id), Constant(self.T_s), x0_hi())
-        )  # TODO: remove this testing term once heat flux is working
-
-        boundary_markers = MeshFunction("size_t", self.mesh, self.ndim - 1)
-        boundary_markers.set_all(2)
-        x0_lo().mark(boundary_markers, 0)
-        x0_hi().mark(boundary_markers, 1)
-
-        self.ds = Measure("ds", domain=self.mesh, subdomain_data=boundary_markers)
+            dolfinx.fem.dirichletbc(
+                dolfinx.fem.Constant(self.mesh, self.T_s),
+                xhi_T_dofs,
+                self.Q.sub(self.T_id),
+            )
+        )
 
     # ================================================================
 
@@ -220,11 +248,11 @@ class Pretreatment:
         bb = self.f_x0 / (1.0 - self.f_x0) + aa
         cc = 1.0 - self.eps_p0
 
-        ss1 = aa ** 2 * cc ** 2
+        ss1 = aa**2 * cc**2
         ss2 = 2.0 * (aa - 2.0) * bb * cc * self.u_n[self.fstar_x_id]
-        ss3 = bb ** 2 * self.u_n[self.fstar_x_id] ** 2
+        ss3 = bb**2 * self.u_n[self.fstar_x_id] ** 2
 
-        ss = sqrt(ss1 - ss2 + ss3)
+        ss = ufl.sqrt(ss1 - ss2 + ss3)
 
         self.eps_p = -(aa * cc + bb * (self.u_n[self.fstar_x_id] - 2.0) + ss) / (
             2.0 * bb
@@ -240,17 +268,19 @@ class Pretreatment:
         self.D_s = (
             self.eps_g
             * self.d_pore
-            * sqrt((8.0 * self.R * self.u_n[self.T_id]) / (pi * self.M_w))
+            * ufl.sqrt((8.0 * self.R * self.u_n[self.T_id]) / (ufl.pi * self.M_w))
             / 3.0
         )
 
         self.D_xy_0 = (self.k_b * self.u_n[self.T_id]) / (
-            6.0 * pi * self.eta * self.r_xy
+            6.0 * ufl.pi * self.eta * self.r_xy
         )
         self.D_xo_0 = (self.k_b * self.u_n[self.T_id]) / (
-            6.0 * pi * self.eta * self.r_xo
+            6.0 * ufl.pi * self.eta * self.r_xo
         )
-        self.D_f_0 = (self.k_b * self.u_n[self.T_id]) / (6.0 * pi * self.eta * self.r_f)
+        self.D_f_0 = (self.k_b * self.u_n[self.T_id]) / (
+            6.0 * ufl.pi * self.eta * self.r_f
+        )
 
         self.D_xy = self.u_n[self.eps_l_id] * self.D_xy_0
         self.D_xo = self.u_n[self.eps_l_id] * self.D_xo_0
@@ -269,30 +299,21 @@ class Pretreatment:
             + self.eps_g * self.k_g
         )
 
-        self.heat_flux = (
-            self.h
-            / self.k_eff
-            * (self.u_n[self.T_id] - self.T_s)
-            * self.v[self.T_id]
-            * self.ds(1)
-        )  # TODO: fix heat flux specification, currently not used in formulation
+        # self.heat_flux = (
+        #     self.h
+        #     / self.k_eff
+        #     * (self.u_n[self.T_id] - self.T_s)
+        #     * self.v[self.T_id]
+        #     * self.ds(1)
+        # )  # TODO: fix heat flux specification, currently not used in formulation
 
         # --------------------------------
 
-        self.k_cond_ufl = conditional(
-            le(self.u_n[self.T_id], self.T_s), self.k_bar, 0.0
-        )
-        self.k_evap_ufl = conditional(
-            ge(self.u_n[self.T_id], self.T_s),
-            conditional(gt(self.u_n[self.eps_l_id], self.eps_lt), self.k_bar, 0.0),
-            0.0,
-        )
+        self.k_cond = dolfinx.fem.Function(self.S)
+        self.k_cond.x.array[:] = self.k_bar
 
-        self.k_cond = Function(self.S)
-        self.k_cond.vector()[:] = self.k_bar
-
-        self.k_evap = Function(self.S)
-        self.k_evap.vector()[:] = 0.0
+        self.k_evap = dolfinx.fem.Function(self.S)
+        self.k_evap.x.array[:] = 0.0
 
     # ================================================================
 
@@ -303,17 +324,17 @@ class Pretreatment:
         self.conv[self.eps_l_id] = 0
         self.conv[self.fstar_x_id] = 0
         self.conv[self.cstar_xo_id] = (
-            self.D_xo_0 / self.u_n[self.eps_l_id] * Dx(self.u_n[self.eps_l_id], 0)
+            self.D_xo_0 / self.u_n[self.eps_l_id] * ufl.Dx(self.u_n[self.eps_l_id], 0)
         )
         self.conv[self.cstar_xy_id] = (
-            self.D_xy_0 / self.u_n[self.eps_l_id] * Dx(self.u_n[self.eps_l_id], 0)
+            self.D_xy_0 / self.u_n[self.eps_l_id] * ufl.Dx(self.u_n[self.eps_l_id], 0)
         )
         self.conv[self.cstar_f_id] = (
-            self.D_f_0 / self.u_n[self.eps_l_id] * Dx(self.u_n[self.eps_l_id], 0)
+            self.D_f_0 / self.u_n[self.eps_l_id] * ufl.Dx(self.u_n[self.eps_l_id], 0)
         )
-        # self.conv[self.cstar_xo_id] = self.D_xo_0 / self.u_n[self.eps_l_id] * grad(self.u_n[self.eps_l_id])
-        # self.conv[self.cstar_xy_id] = self.D_xy_0 / self.u_n[self.eps_l_id] * grad(self.u_n[self.eps_l_id])
-        # self.conv[self.cstar_f_id] = self.D_f_0 / self.u_n[self.eps_l_id] * grad(self.u_n[self.eps_l_id])
+        # self.conv[self.cstar_xo_id] = self.D_xo_0 / self.u_n[self.eps_l_id] * ufl.grad(self.u_n[self.eps_l_id])
+        # self.conv[self.cstar_xy_id] = self.D_xy_0 / self.u_n[self.eps_l_id] * ufl.grad(self.u_n[self.eps_l_id])
+        # self.conv[self.cstar_f_id] = self.D_f_0 / self.u_n[self.eps_l_id] * ufl.grad(self.u_n[self.eps_l_id])
         self.conv[self.T_id] = 0
 
     # ================================================================
@@ -408,35 +429,37 @@ class Pretreatment:
     def _build_nonlinear_form(self):
         self.F = 0
 
-        # Use a placeholder value of dt to build the form, it will
+        # Use a placeholder value of dt to build the dolfinx.fem.form, it will
         # be updated with the correct value in solve(...)
-        self.dt_c = Constant(1.0)
+        self.dt_c = dolfinx.fem.Constant(self.mesh, 1.0)
 
         for k in range(self.num_comp):
 
-            self.F += (1.0 / self.dt_c) * (self.u[k] - self.u_n[k]) * self.v[k] * dx
+            self.F += (1.0 / self.dt_c) * (self.u[k] - self.u_n[k]) * self.v[k] * ufl.dx
 
             if self.conv[k] != 0:
-                # BEST ONE (move the grad onto the test space and swap sign)
-                self.F -= self.conv[k] * self.u[k] * Dx(self.v[k], 0) * dx
+                # BEST ONE (move the ufl.grad onto the test space and swap sign)
+                self.F -= self.conv[k] * self.u[k] * ufl.Dx(self.v[k], 0) * ufl.dx
 
-                # self.F += Dx(self.conv[k]*self.u[k], 0) * self.v[k] * dx
-                # self.F -= inner(self.conv[k]*self.u[k], grad(self.v[k]))*dx
-                # self.F += dot(self.conv[k], grad(self.u[k]))*self.v[k]*dx
+                # self.F += ufl.Dx(self.conv[k]*self.u[k], 0) * self.v[k] * ufl.dx
+                # self.F -= ufl.inner(self.conv[k]*self.u[k], ufl.grad(self.v[k]))*ufl.dx
+                # self.F += dot(self.conv[k], ufl.grad(self.u[k]))*self.v[k]*ufl.dx
 
             if self.diff[k] != 0:
-                # BEST ONE (move the grad onto the test space and swap sign)
-                self.F += self.diff[k] * Dx(self.u[k], 0) * Dx(self.v[k], 0) * dx
+                # BEST ONE (move the ufl.grad onto the test space and swap sign)
+                self.F += (
+                    self.diff[k] * ufl.Dx(self.u[k], 0) * ufl.Dx(self.v[k], 0) * ufl.dx
+                )
 
-                # self.F += self.diff[k] * inner(grad(self.u[k]), grad(self.v[k])) * dx
-                # self.F += self.diff[k] * dot(grad(self.u[k]), grad(self.v[k])) * dx
-                # self.F += inner(self.diff[k] * grad(self.u[k]), grad(self.v[k])) * dx
+                # self.F += self.diff[k] * ufl.inner(ufl.grad(self.u[k]), ufl.grad(self.v[k])) * ufl.dx
+                # self.F += self.diff[k] * dot(ufl.grad(self.u[k]), ufl.grad(self.v[k])) * ufl.dx
+                # self.F += ufl.inner(self.diff[k] * ufl.grad(self.u[k]), ufl.grad(self.v[k])) * ufl.dx
 
             if self.reac[k] != 0:
-                self.F -= self.reac[k] * self.u[k] * self.v[k] * dx
+                self.F -= self.reac[k] * self.u[k] * self.v[k] * ufl.dx
 
             if self.forc[k] != 0:
-                self.F -= self.forc[k] * self.v[k] * dx
+                self.F -= self.forc[k] * self.v[k] * ufl.dx
 
         # TODO: fix heat flux specification, currently not used in formulation
         # self.F += self.heat_flux
@@ -447,7 +470,7 @@ class Pretreatment:
 
         # Time stepping parameters
         self.dt = dt
-        self.dt_c.assign(self.dt)
+        self.dt_c.value = self.dt
 
         self.t_final = t_final
         t_steps = int(self.t_final / self.dt)
@@ -456,49 +479,30 @@ class Pretreatment:
         tt = 0
         self.write_solution(tt)
 
-        plot_line_at = np.array([self.dt, 30.0, 300.0, 600.0, 1200.0])
-        # plot_line_at = 60.0*np.array([1.7, 5.0, 10.0, 20.0])
+        du = ufl.TrialFunction(self.Q)
+        J = ufl.derivative(self.F, self.u, du)
 
-        du = TrialFunction(self.Q)
-        J = derivative(self.F, self.u, du)
-
-        nonlinear_problem = NonlinearVariationalProblem(self.F, self.u, self.bcs, J)
-        nonlinear_solver = NonlinearVariationalSolver(nonlinear_problem)
-
-        # Set some of the solver options
-        solver_parameters = nonlinear_solver.parameters
-        solver_parameters["nonlinear_solver"] = "snes"
-        # solver_parameters["snes_solver"]["linear_solver"] = "gmres"
-        # solver_parameters["snes_solver"]["preconditioner"] = "jacobi"
-        solver_parameters["snes_solver"]["report"] = False
-
-        T_dofs = self.Q.sub(self.T_id).dofmap().dofs()
-        eps_l_dofs = self.Q.sub(self.eps_l_id).dofmap().dofs()
+        nonlinear_problem = dolfinx.fem.petsc.NonlinearProblem(self.F, self.u, self.bcs)
+        nonlinear_solver = dolfinx.nls.petsc.NewtonSolver(self.comm, nonlinear_problem)
 
         for k in range(t_steps):
             # Solve the nonlinear problem
-            nonlinear_solver.solve()
+            nonlinear_solver.solve(self.u)
 
             # Extract a numpy vector for temp and eps_l
-            np_T = self.u.vector().vec()[T_dofs]
-            np_eps_l = self.u.vector().vec()[eps_l_dofs]
+            np_T = self.u.x.array[self.maps[self.T_id]]
+            np_eps_l = self.u.x.array[self.maps[self.eps_l_id]]
 
             self._update_k_cond(np_T)
             self._update_k_evap(np_T, np_eps_l)
 
             # Update previous solution
-            self.u_n.assign(self.u)
+            self.u_n.x.array[:] = self.u.x.array[:]
 
             tt = (k + 1) * self.dt
 
             if (k + 1) % save_every_n == 0:
                 self.write_solution(tt)
-
-            if self.show_plots and np.amin(np.abs(tt - plot_line_at)) < 1e-6:
-                self = update_figure_1(self, tt, t_final)
-                self = update_figure_2(self, tt, t_final)
-        if self.show_plots:
-            self = finalize_figures(self, t_final)
 
     # ================================================================
 
@@ -508,7 +512,7 @@ class Pretreatment:
         del_T = T_tol * self.T_s
         out_vec = linstep(temp, self.T_s - del_T, self.T_s + del_T, self.k_bar, 0.0)
 
-        self.k_cond.vector()[:] = out_vec
+        self.k_cond.x.array[:] = out_vec
 
     # ================================================================
 
@@ -525,20 +529,13 @@ class Pretreatment:
         # TODO: needed to soften the transition to nonzero k_evap on
         # only one side of eps_lt
 
-        # for k, v in enumerate(liq):
-        #     if v < self.eps_lt:
-        #         out_vec[k] = 0.0
+        relaxation_method = 3
 
-        # TODO: Dividing by 1,000, i.e., using k_bar = 10/1000 = 0.01 for the
-        # evaporation rate while still using 10.0 for the condensation rate
-        # gives good agreement but why is this necessary at all?
-        method = 3
-
-        if method == 1:
+        if relaxation_method == 1:
             k_evap_scaling = 0.05
             k_evap_new = k_evap_scaling * out_vec
 
-        elif method == 2:
+        elif relaxation_method == 2:
             k_evap_old = self.k_evap.vector()[:]
 
             relaxation_time = 10.0
@@ -548,87 +545,121 @@ class Pretreatment:
 
             # k_evap_new *= 0.4
 
-        elif method == 3:
+        elif relaxation_method == 3:
             k_evap_new = out_vec
 
-        self.k_evap.vector()[:] = k_evap_new
+        self.k_evap.x.array[:] = k_evap_new
 
     # ================================================================
 
     def write_solution(self, tt):
 
-        self._write_xdmf_file(tt)
+        self._save_spatially_varying_quantities(tt)
         self._write_integrated_quantities(tt)
 
-    def _write_xdmf_file(self, tt):
+    def _save_spatially_varying_quantities(self, tt):
+        output_array = []
 
-        if not hasattr(self, "xdmf_file"):
+        data_header = "X-position (cm),"
+        xpts = self.S.tabulate_dof_coordinates()[:, 0]
+        xpts = xpts * 100.0
+        xpts_id = np.argsort(xpts)
+        output_array.append(xpts[xpts_id])
 
-            self.xdmf_file = XDMFFile("output/solution.xdmf")
-            self.xdmf_file.parameters["flush_output"] = True
-            self.xdmf_file.parameters["functions_share_mesh"] = True
-            self.xdmf_file.parameters["rewrite_function_mesh"] = False
+        # Steam (M)
+        data_header += "Steam (M),"
+        c_s_vec = self.u.x.array[self.maps[self.c_s_id]]
+        c_s_vec = c_s_vec / 1000.0
+        output_array.append(c_s_vec[xpts_id])
 
-            self._u = self.u.split()
+        # Liquid Fraction
+        data_header += "Liquid Fraction,"
+        eps_l_vec = self.u.x.array[self.maps[self.eps_l_id]]
+        output_array.append(eps_l_vec[xpts_id])
 
-            self._u[self.c_s_id].rename("steam", "steam")
-            self._u[self.eps_l_id].rename("liquid", "liquid")
-            self._u[self.T_id].rename("temperature", "temperature")
+        # Temperature (K)
+        data_header += "Temperature (K),"
+        T_vec = self.u.x.array[self.maps[self.T_id]]
+        output_array.append(T_vec[xpts_id])
 
-            self.f_x = Function(self.S)
-            self.f_x.rename("xylan", "xylan")
+        # Acid (M)
+        data_header += "Acid (M),"
+        acid_fn = dolfinx.fem.Function(self.S)
+        acid_fn = project(self.c_acid, acid_fn)
+        acid_vec = acid_fn.x.array[:] / 1000.0
+        output_array.append(acid_vec[xpts_id])
 
-            self.c_xo = Function(self.S)
-            self.c_xo.rename("xylooligomer", "xylooligomer")
+        # Xylan Fraction
+        data_header += "Xylan Fraction,"
+        f_x_fn = dolfinx.fem.Function(self.S)
+        f_x_fn = project(self.u[self.fstar_x_id] / (1.0 - self.eps_p), f_x_fn)
+        f_x_vec = f_x_fn.x.array[:]
+        output_array.append(f_x_vec[xpts_id])
 
-            self.c_xy = Function(self.S)
-            self.c_xy.rename("xylose", "xylose")
+        # Xylooligomers (M)
+        data_header += "Xylooligomer (M),"
+        c_xo_vec = self.u.x.array[self.maps[self.cstar_xo_id]]
+        c_xo_vec = c_xo_vec / eps_l_vec / 1000.0
+        output_array.append(c_xo_vec[xpts_id])
 
-            self.c_f = Function(self.S)
-            self.c_f.rename("furfural", "furfural")
+        # Xylose (M)
+        data_header += "Xylose (M),"
+        c_xy_vec = self.u.x.array[self.maps[self.cstar_xy_id]]
+        c_xy_vec = c_xy_vec / eps_l_vec / 1000.0
+        output_array.append(c_xy_vec[xpts_id])
 
-            self.c_acid_save = Function(self.S)
-            self.c_acid_save.rename("acid", "acid")
+        # Furfural (mM)
+        data_header += "Furfural (mM)"
+        c_f_vec = self.u.x.array[self.maps[self.cstar_f_id]]
+        c_f_vec = c_f_vec / eps_l_vec
+        output_array.append(c_f_vec[xpts_id])
 
-        f_x_new = project(
-            self.u[self.fstar_x_id] / (1.0 - self.eps_p), self.S, solver_type="cg"
+        output_array = np.array(output_array).T
+        output_array_filename = os.path.join(
+            self.path_to_data_files, f"data_t{tt:05.0f}s.csv"
         )
-        c_xo_new = project(
-            self.u[self.cstar_xo_id] / self.u[self.eps_l_id], self.S, solver_type="cg"
-        )
-        c_xy_new = project(
-            self.u[self.cstar_xy_id] / self.u[self.eps_l_id], self.S, solver_type="cg"
-        )
-        c_f_new = project(
-            self.u[self.cstar_f_id] / self.u[self.eps_l_id], self.S, solver_type="cg"
-        )
-        c_acid_save_new = project(self.c_acid, self.S, solver_type="cg")
 
-        self.f_x.assign(f_x_new)
-        self.c_xo.assign(c_xo_new)
-        self.c_xy.assign(c_xy_new)
-        self.c_f.assign(c_f_new)
-        self.c_acid_save.assign(c_acid_save_new)
-
-        self.xdmf_file.write(self._u[self.c_s_id], tt)
-        self.xdmf_file.write(self._u[self.eps_l_id], tt)
-        self.xdmf_file.write(self.f_x, tt)
-        self.xdmf_file.write(self.c_xo, tt)
-        self.xdmf_file.write(self.c_xy, tt)
-        self.xdmf_file.write(self.c_f, tt)
-        self.xdmf_file.write(self._u[self.T_id], tt)
-        self.xdmf_file.write(self.c_acid_save, tt)
+        np.savetxt(
+            output_array_filename,
+            output_array,
+            delimiter=",",
+            header=data_header,
+        )
 
     def _write_integrated_quantities(self, tt):
-        eps_l_bar = assemble(self.u[self.eps_l_id] * dx)
-        eps_p_bar = assemble((1.0 - self.eps_p) * dx)
+        eps_l_bar = dolfinx.fem.assemble_scalar(
+            dolfinx.fem.form(self.u[self.eps_l_id] * ufl.dx)
+        )
+        eps_p_bar = dolfinx.fem.assemble_scalar(
+            dolfinx.fem.form((1.0 - self.eps_p) * ufl.dx)
+        )
 
-        # This is equivalent to assemble(...) since fstar_x0 is scalar
+        # This is equivalent to dolfinx.fem.assemble_scalar(...) since fstar_x0 is scalar
         fstar_x0_bar = self.fstar_x0 * self.length / eps_p_bar
-        fstar_x_bar = assemble(self.u[self.fstar_x_id] * dx) / eps_p_bar
-        cstar_xo_bar = assemble(self.u[self.cstar_xo_id] * dx) / eps_l_bar
-        cstar_xy_bar = assemble(self.u[self.cstar_xy_id] * dx) / eps_l_bar
-        cstar_f_bar = assemble(self.u[self.cstar_f_id] * dx) / eps_l_bar
+        fstar_x_bar = (
+            dolfinx.fem.assemble_scalar(
+                dolfinx.fem.form(self.u[self.fstar_x_id] * ufl.dx)
+            )
+            / eps_p_bar
+        )
+        cstar_xo_bar = (
+            dolfinx.fem.assemble_scalar(
+                dolfinx.fem.form(self.u[self.cstar_xo_id] * ufl.dx)
+            )
+            / eps_l_bar
+        )
+        cstar_xy_bar = (
+            dolfinx.fem.assemble_scalar(
+                dolfinx.fem.form(self.u[self.cstar_xy_id] * ufl.dx)
+            )
+            / eps_l_bar
+        )
+        cstar_f_bar = (
+            dolfinx.fem.assemble_scalar(
+                dolfinx.fem.form(self.u[self.cstar_f_id] * ufl.dx)
+            )
+            / eps_l_bar
+        )
 
         fis = self.rho_s * eps_p_bar / (self.rho_s * eps_p_bar + self.rho_l * eps_l_bar)
 
