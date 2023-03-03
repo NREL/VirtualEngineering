@@ -128,7 +128,7 @@ class Pretreatment:
         self.final_time = pt_options.final_time.widget.value
 
         pt_module_path = os.path.join(root_path,'pretreatment_model')
-        sys.path.append(os.path.join(pt_module_path, 'fenics'))
+        sys.path.append(os.path.join(pt_module_path, 'dolfinx'))
 
     ##############################################
     ### Properties
