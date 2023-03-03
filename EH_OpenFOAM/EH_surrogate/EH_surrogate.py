@@ -1,10 +1,11 @@
 import sys
+import os
 import numpy as np
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 from joblib import dump, load
 import matplotlib as mpl
 
-def main(ve_params):
+def run_eh(ve_params):
 
     fis0 = ve_params.eh_in['fis_0']
     xG0 = ve_params.pt_out['X_G']
@@ -44,7 +45,7 @@ def main(ve_params):
     idx = 4*(int(T)-1)
     s = -1 if (T%1 == 0) else T%1
 
-    with open('gp_EH.pkl', 'rb') as f_id:
+    with open(os.path.join(os.path.dirname(__file__), 'gp_EH.pkl'), 'rb') as f_id:
         for i in range(idx):
             gp = load(f_id)
 

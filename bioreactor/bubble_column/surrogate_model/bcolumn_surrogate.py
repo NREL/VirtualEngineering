@@ -1,11 +1,12 @@
 import sys
+import os
 import numpy as np
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 from joblib import dump, load
 import matplotlib as mpl
 
 
-def main(ve_params):
+def run_br_surrogate(ve_params):
 
     dt = 4
 
@@ -36,7 +37,7 @@ def main(ve_params):
     X = np.array([[gas_velocity, column_height, column_diameter, our_max, bubble_diameter]])
     X = 2.*(X - lb)/(ub - lb) - 1.
 
-    W1 = np.load('W1.npy')
+    W1 = np.load(os.path.join(os.path.dirname(__file__),'W1.npy'))
 
     idx = T/dt
     if (idx%1 == 0):
@@ -44,7 +45,7 @@ def main(ve_params):
     else:
         idx, s = int(idx+1), idx%1
 
-    with open('gp_bub_col.pkl', 'rb') as f_id:
+    with open(os.path.join(os.path.dirname(__file__), 'gp_bub_col.pkl'), 'rb') as f_id:
         for i in range(idx+1):
             gp = load(f_id)
             if (s > 0) and (i == idx-1):
