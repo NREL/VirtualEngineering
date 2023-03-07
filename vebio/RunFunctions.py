@@ -9,6 +9,8 @@ from vebio.Utilities import check_dict_for_nans
 
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
 
 class VE_params(object):
     ''' This  class is used for storing Virtual Engineering parameters 
@@ -124,7 +126,7 @@ class Pretreatment:
         self.final_time = pt_options.final_time.widget.value
 
         pt_module_path = os.path.join(root_path,'pretreatment_model')
-        sys.path.append(os.path.join(pt_module_path, 'fenics'))
+        sys.path.append(os.path.join(pt_module_path, 'dolfinx'))
 
     ##############################################
     ### Properties
@@ -197,7 +199,6 @@ class Pretreatment:
 ####        ENZYMATIC HYDROLYSIS
 ####
 ##################################################################################
-
 class EnzymaticHydrolysis:
     def __init__(self, eh_options, hpc_run):
         """ Initialize enzymatic hydrolysis class. Three 
@@ -503,7 +504,6 @@ class EnzymaticHydrolysis:
 ####        BIOREACTOR
 ####
 ##################################################################################
-
 class Bioreactor:
     def __init__(self, br_options, hpc_run):
         """ Initialize the aerobic bioreaction operation using 

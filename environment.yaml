@@ -3,18 +3,19 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - fenics=2019
-  - matplotlib
+  - black
+  - fenics-dolfinx
+  - joblib
   - jupyter
   - jupytext
-  - scipy
-  - pyyaml
-  - xlrd
-  - joblib
+  - matplotlib
   - pandas
   - pytest
+  - pyyaml
   - scikit-learn
+  - scipy
   - sphinx
+  - xlrd
   - pip
   - pip:
     - sphinx-rtd-theme
