@@ -1,42 +1,41 @@
 
-import os
-import sys
+# import os
+# import sys
 import scipy.optimize as opt
 import numpy as np
 
 # imports from vebio modules
 from vebio.WidgetFunctions import OptimizationWidget
-from vebio.Utilities import  yaml_to_dict
+# from vebio.Utilities import  yaml_to_dict
 from vebio.RunFunctions import Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor, VE_params
 # # add path for no-CFD EH model
 # sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
 
 class Optimization:
 
-    def __init__(self, fs_options, pt_options, eh_options, br_options, obj_widjet,
-                hpc_run, notebookDir):
+    def __init__(self, fs_options, pt_options, eh_options, br_options, obj_widjet, hpc_run):
 
         self.hpc_run  = hpc_run
-        self.notebookDir = notebookDir
         
         self.ve = VE_params()
         
-        self.output_names = [key for key in self.ve.__dict__.keys() if "out" in key]
+        # self.output_names = [key for key in self.ve.__dict__.keys() if "out" in key]
+        self.output_names = ['pt_out', 'eh_out', 'br_out']
         self.output_name = obj_widjet.value[0]
         self.objective_name = obj_widjet.value[-1]
         self.n_models = self.define_n_models()
 
         # Initialize models
         self.FS_model = Feedstock(fs_options)
-        self.PT_model = Pretreatment(notebookDir, pt_options)
+        self.PT_model = Pretreatment(pt_options)
         self.models_list = [self.FS_model, self.PT_model]
         if self.n_models > 1:
-            assert eh_options.model_type.value == 'CFD Surrogate'
-            self.EH_model = EnzymaticHydrolysis(notebookDir, eh_options, hpc_run)
+            assert eh_options.model_type.value != 'CFD Simulation'
+            self.EH_model = EnzymaticHydrolysis(eh_options, hpc_run)
             self.models_list.append(self.EH_model)
         if self.n_models > 2:
             assert br_options.model_type.value == 'CFD Surrogate' # Do optimization only with surrogate
-            self.BR_model = Bioreactor(notebookDir, br_options, hpc_run)
+            self.BR_model = Bioreactor(br_options, hpc_run)
             self.models_list.append(self.BR_model)
 
         self.fn_evals = 0
@@ -105,11 +104,9 @@ class Optimization:
                 if hasattr(model, var_name):
                     setattr(model, var_name, value)
                     
-        # Set global paths and files for communication between operations
-        os.chdir(self.notebookDir)
         # Run models
         for model in self.models_list:
-            flag_nan = model.run()
+            flag_nan = model.run(verbose=False)
             if flag_nan:
                 return np.nan
         # Read the outputs into a dictionary
@@ -132,6 +129,7 @@ class Optimization:
         # Set objactive scaling to normalize objective function to -1 before iterations 
         if self.fn_evals == 0:
             print('\nBeginning Optimization')
+            print('objective scaling:', self.objective_scaling)
             self.objective_scaling = -1.0/obj
             
         self.fn_evals += 1
@@ -184,9 +182,6 @@ class Optimization:
         grid_ravel = np.empty((dimension, nn**dimension))
         for i in range(dimension):
             grid_ravel[i] = grid_mesh[i].ravel() 
-        
-        # Set global paths and files for communication between operations
-        os.chdir(self.notebookDir)
         
         for i, dimensional_values in enumerate(grid_ravel.T):
             print(f'\nIteration #{i+1}, parameter values: {dimensional_values}')
