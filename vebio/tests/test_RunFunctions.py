@@ -139,7 +139,6 @@ def test_pt_run(build_pt_options):
                     "rho_x": 0.00021101698779835924,
                     "rho_f": 1.2168205554390875e-12}
 
-
     _assert_dictionary_agreement(PT_model.ve.pt_out, truth_values)
 
 

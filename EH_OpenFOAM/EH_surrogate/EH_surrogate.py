@@ -4,6 +4,7 @@ import numpy as np
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 from joblib import dump, load
 import matplotlib as mpl
+import warnings
 
 def run_eh(ve_params):
 
@@ -45,43 +46,45 @@ def run_eh(ve_params):
     idx = 4*(int(T)-1)
     s = -1 if (T%1 == 0) else T%1
 
-    with open(os.path.join(os.path.dirname(__file__), 'gp_EH.pkl'), 'rb') as f_id:
-        for i in range(idx):
-            gp = load(f_id)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        with open(os.path.join(os.path.dirname(__file__), 'gp_EH.pkl'), 'rb') as f_id:
+            for i in range(idx):
+                gp = load(f_id)
 
-        gp = load(f_id)
-        f0_convRate = gp.predict(X@W1[:, :, 0], return_std=False)[0]
-        gp = load(f_id)
-        f0_rhoG = gp.predict(X@W1[:, :, 1], return_std=False)[0]
-        gp = load(f_id)
-        f0_rhoX = gp.predict(X@W1[:, :, 2], return_std=False)[0]
-        gp = load(f_id)
-        f0_rhoL = gp.predict(X@W1[:, :, 3], return_std=False)[0]
+            gp = load(f_id)
+            f0_convRate = gp.predict(X@W1[:, :, 0], return_std=False)[0]
+            gp = load(f_id)
+            f0_rhoG = gp.predict(X@W1[:, :, 1], return_std=False)[0]
+            gp = load(f_id)
+            f0_rhoX = gp.predict(X@W1[:, :, 2], return_std=False)[0]
+            gp = load(f_id)
+            f0_rhoL = gp.predict(X@W1[:, :, 3], return_std=False)[0]
 
-        if (s > 0):
-            gp = load(f_id)
-            f1_convRate = gp.predict(X@W1[:, :, 0], return_std=False)[0]
-            gp = load(f_id)
-            f1_rhoG = gp.predict(X@W1[:, :, 1], return_std=False)[0]
-            gp = load(f_id)
-            f1_rhoX = gp.predict(X@W1[:, :, 2], return_std=False)[0]
-            gp = load(f_id)
-            f1_rhoL = gp.predict(X@W1[:, :, 3], return_std=False)[0]
+            if (s > 0):
+                gp = load(f_id)
+                f1_convRate = gp.predict(X@W1[:, :, 0], return_std=False)[0]
+                gp = load(f_id)
+                f1_rhoG = gp.predict(X@W1[:, :, 1], return_std=False)[0]
+                gp = load(f_id)
+                f1_rhoX = gp.predict(X@W1[:, :, 2], return_std=False)[0]
+                gp = load(f_id)
+                f1_rhoL = gp.predict(X@W1[:, :, 3], return_std=False)[0]
 
-            f_convRate = f0_convRate*(1-s) + f1_convRate*s
-            f_rhoG = f0_rhoG*(1-s) + f1_rhoG*s
-            f_rhoX = f0_rhoX*(1-s) + f1_rhoX*s
-            f_rhoL = f0_rhoL*(1-s) + f1_rhoL*s
-        else:
-            f_convRate = f0_convRate
-            f_rhoG = f0_rhoG
-            f_rhoX = f0_rhoX
-            f_rhoL = f0_rhoL
+                f_convRate = f0_convRate*(1-s) + f1_convRate*s
+                f_rhoG = f0_rhoG*(1-s) + f1_rhoG*s
+                f_rhoX = f0_rhoX*(1-s) + f1_rhoX*s
+                f_rhoL = f0_rhoL*(1-s) + f1_rhoL*s
+            else:
+                f_convRate = f0_convRate
+                f_rhoG = f0_rhoG
+                f_rhoX = f0_rhoX
+                f_rhoL = f0_rhoL
 
-        f_convRate = np.power(10., f_convRate)
-        f_rhoG = fis0*f_rhoG
-        f_rhoX = f_rhoX + rhox0
-        f_rhoL = fis0*f_rhoL
+            f_convRate = np.power(10., f_convRate)
+            f_rhoG = fis0*f_rhoG
+            f_rhoX = f_rhoX + rhox0
+            f_rhoL = fis0*f_rhoL
 
     #f_rhoF = 
 

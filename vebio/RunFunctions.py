@@ -2,13 +2,12 @@ import sys
 import os
 import contextlib
 import subprocess
-import glob
-
 import numpy as np
 
-
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import yaml_to_dict, dict_to_yaml, check_dict_for_nans
+from vebio.Utilities import check_dict_for_nans
+
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -32,7 +31,6 @@ class VE_params(object):
 
     # TODO:
     # def from_file(params_filename):
-
     # def write_to_file():
 
 
@@ -88,7 +86,7 @@ class Feedstock:
             raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
         self.ve.feedstock['initial_porosity'] = float(a)
 
-    def run(self):
+    def run(self, verbose=False):
         return False
 
 
