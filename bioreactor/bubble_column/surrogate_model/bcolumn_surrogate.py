@@ -4,6 +4,7 @@ import numpy as np
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
 from joblib import dump, load
 import matplotlib as mpl
+import warnings
 
 
 def run_br_surrogate(ve_params):
@@ -45,19 +46,21 @@ def run_br_surrogate(ve_params):
     else:
         idx, s = int(idx+1), idx%1
 
-    with open(os.path.join(os.path.dirname(__file__), 'gp_bub_col.pkl'), 'rb') as f_id:
-        for i in range(idx+1):
-            gp = load(f_id)
-            if (s > 0) and (i == idx-1):
-                f_0 = gp.predict(X@W1, return_std=False)[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        with open(os.path.join(os.path.dirname(__file__), 'gp_bub_col.pkl'), 'rb') as f_id:
+            for i in range(idx+1):
+                gp = load(f_id)
+                if (s > 0) and (i == idx-1):
+                    f_0 = gp.predict(X@W1, return_std=False)[0]
 
-        if (s == -1):
-            ff = np.power(10., gp.predict(X@W1, return_std=False)[0])
-        else:
-            f_1 = gp.predict(X@W1, return_std=False)[0]
-            ff = np.power(10., f_0*(1-s) + f_1*s)
+            if (s == -1):
+                ff = np.power(10., gp.predict(X@W1, return_std=False)[0])
+            else:
+                f_1 = gp.predict(X@W1, return_std=False)[0]
+                ff = np.power(10., f_0*(1-s) + f_1*s)
 
-        ff = our_max * ff
+            ff = our_max * ff
 
     print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
     print(F'OUR = {ff:.4f} mol/m^3/hr')
