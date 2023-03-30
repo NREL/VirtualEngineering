@@ -30,6 +30,8 @@ author = 'Ethan Young, Jonathan Stickel, Hari Sitaraman, Andrew Glaws'
 extensions = ['sphinx.ext.autodoc',
 			  'sphinx.ext.napoleon',
 			  'sphinx.ext.autosectionlabel',
+			  'nbsphinx',
+			  'nbsphinx_link',
 			  # 'sphinx_rtd_theme',
 			  # 'sphinx.ext.intersphinx',
 ]

@@ -56,20 +56,8 @@ class WidgetCollection:
 
             widget_layout = default_widget_layout.copy()
 
-            if hasattr(widget, 'contains_sub_widgets'):
-                widget.lower.style = widget_style
-                
-                sub_width = int((widget_width - description_width)/2.0 - 2.0)
-                
-                widget.lower.layout = {'width': '%dpx' % (description_width + sub_width)}
-                widget.upper.layout = {'width': '%dpx' % (sub_width)}
-                
-                html_label = widgets.HTMLMath(
-                    value = widget.lower.description_tooltip,
-                    layout = html_layout
-                )
-                
-                hbox = HBox([widget.lower, widget.upper, html_label], layout = box_layout)
+            if hasattr(widget, 'custom_display'):
+                widget.custom_display()
 
             else:
                 # Set this widget's style and layout
@@ -80,8 +68,24 @@ class WidgetCollection:
                     widget_layout.update({'padding': '0px 0px 0px %dpx ' % (shift_amt)})
 
                 elif type(widget) == RadioButtons:
-                    height = (len(widget.options)-2)*20 + 2*24
+                    height_per_option = 20
+                    top_bottom_padding = 4
+                    height = len(widget.options)*height_per_option + 2*top_bottom_padding
                     widget_layout.update({'height': '%dpx' % (height)})
+
+                    desc_widg_space = 5
+                    desc_width = description_width + desc_widg_space
+                    widget_layout.update({'width': f'{widget_width-desc_width:.0f}px'})
+
+                    widget.desc_label = widgets.HTMLMath(
+                        value = widget.description,
+                        layout = {'width': f'{desc_width:.0f}px',
+                        'display': 'flex',
+                        'justify_content': 'flex-end',
+                        'padding': '0px 5px 0px 0px'}
+                    )
+
+                    widget.description = ""
 
                 if hasattr(widget, 'custom_layout'):
                     widget_layout.update(widget.custom_layout)
@@ -94,9 +98,12 @@ class WidgetCollection:
                 )
 
                 # Organize this widget with more layout options
-                hbox = HBox([widget, html_label], layout = box_layout)
+                if hasattr(widget, 'desc_label'):
+                    hbox = HBox([widget.desc_label, widget, html_label], layout = box_layout)
+                else:
+                    hbox = HBox([widget, html_label], layout = box_layout)
 
-            display(hbox)
+                display(hbox)
 
     def export_widgets_to_dict(self, parent_name=None):
         """Store all widget values in dictionary.
@@ -131,7 +138,11 @@ class WidgetCollection:
         for widget_name, widget in self.__dict__.items():
             # Get the name and current state of each widget
 
-            widget_value = widget.value
+            if isinstance(widget, OptimizationWidget):
+                widget_value = widget.widget.value
+
+            else:
+                widget_value = widget.value
 
             if hasattr(widget, 'scaling_fn'):
                 # print('pre-scaling value = %f' % (widget_value))
@@ -218,3 +229,148 @@ class ValueRangeWidget:
 
         self.upper.observe(swap_range_values, names='value')
         self.lower.observe(swap_range_values, names='value')
+
+    def custom_display(self):
+        """Displays a value range widget.
+
+        This displays a value range widget including the formatting
+        of the two fields side by side with a single label.
+
+        Args:
+            None
+            
+        Returns:
+            None
+
+        """
+
+        # Set default viewing options
+        widget_width = 350
+        description_width = 125
+        html_width = 350
+        padding = 5
+        
+        # Define display options
+        default_widget_layout = {'width': '%dpx' % (widget_width)}
+        widget_style = {'description_width': '%dpx' % (description_width)}
+        html_layout = {'width':'%dpx' % (html_width), 'margin': '0px 0px 0px %dpx' % (2*padding)}
+        box_layout = {'padding': '0px %dpx 0px %dpx' % (padding, padding), 'align_items': 'center'}
+
+        self.lower.style = widget_style
+        
+        sub_width = int((widget_width - description_width)/2.0 - 2.0)
+        
+        self.lower.layout = {'width': '%dpx' % (description_width + sub_width)}
+        self.upper.layout = {'width': '%dpx' % (sub_width)}
+        
+        self.html_label = widgets.HTMLMath(
+            value = self.lower.description_tooltip,
+            layout = html_layout
+        )
+        
+        hbox = HBox([self.lower, self.upper, self.html_label], layout = box_layout)
+
+        display(hbox)
+
+
+
+#================================================================
+
+class OptimizationWidget:
+    """A wrapper around ipywidgets with options for optimization problems.
+
+    This custom widget wraps around a specified ipywidget and includes
+    checkboxes to specify whether or not this widget should be used as
+    a control value or an objective value.
+
+    """
+
+    def __init__(self, widget_name, widget_options):
+        
+        """Initialize an optimization widget.
+
+        This creates an optimization widget of type ``widget_name``
+        which must be a valid ipywidget type. ``widget_options`` determines
+        the set up and properties of this widget.
+
+        Args:
+            widget_name (string):
+                The name of the ipywidget to create, e.g., `BoundedFloatText`
+            widget_options (dict):
+                A dictionary containing all the setup values for a widget of type
+                ``widget_name``. For example::
+
+                    widget_options = {'value': 0.25,
+                                      'min': -1.0,
+                                      'max': 1.0,
+                                      'description': Short Description
+                                      'description_tooltip': A long description...}
+
+        Returns:
+            None
+
+        """
+
+        self.widget = getattr(widgets, widget_name)(**widget_options)
+
+        self.is_control = widgets.Checkbox(value = False,
+                                           description = 'Control',
+                                           disabled = False)
+
+        def control_button(change):
+            return
+
+        self.is_control.observe(control_button, names='value')
+
+
+    def custom_display(self):
+        """Displays an optimization widget.
+
+        This displays an optimization widget including the formatting
+        of the boxes used to toggle control/objective specification.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        """
+
+        widget_width = 350
+        description_width = 125
+
+        checkbox_width = 100
+        checkbox_description_width = 0
+
+        html_width = 350
+        padding = 5
+        
+        # Define display options
+        widget_layout = {'width': f'{widget_width:.0f}px'}
+        widget_style = {'description_width': f'{description_width:.0f}px'}
+
+        checkbox_layout = {'width': f'{checkbox_width:.0f}px'}
+        checkbox_style = {'description_width': f'{checkbox_description_width:.0f}px'}
+
+        html_layout = {'width': f'{html_width:.0f}px',
+                       'margin': f'0px 0px 0px {2.0*padding:.0f}px'}
+
+        box_layout = {'padding': f'0px {padding:.0f}px 0px {padding:.0f}px',
+                      'align_items': 'center'}
+
+        self.widget.layout = widget_layout
+        self.widget.style = widget_style
+
+        self.is_control.layout = checkbox_layout
+        self.is_control.style = checkbox_style
+        
+        self.html_label = widgets.HTMLMath(
+            value = self.widget.description_tooltip,
+            layout = html_layout
+        )
+        
+        hbox = HBox([self.widget, self.is_control,  self.html_label], layout = box_layout)
+
+
+        display(hbox)
