@@ -34,6 +34,32 @@ class VE_params(object):
     # def write_to_file():
 
 
+class VE_params(object):
+    ''' This  class is used for storing Virtual Engineering parameters 
+        so they can be accesed from any model. It uses the Borg pattern. 
+        The Borg pattern (also known as the Monostate pattern) is a way to
+        implement singleton behavior, but instead of having only one instance
+        of a class, there are multiple instances that share the same state. In
+        other words, the focus is on sharing state instead of sharing instance.
+    '''
+
+    __shared_state = {}
+
+    def __init__(self):
+        self.__dict__ = self.__shared_state
+
+    def __str__(self):
+        return self.__shared_state
+
+    # TODO:
+    # def from_file(params_filename):
+
+    # def write_to_file():
+
+
+
+
+
 class Feedstock:
     def __init__(self, fs_options):
         """Through the ``fs_options`` widgets, the user controls the following
@@ -399,6 +425,8 @@ class EnzymaticHydrolysis:
         # max_cores = int(36*num_nodes)
         
         # Fill output dict with nans, so Bioreactor know we are still running
+        self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
+
         self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
 
         username = os.environ['USER']
