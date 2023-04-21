@@ -285,7 +285,7 @@ class OptimizationWidget:
 
     """
 
-    def __init__(self, widget_name, widget_options):
+    def __init__(self, widget_name, widget_options, controlvalue=False):
         
         """Initialize an optimization widget.
 
@@ -313,7 +313,7 @@ class OptimizationWidget:
 
         self.widget = getattr(widgets, widget_name)(**widget_options)
 
-        self.is_control = widgets.Checkbox(value = False,
+        self.is_control = widgets.Checkbox(value = controlvalue,
                                            description = 'Control',
                                            disabled = False)
 

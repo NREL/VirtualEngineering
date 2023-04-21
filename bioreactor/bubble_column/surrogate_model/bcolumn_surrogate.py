@@ -7,7 +7,7 @@ import matplotlib as mpl
 import warnings
 
 
-def run_br_surrogate(ve_params):
+def run_br_surrogate(ve_params, verbose=True):
 
     dt = 4
 
@@ -26,13 +26,14 @@ def run_br_surrogate(ve_params):
     bubble_diameter = ve_params.br_in['bubble_diameter']
     T = ve_params.br_in['t_final']
 
-    print('\nINPUTS')
-    print(f'Gas velocity = {gas_velocity:.2f} m/s')
-    print(f'Column height = {column_height:.2f} m')
-    print(f'Column diameter = {column_diameter:.2f} m')
-    print(f'Bubble diameter = {bubble_diameter:.4f} m')
-    print(f'OUR_max = {our_max:.2f} mol/m^3/hr')
-    print(f't_final = {T:.1f} s')
+    if verbose:
+        print('\nINPUTS')
+        print(f'Gas velocity = {gas_velocity:.2f} m/s')
+        print(f'Column height = {column_height:.2f} m')
+        print(f'Column diameter = {column_diameter:.2f} m')
+        print(f'Bubble diameter = {bubble_diameter:.4f} m')
+        print(f'OUR_max = {our_max:.2f} mol/m^3/hr')
+        print(f't_final = {T:.1f} s')
 
     lb, ub = np.array([0.01, 10., 1., 5., 0.003]), np.array([0.1, 50., 6., 100., 0.008])
     X = np.array([[gas_velocity, column_height, column_diameter, our_max, bubble_diameter]])
@@ -62,8 +63,9 @@ def run_br_surrogate(ve_params):
 
             ff = our_max * ff
 
-    print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
-    print(F'OUR = {ff:.4f} mol/m^3/hr')
+    if verbose:
+        print('\nFINAL OUTPUTS (at t = %.1f seconds)' % (T))
+        print(F'OUR = {ff:.4f} mol/m^3/hr')
 
     # Save the outputs into a dictionary
     output_dict = {}

@@ -106,7 +106,7 @@ class Optimization:
                     
         # Run models
         for model in self.models_list:
-            flag_nan = model.run(verbose=False)
+            flag_nan = model.run(verbose=verbose)
             if flag_nan:
                 return np.nan
         # Read the outputs into a dictionary
@@ -157,7 +157,7 @@ class Optimization:
         # print('Controls:', free_variables)
 
 
-    def parameter_grid_sweep(self, nn, results_file='sweep_params.cvs'):
+    def parameter_grid_sweep(self, nn, results_file='sweep_params.cvs', verbose=False):
         """_summary_
 
         :param nn: (int) The number of points to select across each value
@@ -184,9 +184,9 @@ class Optimization:
             grid_ravel[i] = grid_mesh[i].ravel() 
         
         for i, dimensional_values in enumerate(grid_ravel.T):
-            print(f'\nIteration #{i+1}, parameter values: {dimensional_values}')
+            print(f'Iteration #{i+1}, parameter values: {dimensional_values}')
             # Run models 
-            obj = self.run_models_with_new_values(dimensional_values)
+            obj = self.run_models_with_new_values(dimensional_values, verbose=verbose)
             # Write output
             with open(results_file, 'a') as fp:
                 str_values = ''
