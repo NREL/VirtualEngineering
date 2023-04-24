@@ -6,18 +6,18 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
 
-# Virtual Engineering
+# Virtual Engineering with Optimization
 
 The first step is to select "Cell" > "Run All" from the toolbar.  This will initialize all the widgets and allow you to interact with the unit operation options via the GUI controls.
 
-<img src="docs/figures/three_unit_flow.png" alt="flowchart" width="800"/>
+<img src="../figures/three_unit_flow.png" alt="flowchart" width="800"/>
 
 ```python
 from ipywidgets import *
@@ -73,12 +73,9 @@ fs_options.initial_porosity = OptimizationWidget('BoundedFloatText', initial_por
 
 
 #================================================================
-
 # Display the widgets
 fs_options.display_all_widgets()
-
 #================================================================
-
 ```
 
 ### 1. Pretreatment Operation
@@ -97,7 +94,7 @@ initial_acid_conc_options = {'value': 0.0001,
     'tooltip': 'The initial concentration of acid (mol/mL).  Must be in the range [0, 1]'}
 
 #### this needs to be changed to g acid / g bone-dry biomass (then converted in the run function) ####
-pt_options.initial_acid_conc = OptimizationWidget('BoundedFloatText', initial_acid_conc_options)
+pt_options.initial_acid_conc = OptimizationWidget('BoundedFloatText', initial_acid_conc_options, controlvalue=True)
 
 steam_temperature_options = {'value': 150.0,
     'max': 250.3,
@@ -165,7 +162,7 @@ lambda_e_options = {'value': 30.0,
     'description': 'Enzymatic Load',
     'tooltip': 'Ratio of the enzyme mass to the total solution mass (mg/g).  Must be in the range [0, 1000]'
 }
-eh_options.lambda_e = OptimizationWidget('BoundedFloatText', lambda_e_options)
+eh_options.lambda_e = OptimizationWidget('BoundedFloatText', lambda_e_options, controlvalue=True)
 # Conversion from mg/g to kg/kg
 eh_options.lambda_e.scaling_fn = lambda e : 0.001 * e
 
@@ -313,19 +310,16 @@ sweep_button = widgets.Button(
     button_style = 'primary'
 )
 #================================================================
-
 # run_button_output = widgets.Output()
 display(sweep_button)
-
 #================================================================
 
 # Define a function to be executed each time the run button is pressed
 def sweep_button_action(b):
     clear_output()
     display(sweep_button)
-    sweep_results_file = 'sweep_params.csv'
     Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget, hpc_run)
-    Opt.parameter_grid_sweep(nn=4, results_file=sweep_results_file)
+    Opt.parameter_grid_sweep(nn=4, results_file='sweep_params.csv')
     
 sweep_button.on_click(sweep_button_action)
 #===============================================================
@@ -334,18 +328,16 @@ sweep_button.on_click(sweep_button_action)
 ```python
 import matplotlib.pyplot as plt
 
-param_sweep_fn = os.path.join('sweep_params.csv')
+param_sweep_fn = 'sweep_params.csv'
 if os.path.exists(param_sweep_fn):
-    with open(param_sweep_fn, 'r')as f:
+    with open(param_sweep_fn, 'r') as f:
         firstline = f.readline().split(',')
-    Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget,
-               hpc_run)
+    Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget, hpc_run)
     sweeps = np.loadtxt(param_sweep_fn, delimiter=',', skiprows=1)
     bounds = Opt.var_real_bounds
     extent = bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]
     nn = int(np.sqrt(len(sweeps)))
     OUR = sweeps[:, 3].reshape(nn, nn)
-
     shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
     bar = plt.colorbar(shw)
     bar.set_label(firstline[-1])

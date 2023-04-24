@@ -6,7 +6,7 @@ from joblib import dump, load
 import matplotlib as mpl
 import warnings
 
-def run_eh(ve_params):
+def run_eh(ve_params, verbose=True):
 
     fis0 = ve_params.eh_in['fis_0']
     xG0 = ve_params.pt_out['X_G']
@@ -87,13 +87,13 @@ def run_eh(ve_params):
             f_rhoL = fis0*f_rhoL
 
     #f_rhoF = 
-
-    print('\nFINAL OUTPUTS (at t = %4.4g hours)' % (T))
-    print('Conversion Rate = %.4f' % f_convRate)
-    print('rho_g = %4.4g g/L' % f_rhoG)
-    print('rho_x = %4.4g g/L' % f_rhoX)
-    print('rho_sL = %4.4g g/L' % f_rhoL)
-    print('rho_f = %4.4g g/L' % rho_f)
+    if verbose:
+        print('\nFINAL OUTPUTS (at t = %4.4g hours)' % (T))
+        print('Conversion Rate = %.4f' % f_convRate)
+        print('rho_g = %4.4g g/L' % f_rhoG)
+        print('rho_x = %4.4g g/L' % f_rhoX)
+        print('rho_sL = %4.4g g/L' % f_rhoL)
+        print('rho_f = %4.4g g/L' % rho_f)
 
     # Save the outputs into a dictionary for use as inputs for bioreactor sims
     output_dict = {}

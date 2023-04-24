@@ -14,10 +14,8 @@ dependencies:
   - pyyaml
   - scikit-learn
   - scipy
-  - sphinx
   - xlrd
   - pip
   - pip:
-    - sphinx-rtd-theme
     - -e .
 prefix: /opt/anaconda3/envs/virteng-env

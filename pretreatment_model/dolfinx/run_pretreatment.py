@@ -28,7 +28,8 @@ def run_pt(ve_params=None, verbose=True, show_plots=True):
 
     t2 = time.time()
 
-    print(f"Pretreatment wallclock time: {t2-t1:.2f} s.")
+    if verbose:
+        print(f"Pretreatment wallclock time: {t2-t1:.2f} s.")
 
     output_dict = PT.integrated_quantities.copy()
 

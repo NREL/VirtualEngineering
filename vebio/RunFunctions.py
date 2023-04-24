@@ -34,6 +34,32 @@ class VE_params(object):
     # def write_to_file():
 
 
+class VE_params(object):
+    ''' This  class is used for storing Virtual Engineering parameters 
+        so they can be accesed from any model. It uses the Borg pattern. 
+        The Borg pattern (also known as the Monostate pattern) is a way to
+        implement singleton behavior, but instead of having only one instance
+        of a class, there are multiple instances that share the same state. In
+        other words, the focus is on sharing state instead of sharing instance.
+    '''
+
+    __shared_state = {}
+
+    def __init__(self):
+        self.__dict__ = self.__shared_state
+
+    def __str__(self):
+        return self.__shared_state
+
+    # TODO:
+    # def from_file(params_filename):
+
+    # def write_to_file():
+
+
+
+
+
 class Feedstock:
     def __init__(self, fs_options):
         """Through the ``fs_options`` widgets, the user controls the following
@@ -182,14 +208,16 @@ class Pretreatment:
         :param verbose: (bool, optional) 
             Option to show plots, default True.
         """
-        print('\nRunning Pretreatment')
+        if verbose:
+            print('\nRunning Pretreatment')
     
         if show_plots is None:
             show_plots = self.show_plots
         from run_pretreatment import run_pt
         self.ve.pt_out = run_pt(self.ve, verbose, show_plots)
 
-        print('Finished Pretreatment')
+        if verbose:
+            print('Finished Pretreatment')
         if check_dict_for_nans(self.ve.pt_out):
             return True
         return False
@@ -331,7 +359,8 @@ class EnzymaticHydrolysis:
 
     def run_eh_cfd_simulation(self, verbose=True):
         
-        print('\nRunning Enzymatic Hydrolysis Model')
+        if verbose:
+            print('\nRunning Enzymatic Hydrolysis Model')
         globalVars = self.get_globalVars()
         write_file_with_replacements('constant/globalVars', globalVars)
 
@@ -398,6 +427,8 @@ class EnzymaticHydrolysis:
         # Fill output dict with nans, so Bioreactor know we are still running
         self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
 
+        self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
+
         username = os.environ['USER']
         jobname = 'eh_cfd'
 
@@ -430,8 +461,8 @@ class EnzymaticHydrolysis:
 
             with open('job_history.csv', 'a') as fp:
                 fp.write('%s\n' % (job_id))
-
-        print('Job ID = %s' % (job_id))
+        if verbose:
+            print('Job ID = %s' % (job_id))
        
         # Prepare output values from EH CFD operations
         # FIXME: rho_g should be value taken from CFD output - should be good now, please check, JJS 9/15/20
@@ -467,26 +498,30 @@ class EnzymaticHydrolysis:
         '''
         
         os.chdir(self.notebookDir)
-        print('Finished Enzymatic Hydrolysis')
+        if verbose:
+            print('Finished Enzymatic Hydrolysis')
         if check_dict_for_nans(self.ve.eh_out):
             return True
         return False
 
     def run_eh_cfd_surrogate(self, verbose=True):
 
-        print('\nRunning Enzymatic Hydrolysis Model')
+        if verbose:
+            print('\nRunning Enzymatic Hydrolysis Model')
         
         from EH_surrogate import run_eh
-        self.ve.eh_out = run_eh(self.ve)        
+        self.ve.eh_out = run_eh(self.ve, verbose)        
         
-        print('Finished Enzymatic Hydrolysis')
+        if verbose:
+            print('Finished Enzymatic Hydrolysis')
         if check_dict_for_nans(self.ve.eh_out):
             return True
         return False
 
     def run_eh_lignocellulose_model(self, verbose=True):
         
-        print('\nRunning Enzymatic Hydrolysis Model')
+        if verbose:
+            print('\nRunning Enzymatic Hydrolysis Model')
         # Commenting out cellulose-only two-phase model to use lignocellulose
         # model, just in case we want to switch back or make both an
         # option. The lignocellulose model is superior.
@@ -494,7 +529,8 @@ class EnzymaticHydrolysis:
         
         from driver_batch_lignocell_EH_VE import run_eh_lingocell
         self.ve.eh_out = run_eh_lingocell(self.ve, self.show_plots)
-        print('Finished Enzymatic Hydrolysis')
+        if verbose:
+            print('Finished Enzymatic Hydrolysis')
         if check_dict_for_nans(self.ve.eh_out):
             return True
         return False
@@ -625,7 +661,8 @@ class Bioreactor:
 
     def run_biorector_cfd_simulation(self, verbose=True):
 
-        print('\nRunning Bioreactor')
+        if verbose:
+            print('\nRunning Bioreactor')
         os.chdir('bioreactor/bubble_column/')
         # Make changes to the fvOptions file based on replacement options
         fvOptions = {}
@@ -645,7 +682,8 @@ class Bioreactor:
         subprocess.run(command.split())
         self.ve.br_out = {'OUR': np.nan}
         os.chdir(self.notebookDir)
-        print('Finished Bioreactor')
+        if verbose:
+            print('Finished Bioreactor')
 
         if check_dict_for_nans(self.ve.br_out):
             return True
@@ -654,16 +692,18 @@ class Bioreactor:
 
     def run_biorector_cfd_surrogate(self, verbose=True):
         
-        print('\nRunning Bioreactor')
+        if verbose:
+            print('\nRunning Bioreactor')
         
         if np.isnan(self.ve.eh_out['rho_g']):
             # TODO: Why we don't check it in CFD run_biorector_cfd_simulation? OD
             print('Waiting for EH CFD results.')
         else:
             from bcolumn_surrogate import run_br_surrogate
-            self.ve.br_out = run_br_surrogate(self.ve)
+            self.ve.br_out = run_br_surrogate(self.ve, verbose)
             
-            print('Finished Bioreactor')
+            if verbose:
+                print('Finished Bioreactor')
             if check_dict_for_nans(self.ve.br_out):
                 return True
             return False
