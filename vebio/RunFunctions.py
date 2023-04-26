@@ -62,8 +62,8 @@ class VE_params(object):
 
 class Feedstock:
     def __init__(self, fs_options):
-        """Through the ``fs_options`` widgets, the user controls the following
-            values:
+        ''' Through the ``fs_options`` widgets,
+            the user controls the following values:
 
                 * The initial fraction of solids due to xylan (X_X)
                 * The initial fraction of solids due to glucan (X_G)
@@ -72,7 +72,7 @@ class Feedstock:
         :param fs_options: (WidgetCollection)
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for feedstock properties.
-        """
+        '''
         self.ve= VE_params()
         self.ve.feedstock = {}
         self.xylan_solid_fraction = fs_options.xylan_solid_fraction.value
@@ -124,7 +124,7 @@ class Feedstock:
 class Pretreatment:
 
     def __init__(self, pt_options):
-        """ Through the ``pt_options`` widgets, the user controls the following
+        ''' Through the ``pt_options`` widgets, the user controls the following
             values:
 
                 * Acid Loading (float)
@@ -133,12 +133,10 @@ class Pretreatment:
                 * Final Time (float)
                 * Show plots (bool)
 
-        :param pt_options: (WidgetCollection) or (dict)
+        :param pt_options: (WidgetCollection). 
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for pretreatment properties.
-            or 
-            A dictionary containing all input values
-        """
+        '''
 
         print('Initializing Pretreatment Model')
 
@@ -205,7 +203,7 @@ class Pretreatment:
 
         :param verbose: (bool, optional) 
             Option to show print messages from executed file, default True.
-        :param verbose: (bool, optional) 
+        :param show_plots: (bool, optional) 
             Option to show plots, default True.
         """
         if verbose:
