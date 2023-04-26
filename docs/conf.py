@@ -35,7 +35,7 @@ extensions = ['sphinx.ext.autodoc',
 			  # 'sphinx_rtd_theme',
 			  # 'sphinx.ext.intersphinx',
 ]
-autodoc_mock_imports = ['numpy', 'scipy', 'fenics-dolfinx', 'vebio']
+autodoc_mock_imports = ['numpy', 'scipy', 'fenics-dolfinx', 'vebio', 'ipywidgets']
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
