@@ -1,4 +1,4 @@
-WidgetFunctions
+OptimizationFunctions
 ===============
 
 .. automodule:: OptimizationFunctions
