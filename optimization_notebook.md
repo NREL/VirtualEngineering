@@ -17,7 +17,11 @@ jupyter:
 
 The first step is to select "Cell" > "Run All" from the toolbar.  This will initialize all the widgets and allow you to interact with the unit operation options via the GUI controls.
 
-<img src="../figures/three_unit_flow.png" alt="flowchart" width="800"/>
+```python
+from IPython.display import Image
+import os
+Image(os.path.join(os.path.dirname("__file__"), 'docs', 'figures', 'three_unit_flow.png'), width=800)
+```
 
 ```python
 from ipywidgets import *
@@ -30,11 +34,13 @@ from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget
 from vebio.Utilities import get_host_computer
 from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bioreactor
 from vebio.OptimizationFunctions import Optimization
-
 #================================================================
 # See if we're running on Eagle or on a laptop
 hpc_run = get_host_computer()
 #================================================================
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.CRITICAL)
 ```
 
 ## Set Virtual Engineering Options
@@ -319,7 +325,7 @@ def sweep_button_action(b):
     clear_output()
     display(sweep_button)
     Opt = Optimization(fs_options, pt_options, eh_options, br_options, obj_widget, hpc_run)
-    Opt.parameter_grid_sweep(nn=4, results_file='sweep_params.csv')
+    Opt.parameter_grid_sweep(nn=10, results_file='sweep_params.csv')
     
 sweep_button.on_click(sweep_button_action)
 #===============================================================
@@ -339,7 +345,9 @@ if os.path.exists(param_sweep_fn):
     nn = int(np.sqrt(len(sweeps)))
     OUR = sweeps[:, 3].reshape(nn, nn)
     shw = plt.imshow(OUR.T, extent=extent, aspect='auto', origin='lower')
+    _cs2 = plt.contour(OUR.T, levels=np.arange(65, 69, 0.5), extent=extent, origin='lower', colors='blue')
     bar = plt.colorbar(shw)
+    bar.add_lines(_cs2)
     bar.set_label(firstline[-1])
     plt.xlabel(firstline[1])
     plt.ylabel(firstline[2])
@@ -352,6 +360,8 @@ Press the Optimize button below to launch the optimization of the start-to-finis
 This example **maximizes OUR** by **changing user-specified pretreatment options**.
 
 ```python
+logger.setLevel(logging.CRITICAL)
+
 opt_button = widgets.Button(
     description = 'Optimize.',
     tooltip = 'Optimize for OUR using the conditions above as an initial guess.',

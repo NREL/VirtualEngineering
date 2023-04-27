@@ -119,12 +119,10 @@ class Optimization:
         dimensional_values = []
         for value, bounds in zip(free_variables, self.var_real_bounds):
             dimensional_values.append(self.scale_back(value, bounds))
-        print('dimensional_values:', dimensional_values)
+        # print('dimensional_values:', dimensional_values)
 
-        # Turn off printed outputs from unit operations
-        v_flag = (self.fn_evals == 0)
         # We take the negative so the minimize function sees the correct orientation
-        obj = -self.run_models_with_new_values(dimensional_values, v_flag)        
+        obj = -self.run_models_with_new_values(dimensional_values, verbose=False)        
 
         # Set objactive scaling to normalize objective function to -1 before iterations 
         if self.fn_evals == 0:
@@ -141,13 +139,13 @@ class Optimization:
                 fp.write('%.15e, ' % (dv))
             fp.write('%.15e\n' % (obj))
 
-        print('\nIter = %3d: ' % (self.fn_evals), end='')
+        print('Iter = %3d: ' % (self.fn_evals), end='')
         for k, dv in enumerate(dimensional_values):
             print('%s = %12.9e, ' % (self.var_names[k], dv), end='')
-        print('Objective = %12.9e' % (obj))
+        print('Objective = %12.9e' % (-obj))
         
         obj *= self.objective_scaling
-        print(f'Scaled objective: {obj}')
+        # print(f'Scaled objective: {obj}')
         
         return obj
 
@@ -158,7 +156,7 @@ class Optimization:
 
 
     def parameter_grid_sweep(self, nn, results_file='sweep_params.cvs', verbose=False):
-        """_summary_
+        """ Sample input parameters on a grid and run simulations.
 
         :param nn: (int) The number of points to select across each value
         :param results_file: The filename to write sweep results including 
@@ -184,7 +182,7 @@ class Optimization:
             grid_ravel[i] = grid_mesh[i].ravel() 
         
         for i, dimensional_values in enumerate(grid_ravel.T):
-            print(f'Iteration #{i+1}, parameter values: {dimensional_values}')
+            # print(f'Iteration #{i+1}, parameter values: {dimensional_values}')
             # Run models 
             obj = self.run_models_with_new_values(dimensional_values, verbose=verbose)
             # Write output
@@ -193,5 +191,7 @@ class Optimization:
                 for value in dimensional_values:
                     str_values += f'{value:.9e}' + ', '  
                 fp.write(f'{(i+1):.0f}, {str_values}{obj:.9e}\n')
+        
+        print(f'Finished {nn**2} forward runs.')
         
         print('\nFinished sweeps!')

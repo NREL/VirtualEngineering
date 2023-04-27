@@ -156,7 +156,7 @@ class Pretreatment:
             self.T_s = 423.15  # steam temperature
             self.glucan_solid_fraction_0 = 0.4
         else:
-            self.c_acid0 = ve_params.pt_in["initial_acid_conc"]
+            self.c_acid0 = ve_params.pt_in["initial_acid_conc"]*1e6 # converting mol/mL into mol/m^3
             self.f_x0 = ve_params.feedstock["xylan_solid_fraction"]
             self.eps_p0 = ve_params.feedstock["initial_porosity"]
             self.f_is0 = ve_params.pt_in["initial_solid_fraction"]
