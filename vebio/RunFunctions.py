@@ -34,50 +34,30 @@ class VE_params(object):
     # def write_to_file():
 
 
-class VE_params(object):
-    ''' This  class is used for storing Virtual Engineering parameters 
-        so they can be accesed from any model. It uses the Borg pattern. 
-        The Borg pattern (also known as the Monostate pattern) is a way to
-        implement singleton behavior, but instead of having only one instance
-        of a class, there are multiple instances that share the same state. In
-        other words, the focus is on sharing state instead of sharing instance.
-    '''
-
-    __shared_state = {}
-
-    def __init__(self):
-        self.__dict__ = self.__shared_state
-
-    def __str__(self):
-        return self.__shared_state
-
-    # TODO:
-    # def from_file(params_filename):
-
-    # def write_to_file():
-
-
-
-
-
 class Feedstock:
     def __init__(self, fs_options):
-        ''' Through the ``fs_options`` widgets,
+        ''' Through the ``fs_options``(widgets or dictionary),
             the user controls the following values:
 
                 * The initial fraction of solids due to xylan (X_X)
                 * The initial fraction of solids due to glucan (X_G)
                 * The initial porous fraction of the biomass particles
 
-        :param fs_options: (WidgetCollection)
+        :param fs_options: (WidgetCollection) or (dict)
             A ``WidgetCollection`` object containing all of widgets used
-            to solicit user input for feedstock properties.
+            to solicit user input for feedstock properties 
+            or dictionary with feedstock properties.
         '''
         self.ve= VE_params()
         self.ve.feedstock = {}
-        self.xylan_solid_fraction = fs_options.xylan_solid_fraction.value
-        self.glucan_solid_fraction = fs_options.glucan_solid_fraction.value
-        self.initial_porosity = fs_options.initial_porosity.widget.value
+        if type(fs_options) is dict:
+            self.xylan_solid_fraction = fs_options['xylan_solid_fraction']
+            self.glucan_solid_fraction = fs_options['glucan_solid_fraction']
+            self.initial_porosity = fs_options['initial_porosity']
+        else:
+            self.xylan_solid_fraction = fs_options.xylan_solid_fraction.value
+            self.glucan_solid_fraction = fs_options.glucan_solid_fraction.value
+            self.initial_porosity = fs_options.initial_porosity.widget.value
 
     ##############################################
     ### Properties
@@ -124,8 +104,8 @@ class Feedstock:
 class Pretreatment:
 
     def __init__(self, pt_options):
-        ''' Through the ``pt_options`` widgets, the user controls the following
-            values:
+        ''' Through the ``pt_options`` (widgets or dictionary), 
+            the user controls the following values:
 
                 * Acid Loading (float)
                 * Steam Temperature (float)
@@ -133,21 +113,28 @@ class Pretreatment:
                 * Final Time (float)
                 * Show plots (bool)
 
-        :param pt_options: (WidgetCollection). 
+        :param pt_options: (WidgetCollection) or (dict). 
             A ``WidgetCollection`` object containing all of widgets used
-            to solicit user input for pretreatment properties.
+            to solicit user input for pretreatment properties
+            or dictionary with pretreatment properties.
         '''
 
         print('Initializing Pretreatment Model')
 
-        self.show_plots = pt_options.show_plots.value 
-
         self.ve = VE_params()
         self.ve.pt_in = {}
-        self.initial_acid_conc = pt_options.initial_acid_conc.widget.value
-        self.steam_temperature = pt_options.steam_temperature.widget.value
-        self.initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
-        self.final_time = pt_options.final_time.widget.value
+        if type(pt_options) is dict:
+            self.show_plots = pt_options['show_plots']
+            self.initial_acid_conc = pt_options['initial_acid_conc']
+            self.steam_temperature = pt_options['steam_temperature']
+            self.initial_solid_fraction = pt_options['initial_solid_fraction']
+            self.final_time = pt_options['final_time']
+        else:
+            self.show_plots = pt_options.show_plots.value
+            self.initial_acid_conc = pt_options.initial_acid_conc.widget.value
+            self.steam_temperature = pt_options.steam_temperature.widget.value
+            self.initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
+            self.final_time = pt_options.final_time.widget.value
 
         pt_module_path = os.path.join(root_path,'pretreatment_model')
         sys.path.append(os.path.join(pt_module_path, 'dolfinx'))
@@ -235,8 +222,8 @@ class EnzymaticHydrolysis:
             with ``hpc_run=True``. The default unit operation is the 
             surrogate model.
 
-            Through the ``eh_options`` widgets, the user controls the following
-            values:
+            Through the ``eh_options`` (widgets or dictionary), 
+            the user controls the following values:
 
                 * Model Type
                 * Enzymatic Load (float)
@@ -244,13 +231,10 @@ class EnzymaticHydrolysis:
                 * Final Time (float)
                 * Show plots (bool)
 
-        :param notebookDir: (str):
-            The path to the Jupyter Notebook, used to specify the location
-            of the input file and reset the working directory after this operation
-            is finished.
-        :param eh_options: (WidgetCollection):
+        :param eh_options: (WidgetCollection) or (dict)
             A ``WidgetCollection`` object containing all of widgets used
-            to solicit user input for enzymatic hydrolysis properties.
+            to solicit user input for enzymatic hydrolysis properties
+            or dictionary with enzymatic hydrolysis properties.
         :param hpc_run: (bool)
             A flag indicating whether or not the Notebook is being
             run on HPC resources, enable CFD only if True.
@@ -259,15 +243,23 @@ class EnzymaticHydrolysis:
         print('Initializing Enzymatic Hydrolysis Model')
 
         self.hpc_run = hpc_run
-        self.show_plots = eh_options.show_plots.value
+
 
         self.ve = VE_params()
         self.ve.eh_in = {}
         # EH input parameters
-        self.lambda_e = eh_options.lambda_e.widget.value  # Conversion from mg/g to kg/kg
-        self.fis_0 = eh_options.fis_0.value
-        self.t_final = eh_options.t_final.value
-        self.model_type = eh_options.model_type.value # running select_run_function() inside
+        if type(eh_options) is dict:
+            self.lambda_e = eh_options['lambda_e']  # Conversion from mg/g to kg/kg
+            self.fis_0 = eh_options['fis_0']
+            self.t_final = eh_options['t_final']
+            self.model_type = eh_options['model_type'] # running select_run_function() inside
+            self.show_plots = eh_options['show_plots']
+        else:
+            self.lambda_e = eh_options.lambda_e.widget.value  # Conversion from mg/g to kg/kg
+            self.fis_0 = eh_options.fis_0.value
+            self.t_final = eh_options.t_final.value
+            self.model_type = eh_options.model_type.value # running select_run_function() inside
+            self.show_plots = eh_options.show_plots.value
         
     ##############################################
     ### Properties
@@ -546,19 +538,16 @@ class Bioreactor:
             full CFD simulation itself where option (2) is accessible only
             with ``hpc_run=True``.  The default option is the surrogate model.
 
-            Through the ``br_options`` widgets, the user controls the following
-            values:
+            Through the ``br_options`` (widgets or dictionary), 
+            the user controls the following values:
 
                 * Model Type
                 * Final Time (float)
 
-        :param notebookDir: (str):
-            The path to the Jupyter Notebook, used to specify the location
-            of the input file and reset the working directory after this operation
-            is finished.
-        :param br_options: (WidgetCollection):
+        :param br_options: (WidgetCollection) or (dict)
             A ``WidgetCollection`` object containing all of widgets used
-            to solicit user input for bioreaction properties.
+            to solicit user input for bioreaction properties
+            or dictionary with bioreaction properties.
         :param hpc_run: (bool):
             A flag indicating whether or not the Notebook is being
             run on HPC resources, enable CFD only if True.
@@ -572,12 +561,20 @@ class Bioreactor:
 
         self.br_module_path = os.path.join(root_path,'bioreactor', 'bubble_column')
         # Bioreactor input parameters
-        self.model_type = br_options.model_type.value # running select_run_function() inside
-        self.gas_velocity = br_options.gas_velocity.value
-        self.column_height = br_options.column_height.value
-        self.column_diameter = br_options.column_diameter.value
-        self.bubble_diameter = br_options.bubble_diameter.value
-        self.t_final = br_options.t_final.value
+        if type(br_options) is dict:
+            self.model_type = br_options['model_type'] # running select_run_function() inside
+            self.gas_velocity = br_options['gas_velocity']
+            self.column_height = br_options['column_height']
+            self.column_diameter = br_options['column_diameter']
+            self.bubble_diameter = br_options['bubble_diameter']
+            self.t_final = br_options['t_final']
+        else:
+            self.model_type = br_options.model_type.value # running select_run_function() inside
+            self.gas_velocity = br_options.gas_velocity.value
+            self.column_height = br_options.column_height.value
+            self.column_diameter = br_options.column_diameter.value
+            self.bubble_diameter = br_options.bubble_diameter.value
+            self.t_final = br_options.t_final.value
 
     ##############################################
     ### Properties
