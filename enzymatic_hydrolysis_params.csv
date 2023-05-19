@@ -1,0 +1,6 @@
+﻿name,value,min,max,description,tooltip,Optimization_widget(bool),controlvalue,option1,option2,option3
+lambda_e,30,5,300,Enzymatic Load,"Ratio of the enzyme mass to the total solution mass (mg/g).  Must be in the range [0, 1000]",1,1,,,
+fis_0,0.05,0.1,1,FIS$_0$ Target,"The target value for initial fraction of insoluble solids *after* dilution (kg/kg).  Must be in the range [0, 1]",1,0,,,
+t_final,24,1,2.40E+01,Final Time,The total time of the simulation (h).  Must be $\geq$ 1,0,,,,
+model_type,CFD Surrogate,,,Model Type,"Specifies the solver to use for the EH step, ""CFD Simulation"" requires HPC resources.",0,,Lignocellulose Model,CFD Surrogate,CFD Simulation
+show_plots,0,,,Show Plots,Show Plots (Only available for lignocellulose model),,,,,
