@@ -6,6 +6,7 @@ import numpy as np
 
 from vebio.FileModifiers import write_file_with_replacements
 from vebio.Utilities import check_dict_for_nans
+from vebio.WidgetFunctions import OptimizationWidget
 
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -55,9 +56,14 @@ class Feedstock:
             self.glucan_solid_fraction = fs_options['glucan_solid_fraction']
             self.initial_porosity = fs_options['initial_porosity']
         else:
-            self.xylan_solid_fraction = fs_options.xylan_solid_fraction.value
-            self.glucan_solid_fraction = fs_options.glucan_solid_fraction.value
-            self.initial_porosity = fs_options.initial_porosity.widget.value
+            # self.xylan_solid_fraction = fs_options.xylan_solid_fraction.value
+            # self.glucan_solid_fraction = fs_options.glucan_solid_fraction.value
+            # self.initial_porosity = fs_options.initial_porosity.widget.value
+            for widget_name, widget in fs_options.__dict__.items(): 
+                if isinstance(widget, OptimizationWidget):
+                    setattr(self, widget_name, widget.widget.value)
+                else:
+                    setattr(self, widget_name, widget.value)
 
     ##############################################
     ### Properties
@@ -130,11 +136,11 @@ class Pretreatment:
             self.initial_solid_fraction = pt_options['initial_solid_fraction']
             self.final_time = pt_options['final_time']
         else:
-            self.show_plots = pt_options.show_plots.value
-            self.initial_acid_conc = pt_options.initial_acid_conc.widget.value
-            self.steam_temperature = pt_options.steam_temperature.widget.value
-            self.initial_solid_fraction = pt_options.initial_solid_fraction.widget.value
-            self.final_time = pt_options.final_time.widget.value
+            for widget_name, widget in pt_options.__dict__.items(): 
+                if isinstance(widget, OptimizationWidget):
+                    setattr(self, widget_name, widget.widget.value)
+                else:
+                    setattr(self, widget_name, widget.value)
 
         pt_module_path = os.path.join(root_path,'pretreatment_model')
         sys.path.append(os.path.join(pt_module_path, 'dolfinx'))
@@ -255,11 +261,16 @@ class EnzymaticHydrolysis:
             self.model_type = eh_options['model_type'] # running select_run_function() inside
             self.show_plots = eh_options['show_plots']
         else:
-            self.lambda_e = eh_options.lambda_e.widget.value  # Conversion from mg/g to kg/kg
-            self.fis_0 = eh_options.fis_0.value
-            self.t_final = eh_options.t_final.value
-            self.model_type = eh_options.model_type.value # running select_run_function() inside
-            self.show_plots = eh_options.show_plots.value
+            # self.lambda_e = eh_options.lambda_e.widget.value  # Conversion from mg/g to kg/kg
+            # self.fis_0 = eh_options.fis_0.value
+            # self.t_final = eh_options.t_final.value
+            # self.model_type = eh_options.model_type.value # running select_run_function() inside
+            # self.show_plots = eh_options.show_plots.value
+            for widget_name, widget in eh_options.__dict__.items(): 
+                if isinstance(widget, OptimizationWidget):
+                    setattr(self, widget_name, widget.widget.value)
+                else:
+                    setattr(self, widget_name, widget.value)
         
     ##############################################
     ### Properties
@@ -569,12 +580,17 @@ class Bioreactor:
             self.bubble_diameter = br_options['bubble_diameter']
             self.t_final = br_options['t_final']
         else:
-            self.model_type = br_options.model_type.value # running select_run_function() inside
-            self.gas_velocity = br_options.gas_velocity.value
-            self.column_height = br_options.column_height.value
-            self.column_diameter = br_options.column_diameter.value
-            self.bubble_diameter = br_options.bubble_diameter.value
-            self.t_final = br_options.t_final.value
+            # self.model_type = br_options.model_type.value # running select_run_function() inside
+            # self.gas_velocity = br_options.gas_velocity.value
+            # self.column_height = br_options.column_height.value
+            # self.column_diameter = br_options.column_diameter.value
+            # self.bubble_diameter = br_options.bubble_diameter.value
+            # self.t_final = br_options.t_final.value
+            for widget_name, widget in br_options.__dict__.items(): 
+                if isinstance(widget, OptimizationWidget):
+                    setattr(self, widget_name, widget.widget.value)
+                else:
+                    setattr(self, widget_name, widget.value)
 
     ##############################################
     ### Properties

@@ -1,7 +1,8 @@
 from ipywidgets import *
 
 from vebio.Utilities import dict_to_yaml, yaml_to_dict
-
+import pandas as pd
+import numpy as np
 #================================================================
 
 class WidgetCollection:
@@ -374,3 +375,42 @@ class OptimizationWidget:
 
 
         display(hbox)
+
+
+def scv2widget_collection(filename):
+    df = pd.read_csv(filename, index_col="name")
+    widget_collection = WidgetCollection()
+    for name, row in df.iterrows():
+        # Check if widget with options
+        if 'option1' in df.columns:
+            if row['option1'] is not np.nan:
+                options = [row[col] for col in df.columns if 'option' in col]
+                widget = widgets.RadioButtons(value = row['value'], 
+                                             options = options,
+                                             description = row['description'],
+                                             tooltip = row['tooltip'])
+                setattr(widget_collection, name, widget)
+                continue
+                
+        # check if widget is checkbox
+        if row['description'] == 'Show Plots':
+            widget =  widgets.Checkbox(value = bool(row['value']), tooltip = 'Show Plots')
+            setattr(widget_collection, name, widget)
+            continue
+
+        # check if widget is optimization
+        if row['Optimization_widget(bool)']:
+            options = {'value': row['value'], 
+                       'max': row['max'], 
+                       'min': row['min'],
+                       'description': row['description'],
+                       'tooltip': row['tooltip']}
+            widget = OptimizationWidget('BoundedFloatText', options, controlvalue=bool(row['controlvalue']))
+            setattr(widget_collection, name, widget)
+        else:
+            widget = widgets.BoundedFloatText(value = row['value'], 
+                                            max = row['max'], min = row['min'],
+                                            description = row['description'],
+                                            tooltip = row['tooltip'])
+            setattr(widget_collection, name, widget)
+    return widget_collection

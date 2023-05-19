@@ -30,7 +30,7 @@ import os
 import numpy as np
 
 # imports from vebio modules
-from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget
+from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget, scv2widget_collection
 from vebio.Utilities import get_host_computer
 from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bioreactor
 from vebio.OptimizationFunctions import Optimization
@@ -48,40 +48,8 @@ logger.setLevel(logging.CRITICAL)
 Set the feedstock properties.
 
 ```python
-#================================================================
-# Create the collection of widgets for feedstock options
-fs_options = WidgetCollection()
-
-fs_options.xylan_solid_fraction = widgets.BoundedFloatText(
-    value = 0.263,
-    max = 1,
-    min = 0,
-    description = r'Initial $X_X$',
-    tooltip = 'The initial fraction of solids that is xylan (kg/kg).  Must be in the range [0, 1]'
-)
-
-fs_options.glucan_solid_fraction = widgets.BoundedFloatText(
-    value = 0.40,
-    max = 1,
-    min = 0,
-    description = r'Initial $X_G$',
-    tooltip = 'The initial fraction of solids that is glucan (kg/kg).  Must be in the range [0, 1]'
-)
-
-initial_porosity_options = {'value': 0.8,
-    'max': 1,
-    'min': 0.5,
-    'description': r'Initial Porosity',
-    'tooltip': 'The initial porous fraction of the biomass particles.  Must be in the range [0, 1]'
-}
-
-fs_options.initial_porosity = OptimizationWidget('BoundedFloatText', initial_porosity_options)
-
-
-#================================================================
-# Display the widgets
+fs_options = scv2widget_collection("feedstock_params.csv")
 fs_options.display_all_widgets()
-#================================================================
 ```
 
 ### 1. Pretreatment Operation
@@ -89,57 +57,8 @@ fs_options.display_all_widgets()
 Set the options for the pretreatment operation below.
 
 ```python
-#================================================================
-# Create the collection of widgets for pretreatment options
-pt_options = WidgetCollection()
-
-initial_acid_conc_options = {'value': 0.0001,
-    'max': 0.001,
-    'min': 0.00005,
-    'description': 'Acid Loading',
-    'tooltip': 'The initial concentration of acid (mol/mL).  Must be in the range [0, 1]'}
-
-#### this needs to be changed to g acid / g bone-dry biomass (then converted in the run function) ####
-pt_options.initial_acid_conc = OptimizationWidget('BoundedFloatText', initial_acid_conc_options, controlvalue=True)
-
-steam_temperature_options = {'value': 150.0,
-    'max': 250.3,
-    'min': 3.8,
-    'description': 'Steam Temperature',
-    'tooltip': r'The fixed temperature of the steam ($^\circ$C).',
-}
-pt_options.steam_temperature = OptimizationWidget('BoundedFloatText', steam_temperature_options)
-# Conversion from celsius to kelvin
-pt_options.steam_temperature.scaling_fn = lambda C : C + 273.15
-
-
-initial_solid_fraction_options = {'value': 0.745,
-    'max': 0.99,
-    'min': 0.01,
-    'description': r'Initial FIS$_0$',
-    'tooltip': 'The initial fraction of insoluble solids (kg/kg).  Must be in the range [0, 1]'
-}
-pt_options.initial_solid_fraction = OptimizationWidget('BoundedFloatText', initial_solid_fraction_options)
-
-final_time_options = {'value': 8.3,
-    'max': 1440,
-    'min': 1,
-    'description': 'Final Time',
-    'tooltip': r'Total simulation time (min).  Must be $\geq$ 1'
-}
-pt_options.final_time = OptimizationWidget('BoundedFloatText', final_time_options)
-# Conversion from minutes to seconds
-pt_options.final_time.scaling_fn = lambda s : 60.0 * s
-
-pt_options.show_plots = widgets.Checkbox(
-    value = False,
-    tooltip = 'Show Plots'
-)
-
-#================================================================
-# Display the widgets
+pt_options = scv2widget_collection("pretreatment_params.csv")
 pt_options.display_all_widgets()
-#================================================================
 ```
 
 ---
@@ -150,67 +69,8 @@ Set the options for the enzymatic hydrolysis operation using either a two-phase 
 
 
 ```python
-#================================================================
-# Create the collection of widgets
-eh_options = WidgetCollection()
-
-eh_options.model_type = widgets.RadioButtons(
-    options = ['Lignocellulose Model', 'CFD Surrogate', 'CFD Simulation'],
-    value = 'CFD Surrogate',
-    description = 'Model Type',
-    disabled = False,
-    tooltip = 'Specifies the solver to use for the EH step, "CFD Simulation" requires HPC resources.'
-)
-
-lambda_e_options = {'value': 30.0,
-    'max': 300.0,
-    'min': 5.0,
-    'description': 'Enzymatic Load',
-    'tooltip': 'Ratio of the enzyme mass to the total solution mass (mg/g).  Must be in the range [0, 1000]'
-}
-eh_options.lambda_e = OptimizationWidget('BoundedFloatText', lambda_e_options, controlvalue=True)
-# Conversion from mg/g to kg/kg
-eh_options.lambda_e.scaling_fn = lambda e : 0.001 * e
-
-eh_options.fis_0 = widgets.BoundedFloatText(
-    value = 0.05,
-    max = 1.0,
-    min = 0.1,
-    description = r'FIS$_0$ Target',
-    tooltip = 'The target value for initial fraction of insoluble solids *after* dilution (kg/kg).  Must be in the range [0, 1]'
-)
-eh_options.t_final = widgets.BoundedFloatText(
-    value = 24.0,
-    min = 1.0,
-    max = 24.0,
-    description = 'Final Time',
-    tooltip = r'The total time of the simulation (h).  Must be $\geq$ 1'
-)
-
-eh_options.show_plots = widgets.Checkbox(
-    value = False,
-    tooltip = 'Show Plots',
-    disabled = True,
-)
-
-#================================================================
-# Display the widgets
+eh_options = scv2widget_collection("enzymatic_hydrolysis_params.csv")
 eh_options.display_all_widgets()
-#================================================================
-
-def model_type_action(change):
-        
-    if eh_options.model_type.value == 'Lignocellulose Model':
-        eh_options.show_plots.value = False
-        eh_options.show_plots.disabled = False
-        eh_options.show_plots.tooltip = 'Show Plots'
-
-    else: # Surrogate Model, CFD Simulation
-        eh_options.show_plots.value = False
-        eh_options.show_plots.disabled = True
-        eh_options.show_plots.tooltip = 'Show Plots (Only available for lignocellulose model)'
-
-eh_options.model_type.observe(model_type_action, names='value')
 ```
 
 ---
@@ -221,60 +81,7 @@ Set the options for the bubble column bioreaction operation below.
 
 
 ```python
-#================================================================
-# Create the collection of widgets
-br_options = WidgetCollection()
-
-br_options.model_type = widgets.RadioButtons(
-    options = ['CFD Surrogate', 'CFD Simulation'],
-    value = 'CFD Surrogate',
-    description = 'Model Type',
-    disabled = False,
-    tooltip = 'Specifies the solver to use for the bioreaction step, "CFD Simulation" requires HPC resources.'
-)
-
-br_options.gas_velocity = widgets.BoundedFloatText(
-    value = 0.08, 
-    min = 0.01,
-    max = 0.1,
-    description = 'Gas velocity',
-    tooltip = r'Gas velocity in the simulation (m/s).  Must be in $[0.01, 0.1]$'
-)
-
-br_options.column_height = widgets.BoundedFloatText(
-    value = 40., 
-    min = 10.,
-    max = 50.,
-    description = 'Column height',
-    tooltip = r'Column height (m).  Must be in $[10, 50]$'
-)
-
-br_options.column_diameter = widgets.BoundedFloatText(
-    value = 5.0, 
-    min = 1.,
-    max = 6.,
-    description = 'Column diameter',
-    tooltip = r'Column diameter (m).  Must be in $[1, 6]$'
-)
-
-br_options.bubble_diameter = widgets.BoundedFloatText(
-    value = 0.006,
-    min = 0.003,
-    max = 0.008,
-    description = 'Bubble diameter',
-    tooltip = r'Bubble diameter (m).  For surragate model must be in $[0.003, 0.008]$, for cfd must be $>=0$'
-)
-
-br_options.t_final = widgets.BoundedFloatText(
-    value = 100.0, # default 500
-    min = 1.0,
-    max = 1e16,
-    description = 'Final Time',
-    tooltip = r'The total time of the simulation (s).  Must be $\geq 1$'
-)
-
-#================================================================
-# Display the widgets
+br_options = scv2widget_collection("bioreactor_params.csv")
 br_options.display_all_widgets()
 ```
 
