@@ -1,0 +1,4 @@
+﻿name,value,min,max,description,tooltip,Optimization_widget(bool),controlvalue
+xylan_solid_fraction,0.263,0,1,Initial $X_X$,"The initial fraction of solids that is xylan (kg/kg).  Must be in the range [0, 1]",0,0
+glucan_solid_fraction,0.4,0,1,Initial $X_G$,"The initial fraction of solids that is glucan (kg/kg).  Must be in the range [0, 1]",0,0
+initial_porosity,0.8,0.5,1, Initial Porosity,"The initial porous fraction of the biomass particles.  Must be in the range [0, 1]",1,0
