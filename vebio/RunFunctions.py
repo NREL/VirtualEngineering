@@ -10,8 +10,6 @@ from vebio.WidgetFunctions import OptimizationWidget
 
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-
 
 class VE_params(object):
     ''' This  class is used for storing Virtual Engineering parameters 
@@ -192,7 +190,8 @@ class Pretreatment:
     #
     ##############################################
     def run(self, verbose=True, show_plots=None):
-        """Run pretreatment code specified in pretreatment_model/test/ptrun.py
+        """Run pretreatment code specified in 
+        pretreatment_model/dolfinx/run_pretreatment.py
 
         :param verbose: (bool, optional) 
             Option to show print messages from executed file, default True.
@@ -206,7 +205,6 @@ class Pretreatment:
             show_plots = self.show_plots
         from run_pretreatment import run_pt
         self.ve.pt_out = run_pt(self.ve, verbose, show_plots)
-
         if verbose:
             print('Finished Pretreatment')
         if check_dict_for_nans(self.ve.pt_out):
@@ -345,7 +343,7 @@ class EnzymaticHydrolysis:
         :return: globalVar dictionary
         """
         globalVars = {}
-        globalVars['fis0'] = self.fix_0
+        globalVars['fis0'] = self.fis_0
         globalVars['xG0'] = self.ve.pt_out['X_G']
         globalVars['xX0'] = self.ve.pt_out['X_X']
         globalVars['XL0'] = 1.0 - globalVars['xG0'] - globalVars['xX0']
@@ -361,9 +359,11 @@ class EnzymaticHydrolysis:
     def run_eh_cfd_simulation(self, verbose=True):
         
         if verbose:
-            print('\nRunning Enzymatic Hydrolysis Model')
+            print('\nRunning Enzymatic Hydrolysis Model: CFD simulation')
+        case_folder = os.path.join(root_path, 'EH_OpenFOAM', 'tests', 'RushtonReact', )
+
         globalVars = self.get_globalVars()
-        write_file_with_replacements('constant/globalVars', globalVars)
+        write_file_with_replacements(os.path.join(case_folder, 'constant', 'globalVars'), globalVars)
 
         # Get reaction_update_time, fluid_update_time, and fluid_steadystate_time
         # in order to convert the user-specified t_final into the endTime definition
@@ -372,7 +372,7 @@ class EnzymaticHydrolysis:
         fluid_update_time = 250.0
         fluid_steadystate_time = 400.0
 
-        with open('constant/EHProperties', 'r') as fp:
+        with open(os.path.join(case_folder, 'constant', 'EHProperties'), 'r') as fp:
             for line in fp:
                 if '#' not in line:
                     if 'reaction_update_time' in line:
@@ -385,40 +385,7 @@ class EnzymaticHydrolysis:
         controlDict = {}
         fintime = fluid_steadystate_time + (self.t_final/reaction_update_time + 1.0)*fluid_update_time
         controlDict['endTime'] = fintime
-
-        write_file_with_replacements('system/controlDict', controlDict)
-
-        '''
-        import numpy as np
-        import subprocess
-        import os
-        
-        def check_queue(username, jobname):
-            command = 'squeue -u %s -t R,PD -n %s' % (username, jobname)
-            out = subprocess.run(command.split(), capture_output=True, text=True)
-            print(out.stdout)
-            
-            if username in out.stdout:
-                # Job is running, do nothing
-                print('Job is already running')
-                job_id = out.stdout.strip().split('\\n')[-1].split()[0]
-                
-            else:
-                # Job is not running, submit it
-                command = 'sbatch --job-name=%s dummy_job.sbatch' % (jobname)
-                out = subprocess.run(command.split(), capture_output=True, text=True)
-                print(out.stdout)
-                job_id = out.stdout.strip().split()[-1]
-                
-                with open('job_history.csv', 'a') as fp:
-                    fp.write('%s\\n' % (job_id))
-                
-            print(job_id, len(job_id))
-                
-        username = os.environ['USER']
-        
-        check_queue(username, 'dummy_job')
-        '''
+        write_file_with_replacements(os.path.join(case_folder,'system', 'controlDict'), controlDict)
         
         # command = "srun hostname"
         # host_list = subprocess.run(command.split(), capture_output=True).stdout.decode()
@@ -426,8 +393,6 @@ class EnzymaticHydrolysis:
         # max_cores = int(36*num_nodes)
         
         # Fill output dict with nans, so Bioreactor know we are still running
-        self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
-
         self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
 
         username = os.environ['USER']
@@ -440,7 +405,6 @@ class EnzymaticHydrolysis:
         if username in out.stdout:
             # Job is running, do nothing
             print('EH CFD job is already queued.')
-            print(out.stdout)
             job_id = out.stdout.strip().split('\n')[-1].split()[0]
             # TODO: there is no use_previous_output widget in notebook, comment for now 
         #     if eh_options.use_previous_output.value:
@@ -455,13 +419,14 @@ class EnzymaticHydrolysis:
         else:
             # Job is not running, submit it
             print('Submitting EH CFD job.')
-            command = 'sbatch --job-name=%s ofoamjob' % (jobname)
+            os.chdir(case_folder)
+            command = f'sbatch --job-name={jobname} ofoamjob'
             out = subprocess.run(command.split(), capture_output=True, text=True)
-            print(out.stdout)
             job_id = out.stdout.strip().split()[-1]
-
             with open('job_history.csv', 'a') as fp:
                 fp.write('%s\n' % (job_id))
+            os.chdir(root_path)
+
         if verbose:
             print('Job ID = %s' % (job_id))
        
@@ -498,9 +463,8 @@ class EnzymaticHydrolysis:
         rho_f_final = rho_f0*dilution_factor_final
         '''
         
-        os.chdir(self.notebookDir)
         if verbose:
-            print('Finished Enzymatic Hydrolysis')
+            print('CFD job submitted, please check the queue...')
         if check_dict_for_nans(self.ve.eh_out):
             return True
         return False
@@ -674,27 +638,27 @@ class Bioreactor:
 
         if verbose:
             print('\nRunning Bioreactor')
-        os.chdir('bioreactor/bubble_column/')
+        
         # Make changes to the fvOptions file based on replacement options
         fvOptions = {}
-        fvOptions['rho_g'] = self.ve.eh_in['rho_g']
-        fvOptions['rho_x'] = self.ve.eh_in['rho_x']
-        fvOptions['rho_f'] = self.ve.eh_in['rho_f']
-        write_file_with_replacements('constant/fvOptions', fvOptions)
+        fvOptions['rho_g'] = self.ve.eh_out['rho_g']
+        fvOptions['rho_x'] = self.ve.eh_out['rho_x']
+        fvOptions['rho_f'] = self.ve.eh_out['rho_f']
+        write_file_with_replacements(os.path.join(self.br_module_path, 'constant', 'fvOptions'), fvOptions)
         
         # Make changes to the controlDict file based on replacement options
         controlDict = {}
         controlDict['endTime'] = self.t_final
-        write_file_with_replacements('system/controlDict', controlDict)
+        write_file_with_replacements(os.path.join(self.br_module_path, 'system', 'controlDict'), controlDict)
 
         # Run the bioreactor model
-        # call function to update ovOptions # fvOptions?
-        command = "sbatch ofoamjob"
+        os.chdir(self.br_module_path)
+        command = f'sbatch --job-name={jobname} ofoamjob'
         subprocess.run(command.split())
+        os.chdir(root_path)
         self.ve.br_out = {'OUR': np.nan}
-        os.chdir(self.notebookDir)
         if verbose:
-            print('Finished Bioreactor')
+            print('CFD job submitted, please check the queue...')
 
         if check_dict_for_nans(self.ve.br_out):
             return True
