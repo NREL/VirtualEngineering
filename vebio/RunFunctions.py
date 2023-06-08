@@ -5,11 +5,11 @@ import subprocess
 import numpy as np
 
 from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import check_dict_for_nans
+from vebio.Utilities import check_dict_for_nans, dict_to_yaml, yaml_to_dict, print_dict
 from vebio.WidgetFunctions import OptimizationWidget
 
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-
+cwd = os.getcwd()
 
 class VE_params(object):
     ''' This  class is used for storing Virtual Engineering parameters 
@@ -25,12 +25,18 @@ class VE_params(object):
     def __init__(self):
         self.__dict__ = self.__shared_state
 
-    def __str__(self):
-        return self.__shared_state
+    @classmethod
+    def load_from_file(cls, yaml_filename, verbose=False):
+        ve = cls()
+        for k, item in yaml_to_dict(yaml_filename, verbose).items():
+            setattr(ve, k, item)
+        return ve
 
-    # TODO:
-    # def from_file(params_filename):
-    # def write_to_file():
+    def write_to_file(self, yaml_filename, merge_with_existing=False, verbose=False):
+        dict_to_yaml(self.__dict__,  yaml_filename, merge_with_existing, verbose)
+    
+    def __str__(self):
+        return str(print_dict(self.__dict__))
 
 
 class Feedstock:
@@ -248,7 +254,6 @@ class EnzymaticHydrolysis:
 
         self.hpc_run = hpc_run
 
-
         self.ve = VE_params()
         self.ve.eh_in = {}
         # EH input parameters
@@ -324,13 +329,11 @@ class EnzymaticHydrolysis:
         if self.model_type == 'CFD Simulation':
             assert self.hpc_run, f'Cannot run EH_CFD without HPC resources. \n {os.getcwd()}'
             self.run = self.run_eh_cfd_simulation
-            # TODO: add import path 
         elif self.model_type == "CFD Surrogate":
             self.run = self.run_eh_cfd_surrogate
             eh_module_path = os.path.join(root_path,'EH_OpenFOAM', 'EH_surrogate')
             if not eh_module_path in sys.path:
                 sys.path.append(eh_module_path)
-                
         elif self.model_type == 'Lignocellulose Model':
             self.run = self.run_eh_lignocellulose_model
             eh_module_path = os.path.join(root_path ,'two_phase_batch_model')
@@ -371,7 +374,6 @@ class EnzymaticHydrolysis:
         reaction_update_time = 1.0
         fluid_update_time = 250.0
         fluid_steadystate_time = 400.0
-
         with open(os.path.join(case_folder, 'constant', 'EHProperties'), 'r') as fp:
             for line in fp:
                 if '#' not in line:
@@ -381,7 +383,6 @@ class EnzymaticHydrolysis:
                         fluid_update_time = float(line.split(']')[-1].split(';')[0])
                     elif 'fluid_steadystate_time' in line:
                         fluid_steadystate_time = float(line.split(']')[-1].split(';')[0])
-
         controlDict = {}
         fintime = fluid_steadystate_time + (self.t_final/reaction_update_time + 1.0)*fluid_update_time
         controlDict['endTime'] = fintime
@@ -392,7 +393,7 @@ class EnzymaticHydrolysis:
         # num_nodes = len(host_list)
         # max_cores = int(36*num_nodes)
         
-        # Fill output dict with nans, so Bioreactor know we are still running
+        # Fill output dict with nans, so Bioreactor surrogate knows we are still running
         self.ve.eh_out = dict(zip(['rho_g', 'rho_x', 'rho_sl', 'rho_f'], [np.nan]*4))
 
         username = os.environ['USER']
@@ -404,8 +405,8 @@ class EnzymaticHydrolysis:
 
         if username in out.stdout:
             # Job is running, do nothing
-            print('EH CFD job is already queued.')
             job_id = out.stdout.strip().split('\n')[-1].split()[0]
+            print('EH CFD job is already queued.')
             # TODO: there is no use_previous_output widget in notebook, comment for now 
         #     if eh_options.use_previous_output.value:
         #         print('Using outputs from most recent finished simulation.')
@@ -425,7 +426,11 @@ class EnzymaticHydrolysis:
             job_id = out.stdout.strip().split()[-1]
             with open('job_history.csv', 'a') as fp:
                 fp.write('%s\n' % (job_id))
-            os.chdir(root_path)
+            os.chdir(cwd)
+            # Save ve_params to the yaml file
+            self.ve.eh_out['job_id'] = job_id
+            self.ve.write_to_file(os.path.join(root_path, 've_params.{job_id}'), verbose=True)
+            print('CFD job submitted, please check the queue...')
 
         if verbose:
             print('Job ID = %s' % (job_id))
@@ -462,11 +467,6 @@ class EnzymaticHydrolysis:
         rho_x_final = rho_x0*dilution_factor_final
         rho_f_final = rho_f0*dilution_factor_final
         '''
-        
-        if verbose:
-            print('CFD job submitted, please check the queue...')
-        if check_dict_for_nans(self.ve.eh_out):
-            return True
         return False
 
     def run_eh_cfd_surrogate(self, verbose=True):
@@ -638,30 +638,34 @@ class Bioreactor:
 
         if verbose:
             print('\nRunning Bioreactor')
-        
-        # Make changes to the fvOptions file based on replacement options
-        fvOptions = {}
-        fvOptions['rho_g'] = self.ve.eh_out['rho_g']
-        fvOptions['rho_x'] = self.ve.eh_out['rho_x']
-        fvOptions['rho_f'] = self.ve.eh_out['rho_f']
-        write_file_with_replacements(os.path.join(self.br_module_path, 'constant', 'fvOptions'), fvOptions)
-        
-        # Make changes to the controlDict file based on replacement options
-        controlDict = {}
-        controlDict['endTime'] = self.t_final
-        write_file_with_replacements(os.path.join(self.br_module_path, 'system', 'controlDict'), controlDict)
 
+        # # Make changes to the fvOptions file based on replacement options
+        # fvOptions = {}
+        # fvOptions['rho_g'] = self.ve.eh_out['rho_g']
+        # fvOptions['rho_x'] = self.ve.eh_out['rho_x']
+        # fvOptions['rho_f'] = self.ve.eh_out['rho_f']
+        # write_file_with_replacements(os.path.join(self.br_module_path, 'constant', 'fvOptions'), fvOptions)
+        
+        # # Make changes to the controlDict file based on replacement options
+        # controlDict = {}
+        # controlDict['endTime'] = self.t_final
+        # write_file_with_replacements(os.path.join(self.br_module_path, 'system', 'controlDict'), controlDict)
+
+        jobname = 'br_cfd'
         # Run the bioreactor model
         os.chdir(self.br_module_path)
-        command = f'sbatch --job-name={jobname} ofoamjob'
-        subprocess.run(command.split())
+        if np.isnan(self.ve.eh_out['rho_g']):
+            print(f'Submit Bioreactor CFD job dependent on successful run of EH CFD job (job ID: {self.ve.eh_out["job_id"]}).')
+            command = f'sbatch --job-name={jobname} --dependency=afterok:{self.ve.eh_out["job_id"]} ofoamjob'
+        else:
+            command = f'sbatch --job-name={jobname} ofoamjob'
+        out = subprocess.run(command.split())
+        job_id = out.stdout.strip().split()[-1]
         os.chdir(root_path)
-        self.ve.br_out = {'OUR': np.nan}
+        
         if verbose:
-            print('CFD job submitted, please check the queue...')
-
-        if check_dict_for_nans(self.ve.br_out):
-            return True
+            print('CFD job submitted, please check the queue... Job ID: {job_id}')
+        self.ve.br_out = {'OUR': np.nan, 'job_id': job_id}
         return False
 
 
@@ -671,7 +675,6 @@ class Bioreactor:
             print('\nRunning Bioreactor')
         
         if np.isnan(self.ve.eh_out['rho_g']):
-            # TODO: Why we don't check it in CFD run_biorector_cfd_simulation? OD
             print('Waiting for EH CFD results.')
         else:
             from bcolumn_surrogate import run_br_surrogate
