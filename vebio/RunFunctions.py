@@ -113,7 +113,7 @@ class Feedstock:
 ##################################################################################
 class Pretreatment:
 
-    def __init__(self, pt_options):
+    def __init__(self, pt_options, hpc_run):
         ''' Through the ``pt_options`` (widgets or dictionary), 
             the user controls the following values:
 
@@ -127,9 +127,14 @@ class Pretreatment:
             A ``WidgetCollection`` object containing all of widgets used
             to solicit user input for pretreatment properties
             or dictionary with pretreatment properties.
+        :param hpc_run: (bool)
+            A flag indicating whether or not the Notebook is being
+            run on HPC resources, enable CFD only if True.
         '''
 
         print('Initializing Pretreatment Model')
+
+        self.hpc_run = hpc_run
 
         self.ve = VE_params()
         self.ve.pt_in = {}
@@ -146,8 +151,8 @@ class Pretreatment:
                 else:
                     setattr(self, widget_name, widget.value)
 
-        pt_module_path = os.path.join(root_path,'pretreatment_model')
-        sys.path.append(os.path.join(pt_module_path, 'dolfinx'))
+        self.pt_module_path = os.path.join(root_path,'pretreatment_model')
+        sys.path.append(os.path.join(self.pt_module_path, 'dolfinx'))
 
     ##############################################
     ### Properties
@@ -209,8 +214,16 @@ class Pretreatment:
     
         if show_plots is None:
             show_plots = self.show_plots
-        from run_pretreatment import run_pt
-        self.ve.pt_out = run_pt(self.ve, verbose, show_plots)
+        if not self.hpc_run:
+            from run_pretreatment import run_pt
+            self.ve.pt_out = run_pt(self.ve, verbose, show_plots)
+        else:
+            os.chdir(os.path.join(self.pt_module_path, 'dolfinx'))
+            self.ve.write_to_file('ve_params.yml')
+            command = f'python run_pretreatment.py {verbose} {show_plots}'
+            subprocess.call(command.split(), text=True)
+            self.ve = VE_params.load_from_file('ve_params.yml', verbose=False)
+            os.chdir(root_path)
         if verbose:
             print('Finished Pretreatment')
         if check_dict_for_nans(self.ve.pt_out):
@@ -340,24 +353,6 @@ class EnzymaticHydrolysis:
             if not eh_module_path in sys.path:
                 sys.path.append(eh_module_path)
 
-    def get_globalVars(self):
-        """ Prepare input values for EH CFD operation
-
-        :return: globalVar dictionary
-        """
-        globalVars = {}
-        globalVars['fis0'] = self.fis_0
-        globalVars['xG0'] = self.ve.pt_out['X_G']
-        globalVars['xX0'] = self.ve.pt_out['X_X']
-        globalVars['XL0'] = 1.0 - globalVars['xG0'] - globalVars['xX0']
-        globalVars['yF0'] = 0.2 + 0.6*self.ve.pt_out['conv']
-        globalVars['lmbdE'] = self.lambda_e
-        globalVars['rhog0'] = 0.0
-        self.dilution_factor = self.fis_0/self.ve.pt_out['fis_0']
-        globalVars['rhox0'] = self.ve.pt_out['rho_x'] * self.dilution_factor
-        globalVars['rhosl0'] = 0.0
-
-        return globalVars
 
     def run_eh_cfd_simulation(self, verbose=True):
         
@@ -365,7 +360,17 @@ class EnzymaticHydrolysis:
             print('\nRunning Enzymatic Hydrolysis Model: CFD simulation')
         case_folder = os.path.join(root_path, 'EH_OpenFOAM', 'tests', 'RushtonReact', )
 
-        globalVars = self.get_globalVars()
+        globalVars = {}
+        globalVars['fis0'] = self.fis_0
+        globalVars['xG0'] = self.ve.pt_out['X_G']
+        globalVars['xX0'] = self.ve.pt_out['X_X']
+        globalVars['XL0'] = 1.0 - globalVars['xG0'] - globalVars['xX0']
+        globalVars['yF0'] = 0.2 + 0.6*self.ve.pt_out['conv']
+        globalVars['lmbdE'] = self.ve.eh_in['lambda_e']
+        globalVars['rhog0'] = 0.0
+        self.dilution_factor = self.fis_0/self.ve.pt_out['fis_0']
+        globalVars['rhox0'] = self.ve.pt_out['rho_x'] * self.dilution_factor
+        globalVars['rhosl0'] = 0.0
         write_file_with_replacements(os.path.join(case_folder, 'constant', 'globalVars'), globalVars)
 
         # Get reaction_update_time, fluid_update_time, and fluid_steadystate_time
@@ -383,9 +388,9 @@ class EnzymaticHydrolysis:
                         fluid_update_time = float(line.split(']')[-1].split(';')[0])
                     elif 'fluid_steadystate_time' in line:
                         fluid_steadystate_time = float(line.split(']')[-1].split(';')[0])
-        controlDict = {}
+
         fintime = fluid_steadystate_time + (self.t_final/reaction_update_time + 1.0)*fluid_update_time
-        controlDict['endTime'] = fintime
+        controlDict = {'endTime': fintime}
         write_file_with_replacements(os.path.join(case_folder,'system', 'controlDict'), controlDict)
         
         # command = "srun hostname"
@@ -429,7 +434,7 @@ class EnzymaticHydrolysis:
             os.chdir(cwd)
             # Save ve_params to the yaml file
             self.ve.eh_out['job_id'] = job_id
-            self.ve.write_to_file(os.path.join(root_path, 've_params.{job_id}'), verbose=True)
+            self.ve.write_to_file(os.path.join(root_path, f've_params.{job_id}'), verbose=True)
             print('CFD job submitted, please check the queue...')
 
         if verbose:
@@ -639,16 +644,16 @@ class Bioreactor:
         if verbose:
             print('\nRunning Bioreactor')
 
+        # Moved to preprocess script
+        #
         # # Make changes to the fvOptions file based on replacement options
         # fvOptions = {}
         # fvOptions['rho_g'] = self.ve.eh_out['rho_g']
         # fvOptions['rho_x'] = self.ve.eh_out['rho_x']
         # fvOptions['rho_f'] = self.ve.eh_out['rho_f']
         # write_file_with_replacements(os.path.join(self.br_module_path, 'constant', 'fvOptions'), fvOptions)
-        
         # # Make changes to the controlDict file based on replacement options
-        # controlDict = {}
-        # controlDict['endTime'] = self.t_final
+        # controlDict = {'endTime': self.t_final}
         # write_file_with_replacements(os.path.join(self.br_module_path, 'system', 'controlDict'), controlDict)
 
         jobname = 'br_cfd'
@@ -659,12 +664,12 @@ class Bioreactor:
             command = f'sbatch --job-name={jobname} --dependency=afterok:{self.ve.eh_out["job_id"]} ofoamjob'
         else:
             command = f'sbatch --job-name={jobname} ofoamjob'
-        out = subprocess.run(command.split())
+        out = subprocess.run(command.split(), capture_output=True, text=True)
         job_id = out.stdout.strip().split()[-1]
         os.chdir(root_path)
         
         if verbose:
-            print('CFD job submitted, please check the queue... Job ID: {job_id}')
+            print(f'CFD job submitted, please check the queue... Job ID: {job_id}')
         self.ve.br_out = {'OUR': np.nan, 'job_id': job_id}
         return False
 

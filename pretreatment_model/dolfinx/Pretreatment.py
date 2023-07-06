@@ -1,5 +1,9 @@
 import dolfinx
 import ufl
+
+# import mpi4py
+# mpi4py.rc.initialize = False
+# mpi4py.rc.finalize = False
 from mpi4py import MPI
 
 import numpy as np
@@ -80,7 +84,7 @@ class Pretreatment:
         self.length = 5e-3 / 2.0
         self.diam = 2.0 * self.length / 20.0
 
-        self.mesh = dolfinx.mesh.create_interval(self.comm, nn, [0.0, self.length])
+        self.mesh = dolfinx.mesh.create_interval(MPI.COMM_WORLD, nn, [0.0, self.length])
         self.ndim = self.mesh.topology.dim
 
     # ================================================================
@@ -483,7 +487,7 @@ class Pretreatment:
         J = ufl.derivative(self.F, self.u, du)
 
         nonlinear_problem = dolfinx.fem.petsc.NonlinearProblem(self.F, self.u, self.bcs)
-        nonlinear_solver = dolfinx.nls.petsc.NewtonSolver(self.comm, nonlinear_problem)
+        nonlinear_solver = dolfinx.nls.petsc.NewtonSolver(MPI.COMM_WORLD, nonlinear_problem)
 
         for k in range(t_steps):
             # Solve the nonlinear problem
