@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=ehreact
 ##SBATCH --partition=standard
-#SBATCH --partition=standard
+#SBATCH --partition=debug
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=32
-#SBATCH --time=8:00:00
+##SBATCH --time=48:00:00
+#SBATCH --time=00:30:00
 #SBATCH --account=vebio
-#SBATCH --output=log.out
+#SBATCH --output=log_post.out
 
 #required modules
 #========================================
@@ -17,11 +18,10 @@ module purge
 #module load openmpi/1.10.7/gcc-7.3.0
 module load openmpi/4.1.0/gcc-8.4.0 # EKY: added new module that lines up with what was used during build
 
-
 #source openfoam's bashrc - change accordingly
 source /projects/vebio/eyoung/VirtualEngineering/submodules/OpenFOAM-dev/etc/bashrc # EKY: changed location to new build
 module load conda
-source activate virteng_env
+source activate virteng-env
 module load paraview
 
 #presteps
@@ -38,11 +38,12 @@ stitchMesh -perfect -overwrite hub_to_rotor hub_to_rotor_copy
 transformPoints -scale "(0.01 0.01 0.01)"
 echo "Done meshing"
 
-#run the case
+# run the case
 #========================================
 decomposePar -force # EKY: added option to force this
 srun -n 32 EHFoam -parallel
 reconstructPar -newTimes
 EHFoam -postProcess -func "grad(U)"
 pvpython torq.py "lateralWall"
+#========================================
 python eh_postprocess_script.py $SLURM_JOB_ID

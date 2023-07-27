@@ -539,7 +539,7 @@ class Bioreactor:
         self.ve = VE_params()
         self.ve.br_in = {}
 
-        self.br_module_path = os.path.join(root_path,'bioreactor', 'bubble_column')
+        self.br_module_path = os.path.join(root_path, 'bioreactor', 'bubble_column')
         # Bioreactor input parameters
         if type(br_options) is dict:
             self.model_type = br_options['model_type'] # running select_run_function() inside
@@ -644,33 +644,78 @@ class Bioreactor:
         if verbose:
             print('\nRunning Bioreactor')
 
-        # Moved to preprocess script
-        #
-        # # Make changes to the fvOptions file based on replacement options
-        # fvOptions = {}
-        # fvOptions['rho_g'] = self.ve.eh_out['rho_g']
-        # fvOptions['rho_x'] = self.ve.eh_out['rho_x']
-        # fvOptions['rho_f'] = self.ve.eh_out['rho_f']
-        # write_file_with_replacements(os.path.join(self.br_module_path, 'constant', 'fvOptions'), fvOptions)
-        # # Make changes to the controlDict file based on replacement options
-        # controlDict = {'endTime': self.t_final}
-        # write_file_with_replacements(os.path.join(self.br_module_path, 'system', 'controlDict'), controlDict)
+        liq_height = 0.5*self.column_height
+        inner_col_height = liq_height + 1.
+        outer_col_rad = self.column_diameter/2.
+        inner_col_rad = 0.707*outer_col_rad
+        square = inner_col_rad/2.
+
+        P1 = 1.e5
+        rho = 1000.
+        g = 9.8
+        presfactor = (P1+rho*g*liq_height)/(P1+rho*g*liq_height/2)
+
+        # Make changes to the controlDict file based on replacement options
+        controlDict = {}
+        controlDict['endTime'] = self.t_final
+        controlDict['dbubGas'] = self.bubble_diameter
+        controlDict['targetUs'] = self.gas_velocity
+        controlDict['liqHeight'] = liq_height
+        controlDict['presfactor'] = presfactor
+        write_file_with_replacements(os.path.join(self.br_module_path, 'system', 'controlDict'), controlDict)
+
+        phaseProperties = {'d': self.bubble_diameter}
+        write_file_with_replacements(os.path.join(self.br_module_path, 'constant', 'phaseProperties'), phaseProperties)
+
+        with open(os.path.join(self.br_module_path, 'TEMPLATE', 'system', 'circinlet.m4'), 'rt') as f:
+            data = f.read()
+            data = data.replace('##VARIABLE_COLUMN_HEIGHT##', str(self.column_height))
+            data = data.replace('##VARIABLE_COLUMN_DIAMETER##', str(self.column_diameter))
+        with open(os.path.join(self.br_module_path, 'system', 'circinlet.m4'), 'wt') as f:
+            f.write(data)
+
+        with open(os.path.join(self.br_module_path, 'TEMPLATE',  'system', 'conc_cylinder_mesh.m4'), 'rt') as f:
+            data = f.read()
+            data = data.replace('##VARIABLE_COLUMN_HEIGHT##', str(self.column_height))
+            data = data.replace('##VARIABLE_INNER_COLUMN_HEIGHT##', str(inner_col_height))
+            data = data.replace('##VARIABLE_COLUMN_DIAMETER##', str(self.column_diameter))
+        with open(os.path.join(self.br_module_path, 'system', 'conc_cylinder_mesh.m4'), 'wt') as f:
+            f.write(data)
+
+        with open(os.path.join(self.br_module_path, 'TEMPLATE',  'system', 'setFieldsDict'), 'rt') as f:
+            data = f.read()
+            data = data.replace('##VARIABLE_COLUMN_DIAMETER##', str(self.column_diameter))
+            data = data.replace('##VARIABLE_LIQUID_HEIGHT##', str(liq_height))
+        with open(os.path.join(self.br_module_path, 'system', 'setFieldsDict'), 'wt') as f:
+            f.write(data)
+
+        with open(os.path.join(self.br_module_path, 'TEMPLATE',  'system', 'blockMeshDict'), 'rt') as f:
+            data = f.read()
+            data = data.replace('##VARIABLE_COLUMN_HEIGHT##', str(self.column_height))
+            data = data.replace('##VARIABLE_SQUARE##', str(square))
+            data = data.replace('##VARIABLE_OUTER_COLUMN_RADIUS##', str(outer_col_rad))
+            data = data.replace('##VARIABLE_INNER_COLUMN_RADIUS##', str(inner_col_rad))
+        with open(os.path.join(self.br_module_path, 'system', 'blockMeshDict'), 'wt') as f:
+            f.write(data)
 
         jobname = 'br_cfd'
         # Run the bioreactor model
         os.chdir(self.br_module_path)
         if np.isnan(self.ve.eh_out['rho_g']):
             print(f'Submit Bioreactor CFD job dependent on successful run of EH CFD job (job ID: {self.ve.eh_out["job_id"]}).')
-            command = f'sbatch --job-name={jobname} --dependency=afterok:{self.ve.eh_out["job_id"]} ofoamjob'
+            command = f'sbatch --job-name={jobname} --dependency=afterok:{self.ve.eh_out["job_id"]} submit_reactor_and_pvbatch.sbatch'
         else:
-            command = f'sbatch --job-name={jobname} ofoamjob'
+            with open(os.path.join(root_path, 'EH_OpenFOAM', 'tests', 'RushtonReact', 'job_history.csv'), 'a') as fp:
+                fp.write(f'{0}\n')
+            # Save ve_params to the yaml file
+            self.ve.write_to_file(os.path.join(root_path, f've_params.{0}'), verbose=True)
+            command = f'sbatch --job-name={jobname} submit_reactor_and_pvbatch.sbatch'
         out = subprocess.run(command.split(), capture_output=True, text=True)
         job_id = out.stdout.strip().split()[-1]
         os.chdir(root_path)
         
         if verbose:
             print(f'CFD job submitted, please check the queue... Job ID: {job_id}')
-        self.ve.br_out = {'OUR': np.nan, 'job_id': job_id}
         return False
 
 

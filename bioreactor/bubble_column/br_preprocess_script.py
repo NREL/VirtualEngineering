@@ -9,9 +9,10 @@ eh_job_history = os.path.join(eh_case_folder, 'job_history.csv')
 with open(eh_job_history) as f:
     for line in f:
         pass
-    job_id = line
+    job_id = line.strip()
 
-ve = VE_params.load_from_file(os.path.join(root_path, 've_params.{job_id}'), verbose=True)
+ve = VE_params.load_from_file(os.path.join(root_path, f've_params.{job_id}'), verbose=True)
+
 # Make changes to the fvOptions file based on replacement options
 fvOptions = {}
 fvOptions['rho_g'] = ve.eh_out['rho_g']
@@ -19,8 +20,4 @@ fvOptions['rho_x'] = ve.eh_out['rho_x']
 fvOptions['rho_f'] = ve.eh_out['rho_f']
 write_file_with_replacements(os.path.join(os.path.dirname(__file__), 'constant', 'fvOptions'), fvOptions)
 
-# Make changes to the controlDict file based on replacement options
-controlDict = {}
-controlDict['endTime'] = ve.br_in['t_final']
-write_file_with_replacements(os.path.join(os.path.dirname(__file__), 'system', 'controlDict'), controlDict)
-
+print(f'br_preprocess_script is done! Used job_id = {job_id}')

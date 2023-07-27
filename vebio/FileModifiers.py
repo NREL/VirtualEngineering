@@ -66,10 +66,10 @@ def write_file_with_replacements(filename, replacements, full_overwrite=False):
 
         # Find the definition of the variable we want to change
         for key, value in replacements.items():
-            if key == line.strip()[0:len(key)]:
+            if key in (line.split('=')[0]).split(' '):
                 new_value = value
                 del replacements[key]
-                break;
+                break
 
         if new_value is not None:
             if full_overwrite:
