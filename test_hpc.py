@@ -1,19 +1,12 @@
 from ipywidgets import *
 import os
 import numpy as np
-import subprocess
 
 # imports from vebio modules
-from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget, csv2widget_collection
-from vebio.Utilities import get_host_computer
+from vebio.WidgetFunctions import csv2widget_collection
 from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bioreactor
+from vebio.OptimizationFunctions import Optimization
 
-# from vebio.OptimizationFunctions import Optimization
-#================================================================
-# # See if we're running on Eagle or on a laptop
-# hpc_run = get_host_computer()
-# print('Running on HPC:', hpc_run)
-#================================================================
 
 hpc_run = True
 
@@ -32,9 +25,8 @@ BR_model = Bioreactor(br_options, hpc_run)
 
 PT_model.run(verbose=False)
 
-EH_model.run_eh_cfd_surrogate()
-# EH_model.run_eh_cfd_simulation()
-# print('!!!!!!!!!!! run_eh_lignocellulose_model')
+# EH_model.run_eh_cfd_surrogate()
+EH_model.run_eh_cfd_simulation()
 # EH_model.run_eh_lignocellulose_model()
 
 # BR_model.run_biorector_cfd_surrogate()

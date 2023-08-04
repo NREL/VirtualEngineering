@@ -23,7 +23,7 @@ ofreader.SkipZeroTime = 0  #dont know why this is not working
 t = np.array(ofreader.TimestepValues)
 N = t.size
 tt = int(N/2)
-print t
+print(t)
 
 # threshold filter to get only the "aerated liquid"; specify cell data or point
 # data in first element of Scalars by CELLS or POINTS

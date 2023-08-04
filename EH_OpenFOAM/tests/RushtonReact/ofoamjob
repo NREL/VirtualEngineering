@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=ehreact
-##SBATCH --partition=standard
-#SBATCH --partition=debug
+#SBATCH --partition=standard
+##SBATCH --partition=debug
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=32
-##SBATCH --time=48:00:00
-#SBATCH --time=00:30:00
+#SBATCH --time=48:00:00
+##SBATCH --time=00:30:00
 #SBATCH --account=vebio
 #SBATCH --output=log_post.out
 

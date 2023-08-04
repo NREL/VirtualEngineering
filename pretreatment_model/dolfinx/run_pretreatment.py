@@ -29,8 +29,8 @@ def run_pt(ve_params=None, verbose=True, show_plots=True):
         t_final = ve_params.pt_in["final_time"]  # in seconds
 
     PT.solve(t_final=t_final, dt=2.0, save_every=30.0)
-
     if show_plots:
+        print(show_plots)
         draw_figures(t_final, PT.path_to_data_files)
 
     t2 = time.time()
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         profiler.dump_stats("profiling.prof")
     elif len(sys.argv) == 3:
         ve_params = VE_params.load_from_file('ve_params.yml')
-        output_dict = run_pt(ve_params=ve_params, verbose=sys.argv[1], show_plots=sys.argv[2])        
+        output_dict = run_pt(ve_params=ve_params, verbose=sys.argv[1], show_plots=(sys.argv[2] == 'True'))       
         ve_params.pt_out = output_dict
         ve_params.write_to_file('ve_params.yml')
     else:
