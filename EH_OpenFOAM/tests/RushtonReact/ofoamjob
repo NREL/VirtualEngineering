@@ -7,7 +7,7 @@
 #SBATCH --time=48:00:00
 ##SBATCH --time=00:30:00
 #SBATCH --account=vebio
-#SBATCH --output=log_post.out
+#SBATCH --output=log.out
 
 #required modules
 #========================================
