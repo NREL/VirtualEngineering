@@ -27,7 +27,7 @@ class Optimization:
 
         # Initialize models
         self.FS_model = Feedstock(fs_options)
-        self.PT_model = Pretreatment(pt_options)
+        self.PT_model = Pretreatment(pt_options, hpc_run)
         self.models_list = [self.FS_model, self.PT_model]
         if self.n_models > 1:
             assert eh_options.model_type.value != 'CFD Simulation'

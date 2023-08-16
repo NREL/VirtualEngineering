@@ -377,7 +377,7 @@ class OptimizationWidget:
         display(hbox)
 
 
-def scv2widget_collection(filename):
+def csv2widget_collection(filename):
     df = pd.read_csv(filename, index_col="name")
     widget_collection = WidgetCollection()
     for name, row in df.iterrows():

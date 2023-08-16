@@ -30,7 +30,7 @@ import os
 import numpy as np
 
 # imports from vebio modules
-from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget, scv2widget_collection
+from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget, csv2widget_collection
 from vebio.Utilities import get_host_computer
 from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bioreactor
 from vebio.OptimizationFunctions import Optimization
@@ -48,7 +48,7 @@ logger.setLevel(logging.CRITICAL)
 Set the feedstock properties.
 
 ```python
-fs_options = scv2widget_collection("feedstock_params.csv")
+fs_options = csv2widget_collection("feedstock_params.csv")
 fs_options.display_all_widgets()
 ```
 
@@ -57,7 +57,7 @@ fs_options.display_all_widgets()
 Set the options for the pretreatment operation below.
 
 ```python
-pt_options = scv2widget_collection("pretreatment_params.csv")
+pt_options = csv2widget_collection("pretreatment_params.csv")
 pt_options.display_all_widgets()
 ```
 
@@ -69,7 +69,7 @@ Set the options for the enzymatic hydrolysis operation using either a two-phase 
 
 
 ```python
-eh_options = scv2widget_collection("enzymatic_hydrolysis_params.csv")
+eh_options = csv2widget_collection("enzymatic_hydrolysis_params.csv")
 eh_options.display_all_widgets()
 ```
 
@@ -81,7 +81,7 @@ Set the options for the bubble column bioreaction operation below.
 
 
 ```python
-br_options = scv2widget_collection("bioreactor_params.csv")
+br_options = csv2widget_collection("bioreactor_params.csv")
 br_options.display_all_widgets()
 ```
 
