@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.5
+      jupytext_version: 1.14.7
   kernelspec:
     display_name: Python 3 (ipykernel)
     language: python
@@ -28,7 +28,7 @@ import os
 import numpy as np
 
 # imports from vebio modules
-from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget, scv2widget_collection
+from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget
 from vebio.Utilities import get_host_computer
 from vebio.RunFunctions import Pretreatment, Feedstock, EnzymaticHydrolysis, Bioreactor
 from vebio.OptimizationFunctions import Optimization
@@ -306,7 +306,7 @@ def run_button_action(b):
     verbose = True
     # Initialize models
     FS_model = Feedstock(fs_options)
-    PT_model = Pretreatment(pt_options)
+    PT_model = Pretreatment(pt_options, hpc_run)
     EH_model = EnzymaticHydrolysis(eh_options, hpc_run)
     BR_model = Bioreactor(br_options, hpc_run)
     models_list = [FS_model, PT_model, EH_model, BR_model]

@@ -193,7 +193,7 @@ class Pretreatment:
 
     @final_time.setter
     def final_time(self, a):
-        if not 1 <= a <= 1440:
+        if not 1/60 <= a <= 1440:
             raise ValueError(f"Value {a} is outside allowed interval [1, 1440]")
         self.ve.pt_in['final_time'] = 60 * float(a)
 
@@ -227,6 +227,7 @@ class Pretreatment:
         if verbose:
             print('Finished Pretreatment')
         if check_dict_for_nans(self.ve.pt_out):
+            print(f't_final = {self.t_final}')
             return True
         return False
 

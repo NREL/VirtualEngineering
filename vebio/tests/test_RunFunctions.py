@@ -82,7 +82,7 @@ def test_fd_init(build_fs_options):
 def test_pt_init(build_pt_options):
     pt_options = build_pt_options
 
-    PT_model = Pretreatment(pt_options)
+    PT_model = Pretreatment(pt_options, hpc_run=False)
     truth_values = {'initial_acid_conc': 0.0001,
                     'steam_temperature': 150.0 + 273.15,
                     'initial_solid_fraction': 0.745, 
@@ -121,7 +121,7 @@ def test_br_init(build_br_options):
 @pytest.mark.regression
 def test_pt_run(build_pt_options):
     pt_options = build_pt_options
-    PT_model = Pretreatment(pt_options)
+    PT_model = Pretreatment(pt_options, hpc_run=False)
     PT_model.run(verbose=False, show_plots=False)
     for k, it in PT_model.ve.pt_out.items():
         print(k, it)

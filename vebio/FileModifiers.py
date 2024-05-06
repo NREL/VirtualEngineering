@@ -1,5 +1,6 @@
 from shutil import copyfile
 import os
+import re
 
 def write_file_with_replacements(filename, replacements, full_overwrite=False):
 
@@ -66,7 +67,9 @@ def write_file_with_replacements(filename, replacements, full_overwrite=False):
 
         # Find the definition of the variable we want to change
         for key, value in replacements.items():
-            if key in (line.split('=')[0]).split(' '):
+            left = line.split('=')[0]
+            split_line = re.split(' |: ', left)
+            if key in split_line:
                 new_value = value
                 del replacements[key]
                 break
