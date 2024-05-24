@@ -1,5 +1,8 @@
 import dolfinx
+from dolfinx.fem import petsc
+from dolfinx.nls import petsc
 import ufl
+from basix.ufl import element, mixed_element
 
 # import mpi4py
 # mpi4py.rc.initialize = False
@@ -90,13 +93,13 @@ class Pretreatment:
     # ================================================================
 
     def build_functions(self, degree=2):
-        d1p3 = ufl.FiniteElement("P", self.mesh.ufl_cell(), degree)
-        self.S = dolfinx.fem.FunctionSpace(self.mesh, d1p3)
+        d1p3 = element("P", self.mesh.basix_cell(), degree)
+        self.S = dolfinx.fem.functionspace(self.mesh, d1p3)
 
         self.num_comp = 7
 
-        d1p3_mix = ufl.MixedElement([d1p3 for k in range(self.num_comp)])
-        self.Q = dolfinx.fem.FunctionSpace(self.mesh, d1p3_mix)
+        d1p3_mix = mixed_element([d1p3 for k in range(self.num_comp)])
+        self.Q = dolfinx.fem.functionspace(self.mesh, d1p3_mix)
 
         self.spaces = []
         self.maps = []
