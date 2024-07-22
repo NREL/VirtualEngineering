@@ -4,39 +4,32 @@ import contextlib
 import subprocess
 import numpy as np
 
-from vebio.FileModifiers import write_file_with_replacements
-from vebio.Utilities import check_dict_for_nans, dict_to_yaml, yaml_to_dict, print_dict
-from vebio.WidgetFunctions import OptimizationWidget
+from virteng.FileModifiers import write_file_with_replacements
+from virteng.Utilities import check_dict_for_nans, dict_to_yaml, yaml_to_dict, print_dict
+from virteng.WidgetFunctions import OptimizationWidget
+from virteng.ModelsConnection import VE_params
 
-root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__)))
 cwd = os.getcwd()
 
-class VE_params(object):
-    ''' This  class is used for storing Virtual Engineering parameters 
-        so they can be accesed from any model. It uses the Borg pattern. 
-        The Borg pattern (also known as the Monostate pattern) is a way to
-        implement singleton behavior, but instead of having only one instance
-        of a class, there are multiple instances that share the same state. In
-        other words, the focus is on sharing state instead of sharing instance.
-    '''
+def make_models_list(options_list, n_models=4, hpc_run=False):
 
-    __shared_state = {}
-
-    def __init__(self):
-        self.__dict__ = self.__shared_state
-
-    @classmethod
-    def load_from_file(cls, yaml_filename, verbose=False):
-        ve = cls()
-        for k, item in yaml_to_dict(yaml_filename, verbose).items():
-            setattr(ve, k, item)
-        return ve
-
-    def write_to_file(self, yaml_filename, merge_with_existing=False, verbose=False):
-        dict_to_yaml(self.__dict__,  yaml_filename, merge_with_existing, verbose)
-    
-    def __str__(self):
-        return str(print_dict(self.__dict__))
+    fs_options, pt_options, eh_options, br_options = tuple(options_list)
+    # Initialize models
+    FS_model = Feedstock(fs_options)
+    PT_model = Pretreatment(pt_options, hpc_run)
+    models_list = [FS_model, PT_model]
+    if n_models > 1:
+        if not hpc_run:
+            assert eh_options.model_type.value != 'CFD Simulation'
+        EH_model = EnzymaticHydrolysis(eh_options, hpc_run)
+        models_list.append(EH_model)
+    if n_models > 2:
+        if not hpc_run:
+            assert br_options.model_type.value == 'CFD Surrogate' # Do optimization only with surrogate
+        BR_model = Bioreactor(br_options, hpc_run)
+        models_list.append(BR_model)
+    return models_list
 
 
 class Feedstock:
@@ -151,7 +144,7 @@ class Pretreatment:
                 else:
                     setattr(self, widget_name, widget.value)
 
-        self.pt_module_path = os.path.join(root_path,'pretreatment_model')
+        self.pt_module_path = os.path.join(root_path, 'models', 'pretreatment_model')
         sys.path.append(os.path.join(self.pt_module_path, 'dolfinx'))
 
     ##############################################
@@ -330,7 +323,7 @@ class EnzymaticHydrolysis:
 
     @model_type.setter
     def model_type(self, a):
-        if not a in ['CFD Simulation', "CFD Surrogate", 'Lignocellulose Model']:
+        if a not in ['CFD Simulation', "CFD Surrogate", 'Lignocellulose Model']:
             raise ValueError("Invalid value. Allowed options: 'CFD Simulation', 'CFD Surrogate', 'Lignocellulose Model'")
         self.ve.eh_in['model_type']= a
         self.select_run_function()
@@ -345,13 +338,13 @@ class EnzymaticHydrolysis:
             self.run = self.run_eh_cfd_simulation
         elif self.model_type == "CFD Surrogate":
             self.run = self.run_eh_cfd_surrogate
-            eh_module_path = os.path.join(root_path,'EH_OpenFOAM', 'EH_surrogate')
-            if not eh_module_path in sys.path:
+            eh_module_path = os.path.join(root_path, 'models', 'EH_OpenFOAM', 'EH_surrogate')
+            if eh_module_path not in sys.path:
                 sys.path.append(eh_module_path)
         elif self.model_type == 'Lignocellulose Model':
             self.run = self.run_eh_lignocellulose_model
-            eh_module_path = os.path.join(root_path ,'two_phase_batch_model')
-            if not eh_module_path in sys.path:
+            eh_module_path = os.path.join(root_path , 'models', 'two_phase_batch_model')
+            if eh_module_path not in sys.path:
                 sys.path.append(eh_module_path)
 
 
@@ -540,7 +533,7 @@ class Bioreactor:
         self.ve = VE_params()
         self.ve.br_in = {}
 
-        self.br_module_path = os.path.join(root_path, 'bioreactor', 'bubble_column')
+        self.br_module_path = os.path.join(root_path, 'models', 'bioreactor', 'bubble_column')
         # Bioreactor input parameters
         if type(br_options) is dict:
             self.model_type = br_options['model_type'] # running select_run_function() inside

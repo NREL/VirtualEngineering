@@ -1,6 +1,5 @@
 from ipywidgets import *
 
-from vebio.Utilities import dict_to_yaml, yaml_to_dict
 import pandas as pd
 import numpy as np
 #================================================================

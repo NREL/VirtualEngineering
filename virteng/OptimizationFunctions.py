@@ -5,9 +5,9 @@ import scipy.optimize as opt
 import numpy as np
 
 # imports from vebio modules
-from vebio.WidgetFunctions import OptimizationWidget
+from ve.WidgetFunctions import OptimizationWidget
 # from vebio.Utilities import  yaml_to_dict
-from vebio.RunFunctions import Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor, VE_params
+from ve.RunFunctions import Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor, VE_params
 # # add path for no-CFD EH model
 # sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
 
