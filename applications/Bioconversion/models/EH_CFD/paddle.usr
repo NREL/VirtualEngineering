@@ -1,0 +1,1825 @@
+c-----------------
+C
+C  USER SPECIFIED ROUTINES:
+C
+C     - boundary conditions
+C     - initial conditions
+C     - variable properties
+C     - local acceleration for fluid (a)
+C     - forcing function for passive scalar (q)
+C     - general purpose routine for checking errors etc.
+C
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      common /invariants/  sec_invar(lx1,ly1,lz1,lelt)
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+
+      integer e,f,eg
+      real fitting_fac,st_eins_diff,phi_inf
+      e = gllel(eg)  ! global element number to processor-local el. # 
+
+      phi_inf = 0.09
+      fitting_fac=1.0
+      eta_min = 1e-10
+      st_eins_diff = 6.7e-10 !for glucose
+      !http://www.hypertextbookshop.com/biofilmbook/working_version/
+      !artifacts/tables/Module_004/Table4-1_DiffCoeffH2O.htm
+
+      if (temp .le. 0.) then
+        viscosity = visc_water 
+      else
+        viscosity = min(visc_water / 
+     &  (( 1. - temp / phi_inf)**power_fit),
+     &                  visc_max)
+      endif
+
+      if (ifield .eq. 1)  then  ! viscosity
+         udiff   = viscosity  ! viscosity defined above
+         utrans  = density_water ! density
+
+      !add 1 to include momentum equation
+      elseif (ifield .le. (PS_RECALC+1) )  then  
+        !(2 is total solids, 3 is facile, 4 is recalc)
+
+        udiff   = diffusivity
+        utrans  = 1.
+ 	!free enzymes (4) , bound enzymes (5) and glucose (6)
+      elseif (ifield .gt. (PS_RECALC+1)) then 
+
+	!udiff= fitting_fac*st_eins_diff*(1-temp) !scale by liquid fraction 
+	udiff= fitting_fac*diffusivity*(1-temp) !scale by liquid fraction 
+        utrans  = 1.
+
+      endif
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      common /mygrad/ div_flux(lx1,ly1,lz1,lelt,ldimt)
+     &              , flux_x(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_x_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , div_flux_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , t_old(lx1,ly1,lz1,lelt,ldimt)
+
+      integer e,f,eg
+      e = gllel(eg)
+
+      !Note: this is an acceleration term, NOT a force!
+      !Thus, ffx will subsequently be multiplied by rho(x,t).
+
+      ! add coriolis forces
+      ffx = +2.0 * omega * uy
+      ffy = - 2.0 * omega * ux
+      ffz = 0. 
+
+      ! rho' / rho0  -- becuase these force terms will be mult. by rho
+      ! where rho is density of water 
+      rho_prime_over_rho = temp * (density_ratio - 1.)
+
+      !add gravity forces (under Boussinesq approximaion)
+      ffz =  ffz - rho_prime_over_rho * gravity
+
+      ! add centrifugal forces
+      ffx = ffx + omega**2 * x * rho_prime_over_rho
+      ffy = ffy + omega**2 * y * rho_prime_over_rho
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /mygrad/ div_flux(lx1,ly1,lz1,lelt,ldimt)
+     &              , flux_x(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_x_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , div_flux_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , t_old(lx1,ly1,lz1,lelt,ldimt)
+
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      integer e,f,eg
+      e = gllel(eg)
+
+      df = 0.
+
+      if (ifield .ge. 2) then
+
+        if (istep .gt. 0) then
+
+           alpha = 1.
+
+           df = alpha *div_flux_old(ix, iy, iz, e, ifield-1)
+     &        + (1.-alpha) * div_flux(ix, iy, iz, e, ifield-1)
+
+        else
+           df = div_flux(ix, iy, iz, e, ifield-1)
+        endif
+
+      endif
+
+      qvol = df
+
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lxyz=lx1*ly1*lz1)
+
+      parameter (lt=lx1*ly1*lz1*lelt)
+      parameter(ltot1=lx1*ly1*lz1*lelt)  ! for velocity/temp/ps
+
+      integer e,eg
+
+      common /mygrad/ div_flux(lx1,ly1,lz1,lelt,ldimt)
+     &              , flux_x(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_x_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , div_flux_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , t_old(lx1,ly1,lz1,lelt,ldimt)
+
+
+      common /invariants/ sec_invar(lxyz,lelt)
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      real :: fGan0, fGF0, fGR0
+      real :: fliq0, fg0, fET
+      common /initial/ phi_s_i, tbar_i(6), fGan0, 
+     &                 phi_facile, phi_recalc, 
+     &                 CEF0, CEB0, CG0, fET, CET0
+
+      logical   irescale
+      common /rescale/   irescale
+      common /reaction/ t_react, dt_react, t_ss, dt_ss, 
+     &                  dt_rk4, dt_fr
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+
+
+      integer ikstep
+      save    ikstep
+      data    ikstep /0/
+
+      logical ifdout,iftout,ilogvisc,ifluxlimit
+
+      real gije(lxyz,ldim,ldim)
+
+      real phi_sec_invar(lxyz,lelt)
+
+      real grad1_x(lx1,ly1,lz1,lelt)
+      real grad1_y(lx1,ly1,lz1,lelt)
+      real grad1_z(lx1,ly1,lz1,lelt)
+
+      real work1(lx1,ly1,lz1,lelt)
+      real work2(lx1,ly1,lz1,lelt)
+
+      real vs(lx1,ly1,lz1,lelt)
+
+      real grad1_psi_x(lx1,ly1,lz1,lelt)
+      real grad1_psi_y(lx1,ly1,lz1,lelt)
+      real grad1_psi_z(lx1,ly1,lz1,lelt)
+
+      real grad1_lnu_x(lx1,ly1,lz1,lelt)
+      real grad1_lnu_y(lx1,ly1,lz1,lelt)
+      real grad1_lnu_z(lx1,ly1,lz1,lelt)
+
+      real vx_tmp(lx1,ly1,lz1,lelt)
+      real vy_tmp(lx1,ly1,lz1,lelt)
+
+      real x0(3)
+      save x0
+      data x0 /3*0/
+
+      real tbar(ldimt)
+      integer :: enzinitial, enzinitial_uniform
+      real :: solmass, facilemass, CGF, CGR, epsl, cg
+      real :: CEfb, CErb, enztotal !bound enzymes
+      common /fixed/ MwE, MwGan, MwGse, 
+     &     rhol, rhos, rhoT, rGg
+      real :: MwE, MwGan, MwGse, 
+     &   rhol, rhos, rhoT, rGg
+      logical :: adsorb_during_cfd
+      real :: lmbd_e, Mw_e, fis_init, f_e, rho_l, rho_s, rho_total
+
+      n = nx1 * ny1 * nz1 * nelt
+
+      if (istep .eq. 0) then
+         irescale = .true.
+      endif
+
+      if (irescale) then
+         if(nid .eq. 0) write(*,*) '-------RESCALING RESCALING-------'
+
+         do ifld = 1, ldimt
+           tbar_i(ifld) = glsc2(t(1,1,1,1,ifld),bm1,n) / voltm1
+           if(nid .eq. 0) write(*,*) ifld, tbar_i(ifld)
+         enddo
+         irescale = .false.
+      endif
+
+! ----------------------------------------------------------------------
+! Calculate averages
+! ----------------------------------------------------------------------
+
+      do ifld = 1, ldimt
+         tbar(ifld) = glsc2(t(1,1,1,1,ifld),bm1,n) / voltm1
+         if(nid .eq. 0) write(*,*) ifld, tbar(ifld)
+      enddo
+
+
+!------------------------------------------------------------
+!  KLUDGE correction of boundary loss
+! this should be done with updated tbar_i after reactions 
+!------------------------------------------------------------
+      do i = 1, n
+
+         if (t(i,1,1,1,PS_SOLIDS) .lt. phi_max) then
+
+           if ( t(i,1,1,1,PS_SOLIDS) .gt. 0.) then
+              t(i,1,1,1,PS_SOLIDS) = t(i,1,1,1,PS_SOLIDS) 
+     &                    * (tbar_i(PS_SOLIDS) / tbar(PS_SOLIDS))
+           else
+              t(i,1,1,1,PS_SOLIDS) = 0.
+           endif
+
+         endif
+
+      enddo
+
+      do ifld = 2, ldimt
+
+        do i = 1, n
+           if ( t(i,1,1,1,ifld) .gt. 0.) then
+              t(i,1,1,1,ifld) = t(i,1,1,1,ifld) 
+     &                      * (tbar_i(ifld) / tbar(ifld))
+           else
+              t(i,1,1,1,ifld) = 0.
+           endif
+
+        enddo !all DOFs loop
+      enddo !ldimt loop
+
+
+      ! ----------------------------------------------------
+        ! Save div_flux as old; time-lag of boundary conditions 
+        !helps accuracy
+        ! by maintaining consistency
+      ! ----------------------------------------------------
+      if (istep .gt. 0) then
+
+         do ifld = 1, ldimt
+            call copy(div_flux_old(1,1,1,1,ifld), 
+     &                    div_flux(1,1,1,1,ifld), n)
+            call copy(flux_x_old(1,1,1,1,ifld), 
+     &                    flux_x(1,1,1,1,ifld), n)
+            call copy(flux_y_old(1,1,1,1,ifld), 
+     &                    flux_y(1,1,1,1,ifld), n)
+            call copy(flux_z_old(1,1,1,1,ifld), 
+     &                    flux_z(1,1,1,1,ifld), n)
+            call copy(t_old(1,1,1,1,ifld), 
+     &                    t(1,1,1,1,ifld), n)
+
+         enddo
+      endif
+! ----------------------------------------------------------------------
+!  calculate magnitude of the second invariant of the strain-rate tensor
+!   -- used below in particle flux
+!   -- may be used in yield-stress fluids
+! ----------------------------------------------------------------------
+      nxyz = nx1*ny1*nz1
+      n    = nx1 * ny1 * nz1 * nelv
+
+      do e=1,nelv
+
+        call comp_gije(gije,vx(1,1,1,e),vy(1,1,1,e),vz(1,1,1,e),e)
+
+        do l = 1, nxyz
+          sec_invar(l,e) = 0.
+          do i = 1, ndim
+            do j = 1, ndim
+              sec_invar(l,e) = sec_invar(l,e)
+     &          + ( gije(l,i,j) + gije(l,j,i) )
+     &          * ( gije(l,i,j) + gije(l,j,i) )
+            enddo
+          enddo
+          sec_invar(l,e) = sqrt( 0.125 * sec_invar(l,e) )  ! 1/8
+        enddo
+      enddo
+      !.....................................................
+!  calculate flux and divergence of flux; added to qvol 
+!
+!  flux = - d_phi * phi * gradient(sec_invar * phi)
+!  
+!  where  
+!    - d_phi is user-defined constant
+!    - phi is the solids concentration (represented by t)
+!    - sec_invar is the magnitude of shear-rate tensor
+!
+!  For the z-component, the flux includes the imposed 
+!  settling velocity -- added in "add_v_settle"
+!
+!.....................................................
+      call calc_v_settle(vs, t, n)
+! ----------------------------------------------------------------------
+!   calculate phi_s * sec_invar
+! ----------------------------------------------------------------------
+      ilogvisc=.true.
+      ifluxlimit=.false.
+
+      if (abs(d_phi) .gt. 0.) then
+
+        if (ilogvisc) then
+
+          do i = 1, n
+             viscosity = min(visc_water
+     &                  / (( 1. - t(i,1,1,1,1) / 0.1)**power_fit),
+     &                  visc_max)
+             viscosity = min(visc_water
+     &                  / (( 1. - t(i,1,1,1,1) / 0.09)**power_fit),
+     &                  visc_max)
+             if (viscosity .lt. 1e-4) stop 'visc too low'
+             work1(i,1,1,1) = log(viscosity)
+          enddo 
+
+          ! take gradient of log(viscosity)
+          call gradm1(grad1_lnu_x, grad1_lnu_y, grad1_lnu_z, work1)
+
+          call dsavg(grad1_lnu_x)
+          call dsavg(grad1_lnu_y)
+          call dsavg(grad1_lnu_z)
+
+          ! grad1_lnu_X = grad[ log(visc) ]
+
+        endif !ilogvisc
+
+        ! col3: a = b * c
+        call col3(phi_sec_invar, t, sec_invar, n)
+
+        call gradm1(grad1_psi_x,grad1_psi_y,grad1_psi_z,phi_sec_invar)
+
+        call dsavg(grad1_psi_x)
+        call dsavg(grad1_psi_y)
+        call dsavg(grad1_psi_z)
+
+        ! grad1_psi_X = grad[ gamma_dot * phi ]
+
+        if (ilogvisc) then
+           ! col2: a = a * b
+           call col2(grad1_lnu_x, phi_sec_invar, n)
+           call col2(grad1_lnu_y, phi_sec_invar, n)
+           call col2(grad1_lnu_z, phi_sec_invar, n)
+           ! k_mu = 1.52 * k_c  (i.e., 1.52 * d_phi)
+           call cmult(grad1_lnu_x, 1.52, n) 
+           call cmult(grad1_lnu_y, 1.52, n) 
+           call cmult(grad1_lnu_z, 1.52, n) 
+
+           !1.52 * phi**2 * gamma_dot * grad[ log(visc) ]
+
+        else
+           call rzero( grad1_lnu_x,   n)
+           call rzero( grad1_lnu_y,   n)
+           call rzero( grad1_lnu_z,   n)
+        endif
+
+      else !if d_phi = 0
+
+        call rzero( phi_sec_invar, n)
+        call rzero( grad1_psi_x,   n)
+        call rzero( grad1_psi_y,   n)
+        call rzero( grad1_psi_z,   n)
+        call rzero( grad1_lnu_x,   n)
+        call rzero( grad1_lnu_y,   n)
+        call rzero( grad1_lnu_z,   n)
+
+      endif
+! ----------------------------------------------------------------------
+!   calculate transport fluxes for each field
+! ----------------------------------------------------------------------
+      do ifld = 1, ldimt
+
+        call rzero(  flux_x(1,1,1,1,ifld),n)
+        call rzero(  flux_y(1,1,1,1,ifld),n)
+        call rzero(  flux_z(1,1,1,1,ifld),n)
+        call rzero(div_flux(1,1,1,1,ifld),n)
+
+	work1=0.d0
+        !ifld 1 and 2  settle,while 3 and 4  are free
+        if((ifld .eq. PS_SOLIDS) .or.
+     &     (ifld .eq. PS_FACILE) .or.
+     &     (ifld .eq. PS_ENZB))  then
+                call col3(work1,t(1,1,1,1,ifld),vs,n) ! w1 = vs*ps
+        endif
+
+        if (abs(d_phi) .gt. 0.) then
+
+          ! col3: a = b*
+         call col3(flux_x(1,1,1,1,ifld), t(1,1,1,1,ifld),grad1_psi_x,n)
+         call col3(flux_y(1,1,1,1,ifld), t(1,1,1,1,ifld),grad1_psi_y,n)
+         call col3(flux_z(1,1,1,1,ifld), t(1,1,1,1,ifld),grad1_psi_z,n)
+          ! flux_x = phi * grad (gamma phi)
+
+           if (ilogvisc) then
+              ! a = a + b*c
+              call add2col2(flux_x(1,1,1,1,ifld),t(1,1,1,1,ifld),
+     &                      grad1_lnu_x,n)
+              call add2col2(flux_y(1,1,1,1,ifld),t(1,1,1,1,ifld),
+     &                      grad1_lnu_y,n)
+              call add2col2(flux_z(1,1,1,1,ifld),t(1,1,1,1,ifld),
+     &                      grad1_lnu_z,n)
+           endif
+
+           ! flux_x = phi * grad (gamma_dot phi) 
+           !        + 1.52 * phi**2 * gamma_dot * grad[ log(visc) ]
+
+           if (ldimt .gt. 1) then
+
+              call mult_dphi(flux_x(1,1,1,1,ifld), 
+     &                    flux_y(1,1,1,1,ifld),
+     &                    flux_z(1,1,1,1,ifld),
+     &                    t(1,1,1,1,1), t(1,1,1,1,2), n, ldimt,istep)
+
+           else
+              call mult_dphi(flux_x(1,1,1,1,ifld), 
+     &                    flux_y(1,1,1,1,ifld),
+     &                    flux_z(1,1,1,1,ifld),
+     &                    t(1,1,1,1,1), t(1,1,1,1,1), n, ldimt,istep)
+
+           endif
+
+        endif !if d_phi 
+
+        call add2(flux_z(1,1,1,1,ifld),work1,n) ! fz = fz + w1
+
+        call gradm1(grad1_x, work1, work2, flux_x(1,1,1,1,ifld))
+        call gradm1(work1, grad1_y, work2, flux_y(1,1,1,1,ifld))
+        call gradm1(work1, work2, grad1_z, flux_z(1,1,1,1,ifld))
+        
+        call dsavg(grad1_x)
+        call dsavg(grad1_y)
+        call dsavg(grad1_z)
+
+        ! a = b + c
+        call add3(div_flux(1,1,1,1,ifld), grad1_x, grad1_y, n)
+
+        ! a = a + b
+        call add2(div_flux(1,1,1,1,ifld), grad1_z, n)
+      enddo
+
+!....................................
+! reactions
+!....................................
+! if we reached time allotted for fluid to find steady state (dt_ss), then
+! advance the reactions, holding velocity field fixed
+
+      if (time .gt. (t_ss + dt_ss)) then
+
+         if (nid.eq.0) then
+           write(*,*) 'time = ', time
+           write(*,*) 't_ss = ', t_ss
+           write(*,*) 'dt_ss = ', dt_ss
+         endif
+
+         t_ss = time
+         dt_ss = dt_fr  ! new dt for fluid-update duration
+      
+	 do ifld = 1, ldimt
+          tbar(ifld) = glsc2(t(1,1,1,1,ifld),bm1,n) / voltm1
+          if(nid .eq. 0) write(81,*)'before reactions:',ifld,tbar(ifld)
+         enddo
+	 if(nid .eq. 0) flush(81)
+
+         if (nid.eq.0) then
+          write(*,*) '---------------- ENTERING RK4----------------'
+          write(*,*)
+          write(*,*) '# entering reaction'
+	 endif
+
+         call rk4(t, npscal + 1, time)
+
+	 do ifld = 1, ldimt
+          tbar(ifld) = glsc2(t(1,1,1,1,ifld),bm1,n) / voltm1
+          if(nid .eq. 0) write(81,*)'after reactions:',ifld,tbar(ifld)
+         enddo
+	 if(nid .eq. 0) flush(81)
+
+	 if(nid .eq. 0) write(*,*) 'updating tbar i'
+	 !update tbar_i
+         do ifld = 1, ldimt
+           tbar_i(ifld) = glsc2(t(1,1,1,1,ifld),bm1,n) / voltm1
+         enddo
+
+         if (nid.eq.0) then
+           write(*,*) '---------------- EXITED RK4----------------'
+	 endif
+
+       endif
+!....................o...............
+! define objects for surf integrals
+!....................................
+      if (istep.eq.0) call set_obj 
+!....................................
+! output initial condition
+      if (istep.eq.0) call outpost2(vx,vy,vz,pr,t,npscal+1,'   ')
+!....................................
+! Torque calcultion
+!....................................
+      ifdout = .false.
+      iftout = .true.
+      scale = 1.
+      if (mod(istep,10).eq.0)
+     & call torque_calc_mike(scale,x0,ifdout,iftout)
+ 
+      return
+      end
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      double precision sn(3)
+
+      common /mygrad/ div_flux(lx1,ly1,lz1,lelt,ldimt)
+     &              , flux_x(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_x_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_y_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , flux_z_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , div_flux_old(lx1, ly1, lz1, lelt,ldimt)
+     &              , t_old(lx1,ly1,lz1,lelt,ldimt)
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      logical   irescale
+      common /rescale/   irescale
+
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+
+      integer e,eg
+
+      e = gllel(eg)
+
+      eps = 1d-6
+
+      ! instant start
+      owall = -omega   ! Wall moving opposit to vane
+
+      !ux = 0.
+      !uy = 0.
+      !uz = 0.
+      ux = - owall * y
+      uy = + owall * x
+      uz = 0.
+
+! uncomment following for cylinder problem
+
+      if (iside.eq.1.or.iside.eq.3) then
+         j1=ix
+         j2=iz
+      elseif (iside.eq.2.or.iside.eq.4) then
+         j1=iy
+         j2=iz
+      else
+         j1=ix
+         j2=iy
+      endif
+
+      xnormal = unx(j1,j2,iside,e)
+      ynormal = uny(j1,j2,iside,e)
+      znormal = unz(j1,j2,iside,e)
+
+      tinf = 0.
+
+      flux = 0.
+
+      !add 1 for momentum eqn offset
+      if (ifield .ge. (PS_SOLIDS+1)) then
+
+           flux = - xnormal * flux_x(ix,iy,iz,e,ifield-1)
+     &            - ynormal * flux_y(ix,iy,iz,e,ifield-1)
+     &            - znormal * flux_z(ix,iy,iz,e,ifield-1)
+          
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      !real :: fGan0, fGF0, fGR0
+      !real :: fliq0, fg0, fET
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+
+      common /initial/ phi_s_i, tbar_i(6), fGan0, 
+     &                phi_facile, phi_recalc, 
+     &                 CEF0, CEB0, CG0, fET, CET0
+
+      common /chemconstants2/ yF0
+
+! let's do the spinup problem; start from zero
+      ux   = 0.
+      uy   = 0.
+      uz   = 0.
+
+      if (ifield .eq. (PS_SOLIDS+1))  temp = phi_s_i
+      if (ifield .eq. (PS_FACILE+1))  temp = phi_facile
+      if (ifield .eq. (PS_RECALC+1))  temp = phi_recalc
+      if (ifield .eq. (PS_ENZB+1))    temp = CEB0
+      if (ifield .eq. (PS_ENZF+1))    temp = CEF0
+      if (ifield .eq. (PS_GLUCOSE+1)) temp = CG0
+
+      ! used to compute the averages of each passive scalar
+      tbar_i(PS_SOLIDS)  = phi_s_i ! phi_s
+      tbar_i(PS_FACILE)  = phi_facile
+      tbar_i(PS_RECALC)  = phi_recalc
+      tbar_i(PS_ENZB)    = CEB0 ! CEB
+      tbar_i(PS_ENZF)    = CEF0 ! CEF
+      tbar_i(PS_GLUCOSE) = CG0 ! CG
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+      real MwE, MwGan, MwGse
+      real rhol, rhoT, rGg
+      real kF, kR, KdF, KdR, KI
+      real lmbde, fis0, fGl0, rhog0, rhox0, yF0
+
+      real fGan0, fGF0, fGR0
+      real fliq0, fg0, fET
+      real CEF0, CEB0, CG0
+
+      !integer :: ldimt 
+      !integer :: ltot1 
+
+      common /fixed/ MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      common /reaction/ t_react, dt_react, t_ss, dt_ss, 
+     &                  dt_rk4, dt_fr
+
+      common /passivescalar_ids/ PS_SOLIDS, PS_FACILE,
+     &        PS_RECALC, PS_ENZB, PS_ENZF, PS_GLUCOSE
+      integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+
+      common /react_ids/ FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
+      integer :: FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
+
+      real np_i
+      common /initial/ phi_s_i, tbar_i(6), fGan0, 
+     &                 phi_facile, phi_recalc, 
+     &                 CEF0, CEB0, CG0, fET, CET0
+   
+
+      real Kd_CBH, Kd_EG, Kh_CBH, Kh_EG, Kf_CBH, MG
+      common /chemconstants/ kF, kR, KdF, KdR, KI
+      common /chemconstants2/ yF0
+
+      logical   irescale
+      common /rescale/   irescale
+      
+      real kscale
+      common /dimensional/ xscl,pscale,pmscale,rscale,kscale
+      
+      real theta_pb,alpha_pb,beta_pb,theta_p,alpha_p,beta_p
+      real :: eps
+
+      namelist /enzinputs/ omega_rpm, phi_max, 
+     &   fis0, lmbde, yF0, dt_ss, dt_react, dt_fr, fGl0
+
+      pi  = acos(-1.)
+      eps = 0.01
+
+      PS_SOLIDS  = 1
+      PS_FACILE  = 2
+      PS_RECALC  = 3
+      PS_ENZB    = 4
+      PS_ENZF    = 5
+      PS_GLUCOSE = 6
+
+      !for reaction update, this is not the same as passive
+      !scalar indices
+      FACILE_INDEX = 2
+      RECALC_INDEX = 3
+      GLUC_INDEX   = 4
+
+      if (istep .eq. 0) then
+
+	! specify omega_rpm
+        omega_rpm     = 30.d0
+        gravity       = 9.81
+        phi_max      = 0.07
+        density_ratio = 1.5e0
+        density_water = 1000. ! 25C
+        visc_water    = 0.982e-3  ! 21C
+        power_fit = 3.1
+        radius_particle = 71.6d-6
+	d_phi = 0.43  !for rotating case
+
+!.........................................................
+! reaction quantities
+!.........................................................
+        t_react = 0.      ! initial reaction time
+        dt_react = 2.0    !hours
+        dt_rk4 = 0.00005  ! reaction rk4 dt (hours)
+        dt_fr  = 30.0     ! fluid update time between reactions
+        t_ss  = 0.        
+        dt_ss = 560.0     ! 
+
+        ! parameters that are 'fixed'
+        MwE = 65e3 ! mol weight enzymes (CBH, but close to EG & BG)
+        MwGan = 162.0 ! mol weight gluca  (g/Mol)
+        MwGse = 180.0  ! mol weight glucose (g/Mol)
+        rhol = 1000.0 ! kg/m^3 = g/L -- density of liquid
+        rhos = 1500.0 !1500.0 ! kg/m^3 = g/L -- density of liquid
+        
+        ! kinetics model parameters
+        kF = 5.0e3 !1000.0 ! 1/h, trial-and-error
+        kR = 1.0e0 * kF ! 1/h 
+        KdF = 0.03773 !0.05 ! mol/L = kmol/m^3
+        KdR = 0.5079 !10.0 * KdF ! larger value means less adsorbed enzyme
+        KI = 0.01  !0.05 ! kmol/m^3
+
+        ! reactor starting conditions
+        lmbde = 0.03 ! kg/kg; *1000 to get mg/g
+        fis0 = 0.05 ! 0.2 ! kg/kg; initial fraction of insoluble solids
+        fGl0 = 1.0 ! initial glucan fraction of insoluble solids -- 100%
+        rhog0 = 0.0 ! g/L; initial glucose concentration in the liquid
+        rhox0 = 0.0 ! g/L
+        yF0 = 0.4
+        
+        !read from namelist
+        funit = 682
+        open(funit,file="enzdata",form='formatted',status='old')
+        read(funit,enzinputs)
+        close(unit=funit)
+
+        diffusivity   = 2.31d-10 / sqrt( visc_water *radius_particle)
+        visc_max  = visc_water / (( 1. - phi_max / 0.09)**power_fit)
+        rho_particle = density_ratio * density_water
+        omega =  omega_rpm  * 2.d0 * pi / 60.d0
+        rhoT = rhol ! reasonable approximation -- most terms that need
+                  ! rhoT cancel errors, so that this approximation 
+                  ! provides near machine precision accuracy
+        rGg = MwGan/MwGse ! ratio of glucan to glucose 
+        fliq0 = 1. - fis0
+        rhoT = 1./(fis0/rhos + fliq0/rhol)
+
+        ! using model variables
+        fGan0 = fGl0 * fis0 
+        fliq0 = 1.0 - fis0
+        fg0 = rhog0 * fliq0 / rhol
+        fET = lmbde * fis0
+        !phi_s_i = rhoT/rhos * fis0 
+        phi_s_i = rhol * fis0/(rhos - fis0*(rhos - rhol))  
+        phi_facile = phi_s_i*yF0*fGl0
+        phi_recalc = phi_s_i*(1.0-yF0)*fGl0
+
+        ! use model fractions to compute initial conditions for
+        ! for the convected species: free enzyme (CEF),
+        ! celluse-bound enzyme (CEB), and free glucose (cg)
+        CET0 = rhoT/ MwE * fET
+        CEF0 = CET0
+        CEB0 = 0.0
+        CG0 = 0.0
+
+
+        if (nid .eq. 0) then
+
+          write(*,*) 'usrdat-defined properties'
+          write(*,*) ' ------- flow --------------'
+          write(*,*) 'omega_rpm       = ', omega_rpm
+          write(*,*) 'omega           = ', omega
+          write(*,*) 'gravity         = ', gravity
+          write(*,*) 'density_water   = ', density_water
+          write(*,*) 'visc_water      = ', visc_water
+          write(*,*) 'visc_max        = ', visc_max
+          write(*,*) 'phi_max         = ', phi_max
+          write(*,*) 'fis0            = ', fis0
+          write(*,*) 'lmbde           = ', lmbde
+          write(*,*) 'yF0             = ', yF0
+          write(*,*) 'dt_ss           = ', dt_ss
+          write(*,*) 'dt_react        = ', dt_react
+          write(*,*) 'power_fit       = ', power_fit
+          write(*,*) 'density_ratio   = ', density_ratio
+          write(*,*) 'rho_particle    = ', rho_particle
+          write(*,*) 'diffusivity     = ', diffusivity
+          write(*,*) 'radius_particle = ', radius_particle
+          write(*,*) 'd_phi           = ', d_phi
+          write(*,*) 'CET0            = ', CET0
+          write(*,*) 'phi_s_i         = ', phi_s_i
+          write(*,*) 'PS_SOLIDS       = ', PS_SOLIDS
+          write(*,*) 'PS_FACILE       = ', PS_FACILE
+          write(*,*) 'PS_ENZB         = ', PS_ENZB
+          write(*,*) 'PS_ENZF         = ', PS_ENZF
+          write(*,*) 'PS_GLUCOSE      = ', PS_GLUCOSE
+          write(*,*) 'FACILE_INDEX    = ', FACILE_INDEX
+          write(*,*) 'RECALC_INDEX    = ', RECALC_INDEX
+          write(*,*) 'GLUC_INDEX      = ', GLUC_INDEX
+
+        endif
+
+      endif
+
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+c scale system to physcial dimensions
+      scale =  1. / 1000. 
+
+      n = nx1*ny1*nz1*nelv   ! scale to correct size
+      do i=1,n
+         xm1(i,1,1,1) = scale * xm1(i,1,1,1)
+         ym1(i,1,1,1) = scale * ym1(i,1,1,1)
+         zm1(i,1,1,1) = scale * zm1(i,1,1,1)
+      enddo
+
+      param(59) = 1.   ! All elements deformed
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_obj  ! define objects for surface integrals
+c
+      include 'SIZE'
+      include 'TOTAL'
+
+      double precision xface(nx1,ny1),yface(nx1,ny1),
+     &                 zface(nx1,ny1)
+
+      integer e,f,eg
+
+      double precision nx,ny,nz
+
+      nobj = 2  ! vane surface, external surface
+      iobj = 0
+      do ii=nhis+1,nhis+nobj
+         iobj = iobj+1
+         hcode(10,ii) = 'I'
+         hcode( 1,ii) = 'F'
+         hcode( 2,ii) = 'F'
+         hcode( 3,ii) = 'F'
+         lochis(1,ii) = iobj
+      enddo
+      nhis = nhis + nobj
+
+      if (maxobj.lt.nobj) call exitti('increase maxobj in SIZE$',nobj)
+
+      nxyz  = nx1*ny1*nz1
+      nface = 2*ndim
+
+      do e=1,nelv
+      do f=1,nface
+         if (cbc(f,e,1).eq.'W  ') then
+           iobj  = 1
+           nmember(iobj) = nmember(iobj) + 1
+           mem = nmember(iobj)
+           eg  = lglel(e)
+           object(iobj,mem,1) = eg
+           object(iobj,mem,2) = f
+c          write(6,1) mem,f,eg,iside,ibot,nmember(iobj),' OBJ'
+         endif
+
+         if (cbc(f,e,1).eq.'v  ') then
+           iobj  = 2
+           nmember(iobj) = nmember(iobj) + 1
+           mem = nmember(iobj)
+           eg  = lglel(e)
+           object(iobj,mem,1) = eg
+           object(iobj,mem,2) = f
+c          write(6,1) mem,f,eg,iside,ibot,nmember(iobj),' OBJ'
+         endif
+      enddo
+      enddo
+
+c     write(6,*) 'number',(nmember(k),k=1,4)
+c
+      return
+      end
+c
+c-----------------------------------------------------------------------
+c
+      subroutine torque_calc_mike(scale,x0,ifdout,iftout)
+      
+        INCLUDE 'SIZE'  
+        INCLUDE 'TOTAL' 
+      
+        common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+      
+        real x0(3),w1(0:maxobj)
+        logical ifdout,iftout
+c
+        common /scrns/         sij (lx1*ly1*lz1*6*lelv)
+        common /scrcg/         pm1 (lx1,ly1,lz1,lelv)
+        common /scrsf/         xm0(lx1,ly1,lz1,lelt)
+     &,                      ym0(lx1,ly1,lz1,lelt)
+     &,                      zm0(lx1,ly1,lz1,lelt)
+c
+        parameter (lr=lx1*ly1*lz1)
+        common /scruz/         ur(lr),us(lr),ut(lr)
+     &                       , vr(lr),vs(lr),vt(lr)
+     &                       , wr(lr),ws(lr),wt(lr)
+      
+        real mydragx(0:maxobj),mydragpx(0:maxobj),mydragvx(0:maxobj)
+        real mydragy(0:maxobj),mydragpy(0:maxobj),mydragvy(0:maxobj)
+        real mydragz(0:maxobj),mydragpz(0:maxobj),mydragvz(0:maxobj)
+        real mytorqx(0:maxobj),mytorqpx(0:maxobj),mytorqvx(0:maxobj)
+        real mytorqy(0:maxobj),mytorqpy(0:maxobj),mytorqvy(0:maxobj)
+        real mytorqz(0:maxobj),mytorqpz(0:maxobj),mytorqvz(0:maxobj)
+        real mydpdx_mean,mydpdy_mean,mydpdz_mean
+        real mydgtq(3,4)
+      
+        real area_mas(0:maxobj)
+
+        n = nx1*ny1*nz1*nelv
+        call mappr(pm1,pr,xm0,ym0) ! map pressure onto Mesh 1
+
+        call add2s2(pm1,xm1,mydpdx_mean,n)  ! Doesn't work if object is cut by 
+        call add2s2(pm1,ym1,mydpdy_mean,n)  ! periodicboundary.  In this case,
+        call add2s2(pm1,zm1,mydpdz_mean,n)  ! set ._mean=0 and compensate in
+c
+c    Compute sij
+c
+        nij = 3
+        if (if3d.or.ifaxis) nij=6
+        call comp_sij(sij,nij,vx,vy,vz,ur,us,ut,vr,vs,vt,wr,ws,wt)
+c
+c
+c     Fill up viscous array w/ default
+c
+        if (istep.lt.1) call cfill(vdiff,param(2),n)
+c
+        call cadd2(xm0,xm1,-x0(1),n)
+        call cadd2(ym0,ym1,-x0(2),n)
+        call cadd2(zm0,zm1,-x0(3),n)
+c
+        x1min=glmin(xm0(1,1,1,1),n)
+        x2min=glmin(ym0(1,1,1,1),n)
+        x3min=glmin(zm0(1,1,1,1),n)
+c
+        x1max=glmax(xm0(1,1,1,1),n)
+        x2max=glmax(ym0(1,1,1,1),n)
+        x3max=glmax(zm0(1,1,1,1),n)
+c
+        do i=0,maxobj
+         mydragpx(i) = 0   ! BIG CODE  :}
+         mydragvx(i) = 0
+         mydragx (i) = 0
+         mydragpy(i) = 0
+         mydragvy(i) = 0
+         mydragy (i) = 0
+         mydragpz(i) = 0
+         mydragvz(i) = 0
+         mydragz (i) = 0
+         mytorqpx(i) = 0
+         mytorqvx(i) = 0
+         mytorqx (i) = 0
+         mytorqpy(i) = 0
+         mytorqvy(i) = 0
+         mytorqy (i) = 0
+         mytorqpz(i) = 0
+         mytorqvz(i) = 0
+         mytorqz (i) = 0
+         area_mas(i) = 0
+        enddo
+c
+c
+        nobj = 0
+        do ii=1,nhis
+        if (hcode(10,ii).EQ.'I') then
+          iobj   = lochis(1,ii)
+          memtot = nmember(iobj)
+          nobj   = max(iobj,nobj)
+c
+          if (hcode(1,ii).ne.' ' .or. hcode(2,ii).ne.' ' .or.
+     &      hcode(3,ii).ne.' ' ) then
+            ifield = 1
+c
+c           Compute drag for this object
+c
+            do mem=1,memtot
+               ieg   = object(iobj,mem,1)
+               ifc   = object(iobj,mem,2)
+               if (gllnid(ieg).eq.nid) then ! this processor has a contribution
+                  ie = gllel(ieg)
+                  call drgtrq_mike(dgtq,xm0,ym0,zm0,sij,pm1,vdiff,a,
+     &                            ifc,ie)
+                  area_mas(iobj) = area_mas(iobj) + a
+c
+                  call cmult(dgtq,scale,12)
+c
+                  mydragpx(iobj) = mydragpx(iobj) + dgtq(1,1)  ! pressure 
+                  mydragpy(iobj) = mydragpy(iobj) + dgtq(2,1)
+                  mydragpz(iobj) = mydragpz(iobj) + dgtq(3,1)
+c
+                  mydragvx(iobj) = mydragvx(iobj) + dgtq(1,2)  ! viscous
+                  mydragvy(iobj) = mydragvy(iobj) + dgtq(2,2)
+                  mydragvz(iobj) = mydragvz(iobj) + dgtq(3,2)
+c
+                  mytorqpx(iobj) = mytorqpx(iobj) + dgtq(1,3)  ! pressure 
+                  mytorqpy(iobj) = mytorqpy(iobj) + dgtq(2,3)
+                  mytorqpz(iobj) = mytorqpz(iobj) + dgtq(3,3)
+c
+                  mytorqvx(iobj) = mytorqvx(iobj) + dgtq(1,4)  ! viscous
+                  mytorqvy(iobj) = mytorqvy(iobj) + dgtq(2,4)
+                  mytorqvz(iobj) = mytorqvz(iobj) + dgtq(3,4)
+c
+               endif
+            enddo
+          endif
+        endif
+      enddo
+c
+c     Sum contributions from all processors
+c
+      call gop(area_mas,w1,'+  ',maxobj+1)
+      call gop(mydragpx,w1,'+  ',maxobj+1)
+      call gop(mydragpy,w1,'+  ',maxobj+1)
+      call gop(mydragpz,w1,'+  ',maxobj+1)
+      call gop(mydragvx,w1,'+  ',maxobj+1)
+      call gop(mydragvy,w1,'+  ',maxobj+1)
+      call gop(mydragvz,w1,'+  ',maxobj+1)
+c
+      call gop(mytorqpx,w1,'+  ',maxobj+1)
+      call gop(mytorqpy,w1,'+  ',maxobj+1)
+      call gop(mytorqpz,w1,'+  ',maxobj+1)
+      call gop(mytorqvx,w1,'+  ',maxobj+1)
+      call gop(mytorqvy,w1,'+  ',maxobj+1)
+      call gop(mytorqvz,w1,'+  ',maxobj+1)
+c
+      nobj = iglmax(nobj,1)
+c
+      do i=1,nobj
+         mydragx(i) = mydragpx(i) + mydragvx(i)
+         mydragy(i) = mydragpy(i) + mydragvy(i)
+         mydragz(i) = mydragpz(i) + mydragvz(i)
+c
+         mytorqx(i) = mytorqpx(i) + mytorqvx(i)
+         mytorqy(i) = mytorqpy(i) + mytorqvy(i)
+         mytorqz(i) = mytorqpz(i) + mytorqvz(i)
+      enddo
+c
+      i0 = 1
+      if (nobj.le.1) i0 = 1  ! one output for single-object case
+c
+      do i=i0,nobj
+        if (istep .gt. 1) then
+          if (i.eq.1) write(17,*) time,abs(mytorqz(i))!,i,'mytorqz'
+          if (i.eq.2) write(18,*) time,abs(mytorqz(i))!,i,'mytorqz'
+        endif
+        call flush(17)
+        call flush(18)
+    6   format(i8,1p4e15.7,2x,i5,a5)
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+      subroutine drgtrq_mike(dgtq,xm0,ym0,zm0,sij,pm1,visc,a,f,e)
+c
+      INCLUDE 'SIZE'
+      INCLUDE 'GEOM'
+      INCLUDE 'INPUT'
+      INCLUDE 'TOPOL'
+      INCLUDE 'TSTEP'
+c
+      real dgtq(3,4)
+      real xm0 (lx1,ly1,lz1,lelt)
+      real ym0 (lx1,ly1,lz1,lelt)
+      real zm0 (lx1,ly1,lz1,lelt)
+      real sij (lx1,ly1,lz1,3*ldim-3,lelv)
+      real pm1 (lx1,ly1,lz1,lelv)
+      real visc(lx1,ly1,lz1,lelv)
+c
+      real dg(3,2)
+c
+      integer f,e,pf
+      real    n1,n2,n3
+c
+      call dsset(nx1,ny1,nz1)    ! set up counters
+      pf     = eface1(f)         ! convert from preproc. notation
+      js1    = skpdat(1,pf)
+      jf1    = skpdat(2,pf)
+      jskip1 = skpdat(3,pf)
+      js2    = skpdat(4,pf)
+      jf2    = skpdat(5,pf)
+      jskip2 = skpdat(6,pf)
+C
+      call rzero(dgtq,12)
+c
+      if (if3d.or.ifaxis) then
+       i = 0
+       a = 0
+       do j2=js2,jf2,jskip2
+       do j1=js1,jf1,jskip1
+         i = i+1
+         n1 = unx(i,1,f,e)*area(i,1,f,e)
+         n2 = uny(i,1,f,e)*area(i,1,f,e)
+         n3 = unz(i,1,f,e)*area(i,1,f,e)
+         a  = a +          area(i,1,f,e)
+c
+         v  = visc(j1,j2,1,e)
+c
+         s11 = sij(j1,j2,1,1,e)
+         s21 = sij(j1,j2,1,4,e)
+         s31 = sij(j1,j2,1,6,e)
+c
+         s12 = sij(j1,j2,1,4,e)
+         s22 = sij(j1,j2,1,2,e)
+         s32 = sij(j1,j2,1,5,e)
+c
+         s13 = sij(j1,j2,1,6,e)
+         s23 = sij(j1,j2,1,5,e)
+         s33 = sij(j1,j2,1,3,e)
+c
+         dg(1,1) = pm1(j1,j2,1,e)*n1     ! pressure drag
+         dg(2,1) = pm1(j1,j2,1,e)*n2
+         dg(3,1) = pm1(j1,j2,1,e)*n3
+c
+         dg(1,2) = -v*(s11*n1 + s12*n2 + s13*n3) ! viscous drag
+         dg(2,2) = -v*(s21*n1 + s22*n2 + s23*n3)
+         dg(3,2) = -v*(s31*n1 + s32*n2 + s33*n3)
+c
+         r1 = xm0(j1,j2,1,e)
+         r2 = ym0(j1,j2,1,e)
+         r3 = zm0(j1,j2,1,e)
+c
+         do l=1,2
+         do k=1,3
+            dgtq(k,l) = dgtq(k,l) + dg(k,l)
+         enddo
+         enddo
+c
+         dgtq(1,3) = dgtq(1,3) + (r2*dg(3,1)-r3*dg(2,1)) ! pressure
+         dgtq(2,3) = dgtq(2,3) + (r3*dg(1,1)-r1*dg(3,1)) ! torque
+         dgtq(3,3) = dgtq(3,3) + (r1*dg(2,1)-r2*dg(1,1))
+c
+         dgtq(1,4) = dgtq(1,4) + (r2*dg(3,2)-r3*dg(2,2)) ! viscous
+         dgtq(2,4) = dgtq(2,4) + (r3*dg(1,2)-r1*dg(3,2)) ! torque
+         dgtq(3,4) = dgtq(3,4) + (r1*dg(2,2)-r2*dg(1,2))
+       enddo
+       enddo
+
+      else ! 2D
+
+       i = 0
+       a = 0
+       do j2=js2,jf2,jskip2
+       do j1=js1,jf1,jskip1
+         i = i+1
+         n1 = unx(i,1,f,e)*area(i,1,f,e)
+         n2 = uny(i,1,f,e)*area(i,1,f,e)
+         a  = a +          area(i,1,f,e)
+         v  = visc(j1,j2,1,e)
+
+         s11 = sij(j1,j2,1,1,e)
+         s12 = sij(j1,j2,1,3,e)
+         s21 = sij(j1,j2,1,3,e)
+         s22 = sij(j1,j2,1,2,e)
+
+         dg(1,1) = pm1(j1,j2,1,e)*n1     ! pressure drag
+         dg(2,1) = pm1(j1,j2,1,e)*n2
+         dg(3,1) = 0
+
+         dg(1,2) = -v*(s11*n1 + s12*n2) ! viscous drag
+         dg(2,2) = -v*(s21*n1 + s22*n2)
+         dg(3,2) = 0.
+
+         r1 = xm0(j1,j2,1,e)
+         r2 = ym0(j1,j2,1,e)
+         r3 = 0.
+
+         do l=1,2
+         do k=1,3
+            dgtq(k,l) = dgtq(k,l) + dg(k,l)
+         enddo
+         enddo
+
+         dgtq(1,3) = 0! dgtq(1,3) + (r2*dg(3,1)-r3*dg(2,1)) ! pressure
+         dgtq(2,3) = 0! dgtq(2,3) + (r3*dg(1,1)-r1*dg(3,1)) ! torque
+         dgtq(3,3) = dgtq(3,3) + (r1*dg(2,1)-r2*dg(1,1))
+
+         dgtq(1,4) = 0! dgtq(1,4) + (r2*dg(3,2)-r3*dg(2,2)) ! viscous
+         dgtq(2,4) = 0! dgtq(2,4) + (r3*dg(1,2)-r1*dg(3,2)) ! torque
+         dgtq(3,4) = dgtq(3,4) + (r1*dg(2,2)-r2*dg(1,2))
+       enddo
+       enddo
+      endif
+
+      return
+      end
+      subroutine mult_dphi(a, b, c, t, np, lt, ldimt, istep)
+
+      common /chemconstants/ kF, kR, KdF, KdR, KI
+      real kF, kR, KdF, KdR, KI
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      real a(lt), b(lt), c(lt), t(lt), np(lt)
+
+      pi = acos(-1.)
+
+      do i = 1, lt
+
+         istep_scale = 20
+         if (istep .lt. istep_scale) then
+            d_phi_local = d_phi * float(istep) / float(istep_scale)
+         else
+            d_phi_local = d_phi
+
+         endif
+
+         a(i) = d_phi_local * particle_radius**2 * a(i)
+         b(i) = d_phi_local * particle_radius**2 * b(i)
+         c(i) = d_phi_local * particle_radius**2 * c(i)
+
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine calc_v_settle(vs, t, lt)
+	! add settling component to flux_z
+
+      common /vane_props/ omega, phi_max, 
+     &                    visc_water, density_ratio,
+     &                     gravity, rho_particle,
+     &                    density_water, diffusivity, temp_ic,
+     &                    visc_max, power_fit, d_phi, error_mass
+
+      real vs(lt), t(lt)
+      real particle_length,particle_diam, v_settle
+
+      particle_length = 157.0d-6
+      particle_diam = 83.0d-6
+
+      c1_settle = 0.0790d0 * (rho_particle-density_water)*gravity
+     &               * particle_length**2 
+     &               * (particle_diam/particle_length)**(1.664)
+     &               / visc_water
+ 
+      c2_settle = 99.6
+      c3_settle = c2_settle * abs(rho_particle - density_water)
+     &             / density_water
+
+      c3_settle = 3.250 / phi_max
+
+      do i = 1, lt
+
+        if (abs(t(i)) .lt. phi_max) then
+
+	   !note: + sign, this is correct in flux formulation
+           v_settle = + c1_settle * ( + exp( - t(i) * c3_settle)
+     &                                - exp( - phi_max * c3_settle) )
+
+           v_settle = v_settle / (1. - exp( - phi_max * c3_settle) )
+
+        else
+
+          v_settle = 0.
+
+        endif
+         vs(i) = v_settle
+      enddo
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine output_tmp(a,n)
+
+      real a(n)
+
+      do i = 1, n
+
+        write(70,*) i, a(i) 
+
+      enddo
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+! JULY 7, 2017
+!.......................................................
+! BEGIN OF NEW REACTION SCHEME
+!.......................................................
+
+! this routine computes the adsorption terms in reaction schemes 
+      subroutine adsorption(CEGF, CEGR, CGF, CGRA, CET,cg,epsl)
+          ! Adsorption equilibrium of enyme between facile and 
+          ! recalcitrant glucan, and accounting for inhibition by 
+          ! glucose (other sugars if present)
+          include 'SIZE'
+          include 'SOLN'
+          include 'MASS'
+          real CGF, CGRA, CET, cg, epsl
+          real CEGF, CEGR
+	  real kF, kR, KdF, KdR, KI
+          common /chemconstants/ kF, kR, KdF, KdR, KI
+	     
+	 
+          CEGF=CGF*CET/(CGF+KdF/KdR*CGRA+epsl*KdF*(1.+cg/KI))
+          CEGR=CGRA*CET/(CGRA+KdR/KdF*CGF+epsl*KdR*(1.+cg/KI))
+
+      end
+
+      subroutine rk4(vt, nfldt,time)
+
+          include 'SIZE'
+          include 'SOLN'
+          include 'MASS'
+          parameter(ltot1 = lx1 * ly1 * lz1 * lelt ) ! for velocity/tmp/ps
+          integer  nfldt, nsteps_rk4, irk4 
+          integer  n_outputs, n_mod
+	      integer  i,j,ntot1, ifld
+          real t_react, dt_rk4, t_final
+          real hh, h6, th ! stage parameters for rk4
+          real yt(ltot1,ldimt), vt(ltot1,ldimt)
+          real dydt(ltot1,ldimt), dyt(ltot1,ldimt)
+          real dym(ltot1,ldimt), maxvalues(ldimt)
+          real tbar(ldimt), CET(ltot1)
+          real cg(ltot1), CEg(ltot1), massf(ltot1)
+          real fg_is(ltot1) !fis for glucan
+          real fx_is(ltot1) !fis for xylan
+          real fis_f,fis_r,phi_s
+	  real masserr(ltot1),glucinitial(ltot1)
+          real phis(ltot1), phisf
+          real rhoTrhos, rhoTrhol, mwGrho, eps,tmp
+          real CGF, CGR, CEGF, CEGR
+          real MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
+          real kF, kR, KdF, KdR, KI
+          real fGT, fis, fliq, epsl, yfacile
+          real CETbar, cgbar, mass_s,fg_isbar
+          real imass_s, total_mass_s
+          real mass_glucose, mass_ge
+          real time, fg_tilda
+
+          common /reaction/ t_react,dt_react,t_ss,dt_ss,dt_rk4,dt_fr
+          common /fixed/ MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
+          common /chemconstants/ kF, kR, KdF, KdR, KI
+          common /chemconstants2/ yF0
+          common /initial/ phi_s_i, tbar_i(6), fGan0, 
+     &                 phi_facile, phi_recalc, 
+     &                 CEF0, CEB0, CG0, fET, CET0
+
+      	  common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+      	  integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+          common /react_ids/ FACILE_INDEX,RECALC_INDEX,GLUC_INDEX
+          integer :: FACILE_INDEX,RECALC_INDEX,GLUC_INDEX
+
+	  rhoTrhos = rhoT / rhos 
+	  rhoTrhol = rhoT / rhol
+          mwGrho = MwGan/rhoT
+
+          eps = 0.001
+          ntot1 = nx1 * ny1 * nz1 * nelt
+	  
+          do ifld = 1, ldimt
+            tbar(ifld) = glsc2(vt(:,ifld),bm1,ntot1) / voltm1
+            if(nid .eq. 0) write(*,*) 'avg data in rk4',ifld,tbar(ifld)
+          enddo
+
+	  !vt components
+	  !1 - total solids volume fraction (phi)
+	  !2 - facile glucan volume fraction
+	  !3 - recalc glucan volume fraction
+	  !4 - bound enzymes
+	  !5 - free enzymes
+	  !6 - glucose
+     
+          ! update CET over cells of mesh
+          ! using CEF and CEB
+          ! note that during the reaction phase
+          ! CET will not change in space
+          do i=1,ntot1
+            CET(i) = (vt(i,PS_ENZB) + vt(i,PS_ENZF))
+          enddo
+
+
+          do i=1,ntot1
+          ! use vt to store fGR, fGF and fg
+          ! where
+          ! vt(i,2) (CEB) -> fGR
+          ! vt(i,3) (CEF) -> fGF
+          ! vt(i,4) (cg) - > fg
+            ! compute fis from the solids fraction
+             fis = rhos*vt(i,PS_SOLIDS)/
+     &		(rhol+vt(i,PS_SOLIDS)*(rhos-rhol))
+
+            fliq = 1.0 - fis
+            rhoT = 1./(fis/rhos + fliq/rhol)
+            epsl = rhoT/rhol * fliq
+
+	    fg_tilda = vt(i,PS_FACILE)
+	    fr_tilda = vt(i,PS_RECALC)
+
+            vt(i,FACILE_INDEX)=rhos/(rhol+vt(i,PS_SOLIDS)*(rhos-rhol))
+     &                         *fg_tilda
+            
+            vt(i,RECALC_INDEX)=rhos/(rhol+vt(i,PS_SOLIDS)*(rhos-rhol))
+     &                         *fr_tilda
+
+	    fg_is(i)=vt(i,FACILE_INDEX)+vt(i,RECALC_INDEX)
+            fx_is(i)=fis-vt(i,FACILE_INDEX)-vt(i,RECALC_INDEX)
+
+            cg(i) = vt(i,PS_GLUCOSE)
+            vt(i,GLUC_INDEX) = cg(i)/rhoT*epsl*MwGse
+	    glucinitial(i) = vt(i,GLUC_INDEX) !initial glucose
+          enddo
+         
+          ! compute average enzyme over volume; should be constant
+          CETbar  = glsc2(CET,bm1,ntot1) / voltm1
+          fg_isbar = glsc2(fg_is,bm1,ntot1) / voltm1
+
+          ! write the average to a file
+          if (nid .eq. 0) then
+             write(*,*) time, " CETavg: ", CETbar
+             write(*,*) time, " fg_isbar: ", fg_isbar
+          end if
+
+          if(nid .eq. 0) print *,"ENTERED RK4",ldimt
+!-----------------------------------------------------------------------
+! reaction parameters
+!-----------------------------------------------------------------------
+          do ifld=1,ldimt
+           maxvalues(ifld)=glmax(vt(:,ifld),ntot1)
+           if(nid .eq. 0) write(*,*) 'maxvalues:',ifld, maxvalues(ifld)
+          enddo
+
+
+          do ifld = 1, ldimt
+              tbar(ifld) = glsc2(vt(:,ifld),bm1,ntot1) / voltm1
+          enddo
+
+          nfldt = ldimt
+          nsteps_rk4 = floor( dt_react / dt_rk4 )
+
+          if (nid.eq.0) write(*,*) 'nsteps_rk4 = ', nsteps_rk4
+          if (nid.eq.0) write(79,*) 'nsteps_rk4 = ', nsteps_rk4
+
+          if(nid .eq. 0) then
+             write(300,*)
+             conversion  = 1. - tbar(1) / phi_s_i
+             write(300,*) '#', tbar(1), phi_s_i
+             write(300,*) t_react, conversion, tbar(1), ntot1
+             write(42,*) t_react, conversion
+             call flush(42)
+	     call flush(300)
+          endif
+          
+!-----------------------------------------------------------------------
+! end of  reaction parameters
+!-----------------------------------------------------------------------
+
+          nfldt = ldimt
+          nsteps_rk4 = floor( dt_react / dt_rk4 )
+
+          do irk4 = 1,nsteps_rk4
+
+             hh = dt_rk4 * 0.5
+             h6 = dt_rk4 / 6.
+             th = t_rk4 + hh
+
+             !!! STAGE 1 !!!
+
+	     if(mod(irk4-1,1000) .eq. 0) then
+		if(nid .eq. 0) write (*,*) 'rkstep:',irk4
+	     endif
+
+             call rhs_rk4(t_react, vt, dydt, CET, 1)
+
+             do j = 1,nfldt
+	            do i = 1, ntot1
+                     yt(i,j) = vt(i,j) + hh * dydt(i,j)
+		    end do
+             end do
+          
+
+             !!! STAGE 2 !!!
+             call rhs_rk4(th, yt, dyt, CET, 2)
+             
+             do j = 1,nfldt
+	           do i = 1, ntot1
+                    yt(i,j) = vt(i,j) + hh * dyt(i,j)
+		   end do
+             end do
+             
+             !!! STAGE 3 !!!!
+             call rhs_rk4(th, yt, dym, CET, 3)
+             
+             do j = 1,nfldt
+	        do i = 1, ntot1
+                  yt(i,j) = vt(i,j) + hh * dym(i,j)
+                  dym(i,j) = dyt(i,j) + dym(i,j)
+		end do
+             end do
+             
+             !!! STAGE 4 !!!
+             call rhs_rk4(t_react + dt_rk4, yt, dyt, CET, 4)
+             
+             do j = 1,nfldt
+	        do i = 1, ntot1
+                  vt(i,j)=vt(i,j)+h6*(dydt(i,j)+dyt(i,j)+2.0*dym(i,j)) 
+                end do
+             end do
+             
+	     ! --------------------------------------------------
+             ! update reaction time
+	     ! --------------------------------------------------
+             t_react = t_react + dt_rk4
+          end do
+          
+          if (nid .eq. 0) then
+             write(*,*) "CHECKING FINAL VALUES"
+          endif
+          do ifld=1,ldimt
+                maxvalues(ifld)=glmax(vt(:,ifld),ntot1)
+                if(nid .eq. 0) write(*,*) ifld, maxvalues(ifld)
+          enddo
+          
+          ! compute the average mass of solids
+          ! check mass conservation
+          do i=1,ntot1
+             massf(i)=vt(i,FACILE_INDEX)+vt(i,RECALC_INDEX)
+     &           +MwGan/MwGse*(vt(i,GLUC_INDEX)-glucinitial(i))
+          end do
+ 
+          total_mass_s = glsc2(massf,bm1,ntot1) / voltm1
+          if (nid .eq. 0) then
+           write(*,*) "avg mass fraction:", total_mass_s
+           write(*,*) "relative error:", 
+     &              abs(total_mass_s-fg_isbar)/fg_isbar
+           write(431,*) t_react, 
+     &     abs(total_mass_s-fg_isbar)/fg_isbar, fg_isbar, fGan0
+           flush(431)
+          end if
+ 
+          ! use vt to compute CEB, CEF, and cg
+          ! where
+          ! vt(i,1) (phi_s) 
+          ! vt(i,2) (CEB) <- fGR
+          ! vt(i,3) (CEF) <- fGF
+          ! vt(i,4) (cg)  <- fg
+          do i=1,ntot1
+            
+	    fGT = vt(i,FACILE_INDEX) + vt(i,RECALC_INDEX)
+            fis_f = vt(i,FACILE_INDEX) !facile insoluble solids fraction 
+            fis_r = vt(i,RECALC_INDEX) !recalc insoluble solids fraction
+            fis = fGT+fx_is(i) !add xylan
+            fliq = 1.0 - fis
+
+            ! update rhoT
+            rhoT = 1./(fis/rhos + fliq/rhol)
+           
+            ! update rhoT/rhol
+            rhoTrhol = rhoT / rhol
+
+            ! update convenience term
+            mwGrho = MwGan/rhoT
+
+            ! compute phi_s
+            phi_s = rhol * fis/(rhos - fis*(rhos - rhol))
+            vt(i,PS_SOLIDS) = phi_s
+            
+            ! compute CEGF and CEGR
+            CGF = vt(i,FACILE_INDEX) / mwGrho ! rhoT/MwGan * fGF
+            CGR = vt(i,RECALC_INDEX) / mwGrho ! rhoT/MwGan * fGR
+
+            ! calculate liquid molar sugar concentration
+            epsl = rhoTrhol * fliq
+            cg(i) = rhoT/(epsl*MwGse) * vt(i,GLUC_INDEX)
+            vt(i,PS_GLUCOSE) = cg(i)
+           
+            ! call adsoprtion to obtain CEGF and CEGR
+            call adsorption(CEGF,CEGR,CGF,CGR,CET(i),cg(i),epsl)
+            
+            ! compute Ceg; needed for CEB
+            CEg(i) = cg(i)/(KI+cg(i))*(CET(i)-CEGF-CEGR)
+
+            ! now compute CEB
+            vt(i,PS_ENZB) = CEGF + CEGR
+            
+            ! convert Ceg from a slurry concentration
+            ! to a volume concentration
+            CEg(i) = CEg(i) * (1.0/rhoTrhol) / fliq
+            
+            ! compute CEF
+            vt(i,PS_ENZF) = CET(i) - vt(i,PS_ENZB)
+          
+            ! should recover same CET
+            CET(i) = vt(i,PS_ENZB) + vt(i,PS_ENZF) 
+	
+	    !set facile passive scalar
+	    vt(i,PS_FACILE) = (rhol+phi_s*(rhos-rhol))*fis_f/rhos
+	    vt(i,PS_RECALC) = (rhol+phi_s*(rhos-rhol))*fis_r/rhos
+	    
+
+          enddo
+            
+          
+          ! compute the mass of glucose in domain
+          mass_glucose = glsc2( cg(:) * MwGse,bm1, ntot1) 
+          CETbar = glsc2(CET,bm1,ntot1) / voltm1
+          cgbar = glsc2(cg(:),bm1,ntot1) / voltm1
+            
+	  if (nid .eq. 0) then
+             write(*,*) "CHECKING MASS CONSERVATION:"
+	     write(*,*) "time: ",time," CETavg,CET0: ",CETbar,CET0
+             !write(*,*) "time: ", time, " mass e-glucose: ", mass_ge
+             !write(*,*) "time: ", time, " mass solids: ", mass_s
+             !write(*,*) " total mass: ", total_mass_s
+     	     write(44,*) t_react, cgbar
+             call flush(44)
+          end if
+          
+
+      end 
+     
+      ! use syntax that is favorable to nek5000
+      subroutine rhs_rk4( tau, yt, dydt, CET, isub )
+          include 'SIZE'
+          include 'SOLN'
+          include 'MASS'
+          include 'GEOM'
+          parameter(ltot1 = lx1 * ly1 * lz1 * lelt ) ! for velocity/tmp/ps
+          real mwGrho
+          real MwE, MwGan, MwGse
+          real CGF, CGR, CEGF, CEGR
+          real fGF, fGR, fg
+          real fGT, fis, fliq, epsl, cg
+          real kF, kR, KdF, KdR, KI
+          real rF, rR
+          real rhoT, rhol, rhos
+	      real fGan0, fGF0, fGR0
+          real fliq0, fg0, fET
+          integer i,j, n
+          integer flag
+          real dydt(ltot1,ldimt)
+          real yt(ltot1,ldimt)
+          real CET(ltot1)
+
+          common /fixed/ MwE, MwGan, MwGse, rhol, rhos, rhoT, rGg
+          common /chemconstants/ kF, kR, KdF, KdR, KI
+          common /initial/ phi_s_i, tbar_i(6), fGan0, 
+     &                 phi_facile, phi_recalc, 
+     &                 CEF0, CEB0, CG0, fET, CET0
+
+      	  common /passivescalar_ids/ PS_SOLIDS, PS_FACILE, PS_RECALC, 
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+      	  integer ::  PS_SOLIDS, PS_FACILE, PS_RECALC,
+     &        PS_ENZB, PS_ENZF, PS_GLUCOSE
+          common /react_ids/ FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
+          integer :: FACILE_INDEX, RECALC_INDEX, GLUC_INDEX
+
+          n = nx1 * ny1 * nz1 * nelt
+
+          dydt=0.0
+
+          do i = 1, n
+             ! unpack terms
+
+             fGF = yt(i,FACILE_INDEX)
+             fGR = yt(i,RECALC_INDEX)
+             fg = yt(i,GLUC_INDEX)
+             
+             ! compute solid and liquid mass fractions
+             fGT = fGF + fGR
+             fis = fGT
+             fliq = 1.0 - fis
+
+             ! use data to update rhoT
+             rhoT = 1./(fis/rhos + fliq/rhol) 
+
+             ! convenience term
+             mwGrho = MwGan/rhoT
+
+             ! molar concentrations 
+             CGF = fGF / mwGrho ! rhoT/MwGan * fGF
+             CGR = fGR / mwGrho ! rhoT/MwGan * fGR
+             !CET = rhoT / MwE * fET 
+
+             ! calculate liquid molar sugar concentration
+             epsl = rhoT/rhol * fliq
+             cg = rhol/fliq/MwGse * fg
+
+             ! enzyme adsorption -- with CGRA = CGR (no limited exposure)
+             call adsorption(CEGF,CEGR,CGF,CGR,CET(i),cg,epsl)
+             rF = kF * CEGF
+             rR = kR * CEGR
+	     
+             ! setup RHS
+             dydt(i,FACILE_INDEX) = -mwGrho * rF ! fGF
+             dydt(i,RECALC_INDEX) = -mwGrho * rR ! fGR
+             dydt(i,GLUC_INDEX) = Mwgse/rhoT * (rF + rR) ! fg 
+          end do
+      end
+
