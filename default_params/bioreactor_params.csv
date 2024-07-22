@@ -1,7 +1,0 @@
-﻿name,value,min,max,description,tooltip,Optimization_widget(bool),controlvalue,option1,option2
-gas_velocity,0.08,0.01,0.1,Gas velocity,"Gas velocity in the simulation (m/s).  Must be in $[0.01, 0.1]$",0,,,
-column_height,40,10,50,Column height,"Column height (m).  Must be in $[10, 50]$",0,,,
-column_diameter,5,1,6,Column diameter,"Column diameter (m).  Must be in $[1, 6]$",0,,,
-bubble_diameter,0.006,0.003,0.008,Bubble diameter,"Bubble diameter (m).  For surragate model must be in $[0.003, 0.008]$, for cfd must be $>=0$",0,,,
-t_final,100,1,1.00E+16,Final Time,The total time of the simulation (s).  Must be $\geq 1$,0,,,
-model_type,CFD Surrogate,,,Model Type,"Specifies the solver to use for the bioreaction step, ""CFD Simulation"" requires HPC resources.",0,,CFD Surrogate,CFD Simulation

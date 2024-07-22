@@ -1,6 +1,0 @@
-﻿name,value,min,max,description,tooltip,Optimization_widget(bool),controlvalue
-initial_acid_conc,0.0001,0.00005,0.001,Acid Loading,"The initial concentration of acid (mol/mL).  Must be in the range [0, 1]'",1,1
-steam_temperature,150,3.8,250.3,Steam Temperature,The fixed temperature of the steam ($^\circ$C).,1,0
-initial_solid_fraction,0.745,0.01,0.99,Initial FIS$_0$,"The initial fraction of insoluble solids (kg/kg).  Must be in the range [0, 1]",1,0
-final_time,8.3,1,1440,Final Time,Total simulation time (min).  Must be $\geq$ 1,1,0
-show_plots,0,,,Show Plots,,,

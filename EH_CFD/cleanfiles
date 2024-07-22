@@ -1,2 +1,0 @@
-#!/bin/bash
-rm -rf paddle0.* *.dra fort.* *.sch paddle.fld* build.log SESSION.NAME
