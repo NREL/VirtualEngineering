@@ -1,5 +1,12 @@
 import dolfinx
+from dolfinx.fem import petsc
+from dolfinx.nls import petsc
 import ufl
+from basix.ufl import element, mixed_element
+
+# import mpi4py
+# mpi4py.rc.initialize = False
+# mpi4py.rc.finalize = False
 from mpi4py import MPI
 
 import numpy as np
@@ -80,19 +87,19 @@ class Pretreatment:
         self.length = 5e-3 / 2.0
         self.diam = 2.0 * self.length / 20.0
 
-        self.mesh = dolfinx.mesh.create_interval(self.comm, nn, [0.0, self.length])
+        self.mesh = dolfinx.mesh.create_interval(MPI.COMM_WORLD, nn, [0.0, self.length])
         self.ndim = self.mesh.topology.dim
 
     # ================================================================
 
     def build_functions(self, degree=2):
-        d1p3 = ufl.FiniteElement("P", self.mesh.ufl_cell(), degree)
-        self.S = dolfinx.fem.FunctionSpace(self.mesh, d1p3)
+        d1p3 = element("P", self.mesh.basix_cell(), degree)
+        self.S = dolfinx.fem.functionspace(self.mesh, d1p3)
 
         self.num_comp = 7
 
-        d1p3_mix = ufl.MixedElement([d1p3 for k in range(self.num_comp)])
-        self.Q = dolfinx.fem.FunctionSpace(self.mesh, d1p3_mix)
+        d1p3_mix = mixed_element([d1p3 for k in range(self.num_comp)])
+        self.Q = dolfinx.fem.functionspace(self.mesh, d1p3_mix)
 
         self.spaces = []
         self.maps = []
@@ -147,14 +154,18 @@ class Pretreatment:
 
         if ve_params is None:
             # self.c_sbulk = 0.14 * 1e3   # bulk steam concentration (from paper, now set by lookup table)
-            self.c_acid0 = (
-                0.1 * 1e3
-            )  # initial acid concentration: Convert mol/self.length to mol/m^3
-            self.f_x0 = 0.26  # xylan mass fraction
+            # self.c_acid0 = 0.1 * 1e3  # initial acid concentration: Convert mol/self.length to mol/m^3
+            # self.f_x0 = 0.26  # xylan mass fraction
+            # self.eps_p0 = 0.8  # initial porosity
+            # self.f_is0 = 0.44  # initial solid fraction
+            # self.T_s = 423.15  # steam temperature
+            # self.glucan_solid_fraction_0 = 0.4
+            self.c_acid0 = 0.008624*1e2  # initial acid concentration: Convert mol/self.length to mol/m^3
+            self.f_x0 = 0.227  # xylan mass fraction
             self.eps_p0 = 0.8  # initial porosity
-            self.f_is0 = 0.44  # initial solid fraction
-            self.T_s = 423.15  # steam temperature
-            self.glucan_solid_fraction_0 = 0.4
+            self.f_is0 = 0.428195  # initial solid fraction
+            self.T_s = 190.0 + 273.15  # steam temperature
+            self.glucan_solid_fraction_0 = 0.416
         else:
             self.c_acid0 = ve_params.pt_in["initial_acid_conc"]*1e6 # converting mol/mL into mol/m^3
             self.f_x0 = ve_params.feedstock["xylan_solid_fraction"]
@@ -163,6 +174,13 @@ class Pretreatment:
             self.T_s = ve_params.pt_in["steam_temperature"]
             self.glucan_solid_fraction_0 = ve_params.feedstock["glucan_solid_fraction"]
 
+        self.c_acid0 = dolfinx.fem.Constant(self.mesh, self.c_acid0)
+        self.f_x0 = dolfinx.fem.Constant(self.mesh, self.f_x0)
+        self.eps_p0 = dolfinx.fem.Constant(self.mesh, self.eps_p0)
+        self.f_is0 = dolfinx.fem.Constant(self.mesh, self.f_is0)
+        self.T_s = dolfinx.fem.Constant(self.mesh, self.T_s)
+        self.glucan_solid_fraction_0 = dolfinx.fem.Constant(self.mesh, self.glucan_solid_fraction_0)
+
         # Obtain steam concentration from lookup table and add to dictionary
         pt_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
         steam_datafile = os.path.join(pt_path, "lookup_tables", "sat_steam_table.csv")
@@ -170,7 +188,7 @@ class Pretreatment:
 
         # build interpolator interp_steam = interp.interp1d(temp_in_K, dens_in_kg/m3)
         interp_steam = interp1d(steam_data[:, 2], steam_data[:, 4])
-        steam_density = interp_steam(self.T_s)
+        steam_density = interp_steam(self.T_s.value)
 
         # Convert c_sbulk to (mol/m^3) => density (kg/m^3) / molecular weight (kg/mol)
         self.c_sbulk = steam_density / self.M_w
@@ -189,7 +207,7 @@ class Pretreatment:
         # assign(self.u_n.sub(self.eps_l_id), ic)
 
         # u[self.fstar_x_id]
-        self.fstar_x0 = self.f_x0 * (1.0 - self.eps_p0)
+        self.fstar_x0 = self.f_x0.value * (1.0 - self.eps_p0.value)
         ic.x.array[:] = self.fstar_x0
         self.u.x.array[self.maps[self.fstar_x_id]] = ic.x.array[:]
         self.u_n.x.array[self.maps[self.fstar_x_id]] = ic.x.array[:]
@@ -233,7 +251,8 @@ class Pretreatment:
 
         self.bcs.append(
             dolfinx.fem.dirichletbc(
-                dolfinx.fem.Constant(self.mesh, self.T_s),
+                # dolfinx.fem.Constant(self.mesh, self.T_s),
+                self.T_s,
                 xhi_T_dofs,
                 self.Q.sub(self.T_id),
             )
@@ -483,7 +502,7 @@ class Pretreatment:
         J = ufl.derivative(self.F, self.u, du)
 
         nonlinear_problem = dolfinx.fem.petsc.NonlinearProblem(self.F, self.u, self.bcs)
-        nonlinear_solver = dolfinx.nls.petsc.NewtonSolver(self.comm, nonlinear_problem)
+        nonlinear_solver = dolfinx.nls.petsc.NewtonSolver(MPI.COMM_WORLD, nonlinear_problem)
 
         for k in range(t_steps):
             # Solve the nonlinear problem
@@ -509,8 +528,8 @@ class Pretreatment:
     def _update_k_cond(self, temp):
 
         T_tol = 0.001
-        del_T = T_tol * self.T_s
-        out_vec = linstep(temp, self.T_s - del_T, self.T_s + del_T, self.k_bar, 0.0)
+        del_T = T_tol * self.T_s.value
+        out_vec = linstep(temp, self.T_s.value - del_T, self.T_s.value + del_T, self.k_bar, 0.0)
 
         self.k_cond.x.array[:] = out_vec
 
@@ -519,12 +538,12 @@ class Pretreatment:
     def _update_k_evap(self, temp, liq):
 
         T_tol = 0.001
-        del_T = T_tol * self.T_s
-        out_vec = linstep(temp, self.T_s - del_T, self.T_s + del_T, 0.0, self.k_bar)
+        del_T = T_tol * self.T_s.value
+        out_vec = linstep(temp, self.T_s.value - del_T, self.T_s.value + del_T, 0.0, self.k_bar)
 
         eps_lt_tol = 0.1
-        del_eps_lt = eps_lt_tol * self.eps_lt
-        out_vec_2 = linstep(liq, self.eps_lt, self.eps_lt + del_eps_lt, 0.0, 1.0)
+        del_eps_lt = eps_lt_tol * self.eps_lt.value
+        out_vec_2 = linstep(liq, self.eps_lt.value, self.eps_lt.value + del_eps_lt, 0.0, 1.0)
         out_vec *= out_vec_2
         # TODO: needed to soften the transition to nonzero k_evap on
         # only one side of eps_lt
@@ -666,8 +685,68 @@ class Pretreatment:
         converted_mass = fstar_x0_bar - fstar_x_bar
         conversion_percent = converted_mass / fstar_x0_bar
 
-        glucan_solid_fraction = self.glucan_solid_fraction_0 / (
-            1.0 - self.f_x0 * conversion_percent
+
+        # Get the total mass of the solid and liquid phase
+        mass_of_solid_phase = self.rho_s * eps_p_bar
+        mass_of_liquid_phase = self.rho_l * eps_l_bar
+
+        # Get the mass of each of the soluble species (xylog, xylose, furfural)
+        cstar_xo_mass = cstar_xo_bar * self.M_xo * eps_l_bar
+        cstar_xy_mass = cstar_xy_bar * self.M_xy * eps_l_bar
+        cstar_f_mass = cstar_f_bar * self.M_f * eps_l_bar
+
+        # Get the initial and current mass of xylan
+        fstar_x0_mass = fstar_x0_bar*mass_of_solid_phase
+        fstar_x_mass = fstar_x_bar*mass_of_solid_phase
+
+        # Sum the soluble species' mass, total_mass_of_products should be <= fstar_x0_mass
+        total_mass_of_products = cstar_xo_mass + cstar_xy_mass + cstar_f_mass
+
+        if self.verbose:
+            print(f"Mass of xylan initial (g): {fstar_x0_mass}")
+            print(f"Mass of xylan (g): {fstar_x_mass}")
+
+            print(f"Unadjusted mass of xylog (g): {cstar_xo_mass}")
+            print(f"Unadjusted mass of xylose (g): {cstar_xy_mass}")
+            print(f"Unadjusted mass of furfural (g): {cstar_f_mass}")
+
+            print(f"Unadjusted mass of products (g): {total_mass_of_products}")
+            print(f"Unadjusted mass of products / initial xylan (g): {total_mass_of_products/fstar_x0_mass}")
+
+        # Since mass conservation may not be exactly enforced, scale the soluble species masses
+        # using the actual reacted mass, i.e., (fstar_x0_mass * conversion_percent)
+        try:
+            adjusted_cstar_xo_mass = cstar_xo_mass/total_mass_of_products * fstar_x0_mass * conversion_percent
+            adjusted_cstar_xy_mass = cstar_xy_mass/total_mass_of_products * fstar_x0_mass * conversion_percent
+            adjusted_cstar_f_mass = cstar_f_mass/total_mass_of_products * fstar_x0_mass * conversion_percent
+        except:
+            adjusted_cstar_xo_mass = np.nan
+            adjusted_cstar_xy_mass = np.nan
+            adjusted_cstar_f_mass = np.nan
+
+        # Compute the new soluble species sum after the adjustment, now guaranteed <= fstar_x0_mass
+        adjusted_total_mass_of_products = adjusted_cstar_xo_mass + adjusted_cstar_xy_mass + adjusted_cstar_f_mass
+
+        # Compute the fractional conversion amounts on a molar basis
+        frac_conv_xylog = (adjusted_cstar_xo_mass/self.M_xo) / (fstar_x0_mass/self.M_x)
+        frac_conv_xylose = (adjusted_cstar_xy_mass/self.M_xy) / (fstar_x0_mass/self.M_x)
+        frac_conv_furfural = (adjusted_cstar_f_mass/self.M_f) / (fstar_x0_mass/self.M_x)
+
+        if self.verbose:
+            print(f"Adjusted mass of xylog (g): {adjusted_cstar_xo_mass}")
+            print(f"Adjusted mass of xylose (g): {adjusted_cstar_xy_mass}")
+            print(f"Adjusted mass of furfural (g): {adjusted_cstar_f_mass}")
+
+            print(f"Adjusted mass of products (g): {adjusted_total_mass_of_products}")
+            print(f"Adjusted mass of products / initial xylan (g): {adjusted_total_mass_of_products/fstar_x0_mass}")
+
+            print(f"Fractional conversion of xylog {frac_conv_xylog}")
+            print(f"Fractional conversion of xylose {frac_conv_xylose}")
+            print(f"Fractional conversion of furfural {frac_conv_furfural}")
+
+
+        glucan_solid_fraction = self.glucan_solid_fraction_0.value / (
+            1.0 - self.f_x0.value * conversion_percent
         )
 
         # Olga's version from intuition (very close to above!)
@@ -685,6 +764,12 @@ class Pretreatment:
         )
         self.integrated_quantities["rho_f"] = cstar_f_bar * self.M_f
 
+
+        self.integrated_quantities["frac_conv_xylog"] = frac_conv_xylog
+        self.integrated_quantities["frac_conv_xylose"] = frac_conv_xylose
+        self.integrated_quantities["frac_conv_furfural"] = frac_conv_furfural
+
+
         if not hasattr(self, "integrated_quantities_array"):
             self.integrated_quantities_array = []
 
@@ -698,6 +783,9 @@ class Pretreatment:
             "rho_x (g/g)",
             "X_G (g/g)",
             "conv",
+            "frac_conv_xylog",
+            "frac_conv_xylose",
+            "frac_conv_furfural"
         ]
 
         self.integrated_quantities_array.append(
@@ -711,6 +799,9 @@ class Pretreatment:
                 cstar_xo_bar * self.M_xo + cstar_xy_bar * self.M_xy,
                 glucan_solid_fraction,
                 conversion_percent,
+                frac_conv_xylog,
+                frac_conv_xylose,
+                frac_conv_furfural
             ]
         )
 

@@ -27,7 +27,7 @@ def build_fs_options():
 def build_pt_options():
     pt_options = WidgetCollection()
 
-    pt_options.initial_acid_conc = OptimizationWidget('BoundedFloatText', {'value': 0.0001})
+    pt_options.initial_acid_conc = OptimizationWidget('BoundedFloatText', {'value': 0.0001*1e-6})
     pt_options.steam_temperature = OptimizationWidget('BoundedFloatText', {'value':  150.0, 'max': 300.0})
     pt_options.initial_solid_fraction = OptimizationWidget('BoundedFloatText', {'value': 0.745})
     pt_options.final_time = OptimizationWidget('BoundedFloatText', {'value':  8.3})
@@ -82,8 +82,8 @@ def test_fd_init(build_fs_options):
 def test_pt_init(build_pt_options):
     pt_options = build_pt_options
 
-    PT_model = Pretreatment(pt_options)
-    truth_values = {'initial_acid_conc': 0.0001,
+    PT_model = Pretreatment(pt_options, hpc_run=False)
+    truth_values = {'initial_acid_conc': 0.0001*1e-6,
                     'steam_temperature': 150.0 + 273.15,
                     'initial_solid_fraction': 0.745, 
                     'final_time': 8.3 * 60.0}
@@ -121,7 +121,7 @@ def test_br_init(build_br_options):
 @pytest.mark.regression
 def test_pt_run(build_pt_options):
     pt_options = build_pt_options
-    PT_model = Pretreatment(pt_options)
+    PT_model = Pretreatment(pt_options, hpc_run=False)
     PT_model.run(verbose=False, show_plots=False)
     for k, it in PT_model.ve.pt_out.items():
         print(k, it)

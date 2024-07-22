@@ -132,8 +132,8 @@ def write_blocks(outfile):
     outfile.write("\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n")
     outfile.write("blocks\n(\n")
 
-    idarray   = np.zeros(8,dtype=np.int)
-    mesharray = np.zeros(3,dtype=np.int)
+    idarray   = np.zeros(8,dtype=int)
+    mesharray = np.zeros(3,dtype=int)
 
 
     for zi in range(nvolumes):

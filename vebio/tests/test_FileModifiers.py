@@ -32,7 +32,7 @@ def build_truth_file():
     return filename
 
 @pytest.fixture()
-def buid_test_dict():
+def build_test_dict():
 
     replacement_dict = {}
 
@@ -44,11 +44,11 @@ def buid_test_dict():
     return replacement_dict
 
 @pytest.mark.unit
-def test_replacement(build_test_file, buid_test_dict, build_truth_file):
+def test_replacement(build_test_file, build_test_dict, build_truth_file):
 
     test_file = build_test_file
     truth_file = build_truth_file
-    test_dict = buid_test_dict
+    test_dict = build_test_dict
 
     write_file_with_replacements(test_file, test_dict)
 
