@@ -755,19 +755,19 @@ class Pretreatment:
         if not hasattr(self, "integrated_quantities"):
             self.integrated_quantities = {}
 
-        self.integrated_quantities["fis_0"] = fis
-        self.integrated_quantities["conv"] = conversion_percent
-        self.integrated_quantities["X_X"] = fstar_x_bar
-        self.integrated_quantities["X_G"] = glucan_solid_fraction
-        self.integrated_quantities["rho_x"] = (
+        self.integrated_quantities["fis_0"] = float(fis)
+        self.integrated_quantities["conv"] = float(conversion_percent)
+        self.integrated_quantities["X_X"] = float(fstar_x_bar)
+        self.integrated_quantities["X_G"] = float(glucan_solid_fraction)
+        self.integrated_quantities["rho_x"] = float(
             cstar_xo_bar * self.M_xo + cstar_xy_bar * self.M_xy
         )
-        self.integrated_quantities["rho_f"] = cstar_f_bar * self.M_f
+        self.integrated_quantities["rho_f"] = float(cstar_f_bar * self.M_f)
 
 
-        self.integrated_quantities["frac_conv_xylog"] = frac_conv_xylog
-        self.integrated_quantities["frac_conv_xylose"] = frac_conv_xylose
-        self.integrated_quantities["frac_conv_furfural"] = frac_conv_furfural
+        self.integrated_quantities["frac_conv_xylog"] = float(frac_conv_xylog)
+        self.integrated_quantities["frac_conv_xylose"] = float(frac_conv_xylose)
+        self.integrated_quantities["frac_conv_furfural"] = float(frac_conv_furfural)
 
 
         if not hasattr(self, "integrated_quantities_array"):
