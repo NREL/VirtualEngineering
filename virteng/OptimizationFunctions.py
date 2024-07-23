@@ -1,42 +1,35 @@
 
 # import os
-# import sys
+import sys
 import scipy.optimize as opt
 import numpy as np
 
 # imports from vebio modules
-from ve.WidgetFunctions import OptimizationWidget
+from virteng.WidgetFunctions import OptimizationWidget
 # from vebio.Utilities import  yaml_to_dict
-from ve.RunFunctions import Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor, VE_params
+from virteng.ModelsConnection import VE_params
 # # add path for no-CFD EH model
 # sys.path.append(os.path.join(notebookDir, "submodules/CEH_EmpiricalModel/"))
 
 class Optimization:
 
-    def __init__(self, fs_options, pt_options, eh_options, br_options, obj_widjet, hpc_run):
+    def __init__(self, case_folder,  options_list, obj_widjet, hpc_run):
+
+        sys.path.append(case_folder)
+        from Models_classes import make_models_list, make_output_names
 
         self.hpc_run  = hpc_run
         
         self.ve = VE_params()
         
         # self.output_names = [key for key in self.ve.__dict__.keys() if "out" in key]
-        self.output_names = ['pt_out', 'eh_out', 'br_out']
+        self.output_names = make_output_names()
         self.output_name = obj_widjet.value[0]
         self.objective_name = obj_widjet.value[-1]
         self.n_models = self.define_n_models()
 
         # Initialize models
-        self.FS_model = Feedstock(fs_options)
-        self.PT_model = Pretreatment(pt_options, hpc_run)
-        self.models_list = [self.FS_model, self.PT_model]
-        if self.n_models > 1:
-            assert eh_options.model_type.value != 'CFD Simulation'
-            self.EH_model = EnzymaticHydrolysis(eh_options, hpc_run)
-            self.models_list.append(self.EH_model)
-        if self.n_models > 2:
-            assert br_options.model_type.value == 'CFD Surrogate' # Do optimization only with surrogate
-            self.BR_model = Bioreactor(br_options, hpc_run)
-            self.models_list.append(self.BR_model)
+        self.models_list= make_models_list(options_list, n_models=self.n_models, hpc_run=hpc_run)
 
         self.fn_evals = 0
         self.objective_scaling = 1.0
@@ -47,9 +40,9 @@ class Optimization:
         self.nice_var_names = []
         self.var_bounds = []
         self.var_real_bounds = []
-        for wc in [fs_options, pt_options, eh_options]:
-            for widget_name, widget in wc.__dict__.items():        
-                if isinstance(widget, OptimizationWidget) and widget.is_control.value == True:
+        for wc in options_list:
+            for widget_name, widget in wc.__dict__.items():       
+                if isinstance(widget, OptimizationWidget) and widget.is_control.value is True:
                     bounds = (widget.widget.min, widget.widget.max)
                     scaled_value = self.normalize(widget.widget.value, bounds)        
                     # current_val = widget.widget.value
@@ -90,7 +83,7 @@ class Optimization:
         return self.opt_result
 
     def define_n_models(self):
-        if not self.output_name in self.output_names:
+        if self.output_name not in self.output_names:
             raise ValueError(f"Error: Output dictionary '{self.output_name}' doesn't exist. Check the widget definition")
         n = self.output_names.index(self.output_name) + 1
         print(f'Objective "{self.objective_name}" is in {self.output_name}.')

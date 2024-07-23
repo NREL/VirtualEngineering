@@ -31,6 +31,9 @@ def make_models_list(options_list, n_models=4, hpc_run=False):
         models_list.append(BR_model)
     return models_list
 
+def make_output_names():
+    return ['pt_out', 'eh_out', 'br_out']
+
 
 class Feedstock:
     def __init__(self, fs_options):
