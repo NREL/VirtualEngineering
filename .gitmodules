@@ -7,6 +7,3 @@
 [submodule "submodules/Nek5000"]
 	path = submodules/Nek5000
 	url = https://github.com/Nek5000/Nek5000
-[submodule "submodules/CEH_EmpiricalModel"]
-	path = submodules/CEH_EmpiricalModel
-	url = https://github.com/NREL/CEH_EmpiricalModel
