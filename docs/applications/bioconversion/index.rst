@@ -14,7 +14,6 @@ These three separately developed computational unit operations of bioconvertion 
 * a **bioconversion** step  to convert sugars into products in a reactor. 
 
 
-
 .. figure:: figures/three_unit_flow.png
   :align: center
 
