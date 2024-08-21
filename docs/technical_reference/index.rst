@@ -5,7 +5,7 @@ Technical Reference
    :maxdepth: 1
 
    widget_functions
-   run_functions
+   models_connections
    optimization_functions
    file_modifiers
    utilities
