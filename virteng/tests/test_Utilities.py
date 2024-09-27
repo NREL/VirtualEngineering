@@ -4,7 +4,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 import yaml
 
-from vebio.Utilities import get_host_computer, print_dict, dict_to_yaml, yaml_to_dict
+from virteng.Utilities import get_host_computer, print_dict, dict_to_yaml, yaml_to_dict
 
 test_yaml_filename = 'temp.yaml'
 

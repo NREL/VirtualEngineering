@@ -1,7 +1,7 @@
 import pytest
 import os
 
-from vebio.FileModifiers import write_file_with_replacements
+from virteng.FileModifiers import write_file_with_replacements
 
 @pytest.fixture()
 def build_test_file():

@@ -44,4 +44,5 @@ jobs:
       shell: pwsh
       run: |
         conda activate test-env
-        pytest -s vebio/tests/
+        pytest -s virteng/tests/
+        pytest -s applications/Bioconversion/tests/

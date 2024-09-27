@@ -1,11 +1,15 @@
 import pytest
-import os
 from ipywidgets import *
-import shutil
+import sys
+import os
 
-from vebio.RunFunctions import VE_params, Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor
-from vebio.WidgetFunctions import WidgetCollection, OptimizationWidget
-from vebio.Utilities import yaml_to_dict
+path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+sys.path.append(path)
+
+
+from Models_classes import Feedstock, Pretreatment, EnzymaticHydrolysis, Bioreactor
+from virteng.WidgetFunctions import WidgetCollection, OptimizationWidget
+# from virteng.Utilities import yaml_to_dict
 
 
 # notebook_dir = os.getcwd()

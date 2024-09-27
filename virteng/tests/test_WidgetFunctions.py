@@ -2,7 +2,7 @@ import pytest
 import os
 from ipywidgets import *
 
-from vebio.WidgetFunctions import WidgetCollection, ValueRangeWidget
+from virteng.WidgetFunctions import WidgetCollection, ValueRangeWidget
 
 @pytest.mark.unit
 def test_widget_collection():
