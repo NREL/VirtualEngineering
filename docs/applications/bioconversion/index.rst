@@ -24,3 +24,4 @@ These three separately developed computational unit operations of bioconvertion 
    background
    notebooks/WidgetsNotebook
    notebooks/OptimizationNotebook
+   build_openfoam
