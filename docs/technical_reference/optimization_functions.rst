@@ -1,5 +1,5 @@
 OptimizationFunctions
-===============
+=====================
 
 .. automodule:: OptimizationFunctions
    :members:

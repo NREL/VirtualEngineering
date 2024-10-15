@@ -14,9 +14,6 @@ scratch/
 *.exe
 *.dSYM
 
-# use jupytext to save a paired text file (markdown for now)
-*.ipynb
-
 # blanket ignore output yaml files--can add specific yaml files for tracking (e.g. environment.yaml)
 *.yaml
 
@@ -30,10 +27,6 @@ pretreat_defs_updated.inp
 bkup*
 equationsDoc.pdf
 hostname_info.txt
-
-# I'm suggesting a convention of `run_[name]` for direct executables; these
-#  should be ignored, JJS 7/23/21
-run_*
 
 # latex
 *.bbl

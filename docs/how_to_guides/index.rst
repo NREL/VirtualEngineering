@@ -6,5 +6,6 @@ How To Guides
 
    getting_started
    eagle_connection
-   build_openfoam
-   notebooks/OptimizationNotebook
+   notebooks/TemplateNotebook
+   
+   

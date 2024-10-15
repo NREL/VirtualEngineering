@@ -17,15 +17,15 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - '3.7'
+          - '3.12'
         os:
           - linux
           - macos
         include:
           - os: linux
-            os-version: ubuntu-20.04
+            os-version: ubuntu-latest
           - os: macos
-            os-version: macos-10.15
+            os-version: macos-latest
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
@@ -44,4 +44,5 @@ jobs:
       shell: pwsh
       run: |
         conda activate test-env
-        pytest -s vebio/tests/
+        pytest -s virteng/tests/
+        pytest -s applications/Bioconversion/tests/
