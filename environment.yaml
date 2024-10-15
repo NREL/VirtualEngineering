@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   - black
-  - fenics-dolfinx=0.8
+  - fenics-dolfinx=0.9
   - joblib
   - jupyter
   - jupytext
