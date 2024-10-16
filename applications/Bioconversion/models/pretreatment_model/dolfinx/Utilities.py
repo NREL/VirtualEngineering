@@ -63,6 +63,6 @@ def project(v, target_func, bcs=[]):
     # Solve linear system
     solver = PETSc.KSP().create(A.getComm())
     solver.setOperators(A)
-    solver.solve(b, target_func.vector)
+    solver.solve(b, target_func.x.petsc_vec)
 
     return target_func
