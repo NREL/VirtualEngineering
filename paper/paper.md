@@ -50,13 +50,14 @@ The models representing these steps vary from one-dimensional finite element mod
 
 To enable users to easily set up and launch new simulations, either by swapping in alternate computational models or specifying a different set of prescribed input parameters, the `VE` package uses `Jupyter` notebooks [@kluyver2016jupyter] for their ability to deploy both GUI elements and performant code on different hardware and operating systems. The GUI elements comprise groups of `ipywidgets` [@interactive_Jupyter_widgets] that offer easy methods to solicit and error-check user-input values (see Figure \ref{fig:controls}). Additionally, this notebook interface enables users to specify either a once-through simulation problem (Figure \ref{fig:run}) or an iterative optimization in which the controls and bounds can be easily set via widgets. This combination of features, along with the unique methods developed to support our specific use cases, distinguishes `VE` from other workflow solutions like Airflow[^1], Luigi[^2], or Dagster[^3].
 
-![Example of `ipywidgets` to define unit model choice and input parameters.\label{fig:controls}](figs/eh_widgets.png)
+![Example of `ipywidgets` to define unit model choice and input parameters.\label{fig:controls}](figs/eh_widgets.png){ width=100% }
 
-![Example of user-friendly interface for end-to-end process execution.\label{fig:run}](figs/button_run_all.png)
+![Example of user-friendly interface for end-to-end process execution.\label{fig:run}](figs/button_run_all.png){ width=100% }
 
 [^1]:  [airflow.apache.org](https://airflow.apache.org/)
 [^2]:  [github.com/spotify/luigi](https://github.com/spotify/luigi)
 [^3]:  [dagster.io](https://dagster.io/)
+
 
 # Example of bioconvertion optimization
 
@@ -87,6 +88,9 @@ Figure \ref{fig:opt_results} illustrates the optimization process for these two 
 
 To demonstrate the robustness of the optimization algorithm, we used different initial values for the control variables in the switchgrass and corn stover cases. Table \ref{tab:opt_results} displays the initial and final values of the controls and the objective, as well as the change in the OUR.
 
+![](figs/opt_acid_enz_fs_1_new.png)
+
+![The result of optimizing the amount of acid loading during PT and enzyme loading during EH to maximize OUR for a modeled switchgrass (top) and corn stover (bottom) feedstock; the triangle indicates the initial control values, the square the optimal control values, and the connecting line the path of the optimization algorithm as it identifies the maximum.\label{fig:opt_results}](figs/opt_acid_enz_fs_2_new.png)
 
 : Optimization results\label{tab:opt_results}
 
@@ -97,11 +101,8 @@ To demonstrate the robustness of the optimization algorithm, we used different i
 
 <!-- It should be noted that the percent change value reported in the final column is an improvement over a randomly-selected initial guess only as opposed to an improvement over some more realistic set of operating conditions. However, it does serve to illustrate the direction of change as a sanity check that the optimization algorithm moves in the correct direction and highlight the magnitude of the change that is achievable when moving through a two-dimensional region of a much larger control space.  -->
 
+
 One interesting outcome is the contrast in the optimal amount of enzyme loading between the two feedstocks, where corn stover is optimally processed with an enzyme loading $\sim 8\%$ greater than that for switchgrass (139.28 vs 128.90 mg/g). This significant change between the two feedstocks emphasizes the value of the `VE` framework for enabling optimization studies over a wide variety of user-specified conditions and constraints.
-
-![](figs/opt_acid_enz_fs_1_new.png)
-
-![The result of optimizing the amount of acid loading during PT and enzyme loading during EH to maximize OUR for a modeled switchgrass (top) and corn stover (bottom) feedstock; the triangle indicates the initial control values, the square the optimal control values, and the connecting line the path of the optimization algorithm as it identifies the maximum.\label{fig:opt_results}](figs/opt_acid_enz_fs_2_new.png)
 
 <!-- ![The result of optimizing the amount of acid loading during pretreatment and enzyme loading during enzymatic hydrolysis to maximize OUR for a modeled switchgrass (top) and corn stover (bottom) feedstock; the triangle indicates the initial control values, the square the optimal control values, and the connecting line the path of the optimization algorithm as it identifies the maximum.](figs/optimization_results.pdf) -->
 
