@@ -31,12 +31,13 @@ extensions = ['sphinx.ext.autodoc',
 			  'sphinx.ext.napoleon',
 			  'sphinx.ext.autosectionlabel',
 			  'nbsphinx',
+			  'jupyter_sphinx',
 			  'nbsphinx_link',
 			  # 'sphinx_rtd_theme',
 			  # 'sphinx.ext.intersphinx',
 ]
 
-nbsphinx_execute = 'never'
+# nbsphinx_execute = 'never'
 nbsphinx_requirejs_path = ""
 nbsphinx_widgets_path = ""
 
