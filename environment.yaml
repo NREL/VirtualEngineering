@@ -10,6 +10,7 @@ dependencies:
   - jupytext
   - matplotlib
   - pandas
+  - pandoc
   - pytest
   - pyyaml
   - scikit-learn
