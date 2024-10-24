@@ -1,5 +1,6 @@
 sphinx-rtd-theme
 nbsphinx
+jupyter_sphinx
 nbsphinx_link
 sphinx-autoapi
 sphinxcontrib-bibtex
