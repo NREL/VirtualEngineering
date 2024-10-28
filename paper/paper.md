@@ -36,33 +36,33 @@ bibliography: paper.bib
 
 # Summary
 
-`Virtual Engineering` (`VE`) is a Python software framework designed to accelerate research and development of engineering processes. It supports multi-physics models of unit operations and joins them to simulate the entire end-to-end process. To automate the execution of this model sequence, `VE` provides (i) a robust method to communicate between models, (ii) a high-level user-friendly interface to set model parameters and enable optimization, and (iii) an overall model-agnostic approach that allows new computational units to be swapped in and out of workflows. Although the `VE` approach was developed to support a process of low-temperature conversion of biomass to fuel, we have designed each component to easily accommodate new domains and unit models.
+`Virtual Engineering` (`VE`) is a Python software framework designed to accelerate the research and development of engineering processes that are fundamentally defined by multiple unit operations executed in series. VE supports a wide variety of different multi-physics models and joins them to simulate an entire end-to-end process. To automate the execution of this model sequence, `VE` provides (i) a robust method to communicate between models, (ii) a high-level, user-friendly interface to set model parameters and enable optimization, and (iii) an overall model-agnostic approach that allows new computational units to be swapped in and out of workflows. Although the `VE` approach was developed to support the process of the low-temperature conversion of biomass to fuel, we have designed each component to easily accommodate new domains and unit models.
 
 # Statement of need
 
 The numerical simulation of real-world systems frequently requires linking multiple models together---potentially spanning multiple levels of physical fidelity and computational resources---such that the outputs of one model can inform the inputs of another. `Virtual Engineering` (`VE`) is a Python package that enables the creation of this type of model sequence. It was originally developed to support the simulation and optimization of the low-temperature conversion of biomass to fuel which is typically performed as a three-step process (Figure \ref{fig:VE_diagram}). 
 
-These three separately developed computational unit operations of bioconvertion are: (i) the _pretreatment_ of the feedstock to make cellulose more accessible [@sitaraman_multiphysics_2015], (ii) an _enzymatic hydrolysis_ step to digest cellulose into sugars [@sitaraman_coupled_2019], and (iii) a _bioconversion_ step  to convert sugars into products in a reactor [@rahimi_computational_2018]. Finally, the value of these products and the capital and operating costs associated with generating them are estimated using calculations derived from Aspen Plus techno economic analysis (TEA) software [@aspen2022]. 
+These three separately developed computational unit operations of bioconversion are: (i) the _pretreatment_ of the feedstock to make cellulose more accessible [@sitaraman_multiphysics_2015], (ii) an _enzymatic hydrolysis_ step to digest cellulose into sugars [@sitaraman_coupled_2019], and (iii) a _bioconversion_ step  to convert sugars into products in a reactor [@rahimi_computational_2018]. Finally, the value of these products and the capital and operating costs associated with generating them are estimated using calculations derived from Aspen Plus techno economic analysis (TEA) software [@aspen2022]. 
 
 The models representing these steps vary from one-dimensional finite element models that can be carried out on a modern laptop in seconds to three-dimensional computational fluid dynamics (CFD) simulations that require HPC resources and hours of CPU time. Maintaining a continuous simulation between different operating systems and hardware across potentially days of wallclock time is not well supported with existing methods. The `VE` package offers an interface with the SLURM job scheduler [@yoo_slurm_2003] and modifies and launches OpenFOAM jobs [@weller_1998] to automate the end-to-end bioconversion process. Although this set of functions was necessary to support the original use case of the bioconversion process, the underlying programming interface and object-oriented model wrappers were designed to be as model-agnostic as possible.
 
-![An example of a low-temperature conversion of biomass to fuel end-to-end process defined and automated within `VE` by connecting different unit models.\label{fig:VE_diagram}](figs/VE_diagram.pdf){ width=100% }
+![An example of the end-to-end processes for converting biomass to fuel at low temperature defined and automated within `VE` by connecting different unit models.\label{fig:VE_diagram}](figs/VE_diagram.pdf){ width=100% }
 
 To enable users to easily define new simulations, either by swapping in alternate computational models or specifying a different set of prescribed input parameters, the `VE` package relies on `Jupyter` notebooks [@kluyver2016jupyter] for their ability to deploy both GUI elements and performant code on different hardware and operating systems. The GUI elements comprise groups of `ipywidgets` [@interactive_Jupyter_widgets] that offer easy methods to solicit and error-check user-input values (see Figure \ref{fig:controls}). Additionally, this notebook interface enables users to specify either a once-through simulation problem (Figure \ref{fig:run}) or an iterative optimization in which the controls and bounds can be easily set via widgets. 
 
 This combination of features, along with the unique methods developed to support our specific use cases, distinguishes `VE` from other workflow solutions like Airflow[^1], Luigi[^2], or Dagster[^3].
 
-![Example of `ipywidgets` to define unit model choice and input parameters.\label{fig:controls}](figs/eh_widgets.png)
+![Example of `ipywidgets` elements used to define choices for both the underlying unit model and its input parameters.\label{fig:controls}](figs/eh_widgets.png)
 
-![Example of user-friendly interface for end-to-end process execution.\label{fig:run}](figs/button_run_all.png)
+![Example of the user-friendly interface for end-to-end process execution.\label{fig:run}](figs/button_run_all.png)
 
 [^1]:  [airflow.apache.org](https://airflow.apache.org/)
 [^2]:  [github.com/spotify/luigi](https://github.com/spotify/luigi)
 [^3]:  [dagster.io](https://dagster.io/)
 
-# Example of bioconvertion optimization
+# Example of bioconversion optimization
 
-The `VE` package provides an optimization capability that can be easily accessed through the user-friendly `ipywidgets` GUI interface. The notebook supports the selection of multiple control variables, in which case all chosen variables will be tuned to minimize the objective function in the multidimensional space. Additionally, users can choose to minimize either the final output or any intermediate output of the process. In the latter case, the number of unit models in the process is automatically adjusted based on a specified objective.
+The `VE` package provides an optimization capability that can be easily accessed through the user-friendly `ipywidgets` GUI interface. The notebook supports the selection of multiple control variables, in which case all chosen variables will be tuned to minimize the objective function in the multidimensional space. Additionally, users can choose to minimize either the final output or any intermediate output of the process. In the latter case, the number of unit models in the process is automatically adjusted based on the specified objective; for example, executing only the first element in a three-element series if the objective function depends only on element one.
 
 To demonstrate these capabilities of the `VE` package, we optimize the oxygen uptake rate (OUR) in the bioconversion process (Figure \ref{fig:VE_diagram}) by solving the box-constrained optimization problem with two controls summarized in Table \ref{tab:opt_problem}. It is important to notice that the objective function, OUR, is an output of the Bioreactor (BR) model, while acid loading and enzyme loading are independent inputs to the pretreatment (PT) and enzymatic hydrolysis (EH) models, respectively. 
 
@@ -83,7 +83,7 @@ We solve this optimization problem for two different modeled feedstocks: switchg
 |Switchgrass| 0.325         | 0.463         |0.213          |
 |Corn Stover| 0.360         | 0.430         | 0.209         | 
 
-To accelerate the optimization process, we developed surrogate models for computationally expensive unit operations of EH and BR, utilizing Gaussian process regression and leveraging dimension reduction and active importance sampling.  As a result, one can obtain predictions of EH and BR outputs within seconds.
+To accelerate the optimization process, we developed surrogate models for computationally expensive unit operations of EH and BR, utilizing Gaussian process regression and leveraging dimension reduction and active importance sampling. As a result, one can obtain predictions of EH and BR outputs within seconds.
 
 Figure \ref{fig:opt_results} illustrates the optimization process for these two different feedstocks. The contour plot of OUR is obtained by sweeping through parameter space and serves as the background to visualize the behavior of the objective function. This contour plot verifies that our optimization algorithm follows the gradients as expected and converges to a reasonable final solution. 
 
@@ -99,7 +99,7 @@ To demonstrate the robustness of the optimization algorithm, we used different i
 
 <!-- It should be noted that the percent change value reported in the final column is an improvement over a randomly-selected initial guess only as opposed to an improvement over some more realistic set of operating conditions. However, it does serve to illustrate the direction of change as a sanity check that the optimization algorithm moves in the correct direction and highlight the magnitude of the change that is achievable when moving through a two-dimensional region of a much larger control space.  -->
 
-One interesting outcome is the contrast in the optimal amount of enzyme loading between the two feedstocks, where corn stover is optimally processed with an enzyme loading $\sim 8\%$ greater than that for switchgrass (139.28 vs 128.90 mg/g). This significant change between the two feedstocks emphasizes the value of the `VE` framework for enabling optimization studies over a wide variety of user-specified conditions and constraints.
+One interesting outcome is the contrast in the optimal amount of enzyme loading between the two feedstocks, where corn stover is optimally processed with an enzyme loading $\sim 8\%$ greater than that for switchgrass (139.28 vs 128.90 mg/g). This significant change between the two feedstocks emphasizes the value of the `VE` framework for easily enabling multi-model optimization studies over a wide variety of user-specified conditions and constraints.
 
 ![](figs/opt_acid_enz_fs_1_new.png)
 
@@ -109,7 +109,10 @@ One interesting outcome is the contrast in the optimal amount of enzyme loading 
 
 # VE usage in the research
 
-[**ADD citations to the public bioconvertion results**]
+
+The `VE` package was used to quantify the effects of modifying the enzyme loading and total enzymatic hydrolysis processing time on the minimum fuel selling price and the optimization features were used to identify the porosity of the initial feedstock necessary to maximize the OUR. These results, plus a live deomnstration of the `VE` notebook usage, were presented at the 2021 American Institute of Chemical Engineers (AIChE) Annual Meeting [@young_aiche_2021]. A more comprehensive analaysis---including details on the surrogate modeling methodology, model validation against experimental results, and multi-variable optimization outcomes to maximize OUR---was presented at the Bioenergy Technologies Office (BETO) peer review [@young_beto_2023].
+
+[**ADD citations to the public bioconversion results**]
 
 [**ADD couple sentences about possible future use for different areas**]
 
