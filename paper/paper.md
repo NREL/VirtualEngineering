@@ -50,9 +50,9 @@ The models representing these steps vary from one-dimensional finite element mod
 
 To enable users to easily set up and launch new simulations, either by swapping in alternate computational models or specifying a different set of prescribed input parameters, the `VE` package uses `Jupyter` notebooks [@kluyver2016jupyter] for their ability to deploy both GUI elements and performant code on different hardware and operating systems. The GUI elements comprise groups of `ipywidgets` [@interactive_Jupyter_widgets] that offer easy methods to solicit and error-check user-input values (see Figure \ref{fig:controls}). Additionally, this notebook interface enables users to specify either a once-through simulation problem (Figure \ref{fig:run}) or an iterative optimization in which the controls and bounds can be easily set via widgets. This combination of features, along with the unique methods developed to support our specific use cases, distinguishes `VE` from other workflow solutions like Airflow[^1], Luigi[^2], or Dagster[^3].
 
-![Example of `ipywidgets` elements used to define choices for both the underlying unit model and its input parameters.\label{fig:controls}](figs/eh_widgets.png)
+![Example of `ipywidgets` elements used to define choices for both the underlying unit model and its input parameters.\label{fig:controls}](figs/eh_widgets.png){ width=100% }
 
-![Example of the user-friendly interface for end-to-end process execution.\label{fig:run}](figs/button_run_all.png)
+![Example of the user-friendly interface for end-to-end process execution.\label{fig:run}](figs/button_run_all.png){ width=100% }
 
 [^1]:  [airflow.apache.org](https://airflow.apache.org/)
 [^2]:  [github.com/spotify/luigi](https://github.com/spotify/luigi)
