@@ -28,6 +28,10 @@ affiliations:
 date: 28 May 2024
 bibliography: paper.bib
 
+# # Optional fields if submitting to a AAS journal too, see this blog post:
+# # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
+# aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
+# aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
@@ -36,6 +40,7 @@ bibliography: paper.bib
 VE supports a wide variety of different multi-physics models and joins them to simulate an entire end-to-end process. To automate the execution of this model sequence, `VE` provides (i) a robust method to communicate between models, 
 (ii) a high-level, user-friendly interface to set model parameters and enable optimization, and (iii) an overall model-agnostic approach that allows new computational units to be swapped in and out of workflows. 
 Although the `VE` framework was developed to support the biochemical conversion of biomass to fuel, we have designed each component to easily accommodate new domains and unit models.
+<!-- Although the VE framework currently supports the biochemical conversion of biomass to fuel, we have designed each component to easily accommodate new domains and unit models. -->
 
 # Statement of need
 
@@ -43,7 +48,7 @@ Many industrial and manufacturing operations consist of a sequence of discrete p
 
 Numerical simulations that can support the analysis and optimization of such systems frequently require linking multiple individual models together—each associated with different steps in the overall operational process—so that the outputs of one model can inform the inputs of the next. These models can span multiple levels of physical fidelity and computational costs. `Virtual Engineering` (`VE`) is a Python package that enables the creation of this type of model sequence. 
 
-`VE` was originally developed to support the simulation and optimization of the biochemical conversion of lignocellulosic biomass to fuels. This bioconversion process was modeled by linking previously developed computational models as three important unit operations (Figure \ref{fig:VE_diagram}):  (i) the _pretreatment_ of the feedstock to make cellulose more accessible [@sitaraman_multiphysics_2015], (ii) an _enzymatic hydrolysis_ step to digest lignocellulose into sugars [@sitaraman_coupled_2019;@lischeske2019two], and (iii) a _bioconversion_ step to convert sugars into products in a bioreactor [@rahimi_computational_2018].  Finally, the capital and operating costs of the process, and the product's (in this case, ethanol) subsequent minimum feasible selling price through discounted cash flow analysis, were calculated using an Aspen Plus process simulation with techno-economic analysis (TEA) [@humbird2011process]. 
+`VE` was originally developed to support the simulation and optimization of the biochemical conversion of lignocellulosic biomass to fuels. This bioconversion process was modeled by linking previously developed computational models as three important unit operations (Figure \ref{fig:VE_diagram}):  (i) the _pretreatment_ of the feedstock to make cellulose more accessible [@sitaraman_multiphysics_2015], (ii) an _enzymatic hydrolysis_ step to digest lingnocellulose into sugars [@sitaraman_coupled_2019;@lischeske2019two], and (iii) a _bioconversion_ step to convert sugars into products in a bioreactor [@rahimi_computational_2018].  Finally, the capital and operating costs of the process, and the product's (in this case, ethanol) subsequent minimum feasible selling price through discounted cash flow analysis, were calculated using an Aspen Plus process simulation with techno-economic analysis (TEA) [@humbird2011process]. 
 
 ![An example of the end-to-end process for biochemical convertion of biomass to fuel defined and automated within `VE` by connecting different unit models.\label{fig:VE_diagram}](figs/VE_diagram.pdf){ width=100% }
 
@@ -87,9 +92,9 @@ We solve this optimization problem for two different modeled feedstocks: switchg
 
 To accelerate the optimization process, we developed surrogate models for the computationally expensive unit operations of EH and BR, utilizing Gaussian process regression and leveraging dimension reduction and active importance sampling. As a result, one can obtain predictions of EH and BR outputs within seconds.
 
-Figure \ref{fig:opt_results} illustrates the optimization process for these two different feedstocks. The contour plots of OUR are obtained by sweeping through the parameter space and serve as the background to visualize the behavior of the objective function. These contour plots verify that our optimization algorithm follows the gradients as expected and converges to a reasonable final solution.
+Figure \ref{fig:opt_results} illustrates the optimization process for these two different feedstocks. The contour plots of OUR are obtained by sweeping through the parameter space and serves as the background to visualize the behavior of the objective function. These contour plots verify that our optimization algorithm follows the gradients as expected and converges to a reasonable final solution.
 
-To demonstrate the robustness of the optimization algorithm, we used different initial values for the control variables in the switchgrass and corn stover cases. Table \ref{tab:opt_results} displays the initial and final values of the controls, the objective, and the change in the OUR.
+To demonstrate the robustness of the optimization algorithm, we used different initial values for the control variables in the switchgrass and corn stover cases. Table \ref{tab:opt_results} displays the initial and final values of the controls and the objective, as well as the change in the OUR.
 
 ![](figs/opt_acid_enz_fs_1_new.png){ width=93% }
 
@@ -103,8 +108,11 @@ To demonstrate the robustness of the optimization algorithm, we used different i
 |Corn Stover| $8\times 10^{-4}$ | 250.00| 74.06 | $6.17\times 10^{-5}$ | 139.28 | 76.83 | +3.73\% |
 
 
+<!-- It should be noted that the percent change value reported in the final column is an improvement over a randomly-selected initial guess only as opposed to an improvement over some more realistic set of operating conditions. However, it does serve to illustrate the direction of change as a sanity check that the optimization algorithm moves in the correct direction and highlight the magnitude of the change that is achievable when moving through a two-dimensional region of a much larger control space.  -->
+
 One interesting outcome is the difference in the optimal amount of enzyme loading between the two feedstocks, where corn stover is optimally processed with an enzyme loading $\sim 8\%$ greater than that for switchgrass (139.28 vs 128.90 mg/g). Additionally, while a higher acid loading could improve pretreatment conversion, it is not the optimal for the overall process because it produces more byproducts that can negatively affect bioreaction. This emphasizes the value of the `VE` framework for easily enabling multi-model optimization studies over a wide variety of user-specified conditions and constraints.
 
+<!-- ![The result of optimizing the amount of acid loading during pretreatment and enzyme loading during enzymatic hydrolysis to maximize OUR for a modeled switchgrass (top) and corn stover (bottom) feedstock; the triangle indicates the initial control values, the square the optimal control values, and the connecting line the path of the optimization algorithm as it identifies the maximum.](figs/optimization_results.pdf) -->
 
 # VE usage in the research
 
@@ -113,6 +121,32 @@ The `VE` package was used to quantify the effects of modifying the enzyme loadin
 Finally, we reiterate that, while developed for the specific biomass conversion process discussed above, the `VE` framework is comprised of generalizable components that can readily extend to model a wide array of industrial and manufacturing workflows. An immediate example for future extension is on thermochemical conversion pathways such as biomass/plastics/solid-waste pyrolysis or gasification that involves similar chemically reacting flows except in a gas-solid environment. `VE` framework also provides a pathway to combine biochemical and thermochemical approaches and provide overall optimal process conditions, in line with current research directions on hybrid integrated approaches [@begum2024review]. 
 
 As another example, we may consider the processing of iron ore for steelmaking. This industrial process generally includes multiple stages of grinding, separation, treatment, and some form of pelletizing. Each of the processes can be performed in different ways---e.g., grinding may be performed with bar or ball grinders or using high-pressure grinding rollers that all have different pros and cons as well as different operational parameters. The `VE` framework could be used to study different grinding methods within the context of a broader iron ore processing operation to optimize different objectives, such as yield, cost, or energy usage. Similar design process questions can arise in applications such as pharmaceutical production, microelectronics fabrication, agricultural processing, and more.
+
+<!-- # Example of optimizing the design of bioreactor
+
+We used the `VE` framework to carry out 308 CFD simulations of the bioconversion step with randomized combinations of superficial gas velocity, reactor height, reactor diameter, maximum oxygen uptake rate (OUR$_{\text{max}}$), and bubble diameter to probe how different control combinations affect both performance and cost. The relevant units and sampled range of these input parameters are shown in Table 1.
+
+: The names, units, and bounds of the variables defining the parameter space explored in an example `VE` use case  
+
+| Quantities               | Units       | Lower bound | Upper bound |
+|-------------------------:|-------------|-------------|-------------|
+| Superficial Gas Velocity | m/s         | 0.01        | 0.1         |
+| Reactor Height           | m           | 10          | 50          |
+| Reactor Diameter         | m           | 1           | 6           |
+| OUR$_{\text{max}}$       | mol/m$^3$/h | 5           | 100         |
+| Bubble Diameter          | m           | 0.003       | 0.008       |
+
+We then couple the output of these CFD simulations, namely, the oxygen uptake rate, with a TEA analysis to obtain the corresponding price per kilogram of oxygen, \$/kg$_{O_2}$, for every CFD simulation. From this dataset, we produce the plots of \$/kg$_{O_2}$ obtained from TEA as a function of each of our CFD input variables shown in Figure 1.
+
+![The cost of operating the bioconversion process plotted as a function of each input parameter over the sampled space, lower values are better.](figs/scatter_bioreactor.pdf)
+
+As shown in Figure 1, there are clear preferences for operating reactors with larger heights and diameters and a less clear preference, for example, with respect to bubble diameter, which shows no clear trend toward large or small values. This intuition is borne out when plotting the sensitivity of \$/kg$_{O_2}$ with respect to each of the input parameters via Sobol indices, as shown in Figure 2.
+
+![The normalized sensitivity of the output, (\$/kg$_{O_2}$), with respect to each of the varied inputs, a larger sensitivity index means the input parameter has a larger effect on the overall outcome. ](figs/Sobol_indices_bioreactor.pdf){ width=75% }
+
+Optimizing this system for various fixed quantities of OUR$_{\text{max}}$ reveals a semi-linear trend in gas velocity, with higher values required for higher OUR$_{\text{max}}$, and re-confirms the original intuition that larger bioconversion reactors, both in height and diameter, are beneficial from a cost-vs-product-value perspective. This analysis is shown in Figure 3.
+
+![The cost-optimal values of gas velocity, reactor height, reactor diameter, and bubble diameter over a range of possible OUR$_{\text{max}}$ values, the upper left image shows the value of the objective function, \$/kg$_{O_2}$, obtained at each point in the solution space. ](figs/optimization_vs_ourmax_bioreactor.pdf) -->
 
 # Acknowledgements
 
