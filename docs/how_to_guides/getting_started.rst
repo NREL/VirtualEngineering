@@ -4,11 +4,11 @@ Getting Started
 Building Conda Environment
 --------------------------
 
-This Virtual Engineering repository contains all the tools needed to create Jupyter Notebooks to control the execution of various unit operations for the beginning-to-end simulation of the low-temperature conversion of lignocellulosic biomass to a fuel precursor.  The first step is to create a Conda environment using the included ``environment.yaml`` file. To create this environment, simply open a terminal, navigate to the root level of the Virtual Engineering directory and run::
+This Virtual Engineering repository contains all the tools needed to create Jupyter Notebooks to control the execution of various unit operations for the beginning-to-end simulation (as example application we use the low-temperature conversion of lignocellulosic biomass to a fuel precursor).  The first step is to create a Conda environment using the included ``environment.yaml`` file. To create this environment, simply open a terminal, navigate to the root level of the Virtual Engineering directory and run::
 
 	conda env create -f environment.yaml -n <env_name>
 
-where ``<env_name>`` should be replaced with the name you'd like to use for your Conda environment. This builds a Conda environment using the packages enumerated in the yaml file and pip installs the ``vebio`` Python package which adds functionality required by the Jupyter Notebook workflow.  Once the Conda environment is successfully created, activate it from the command line with::
+where ``<env_name>`` should be replaced with the name you'd like to use for your Conda environment. This builds a Conda environment using the packages enumerated in the yaml file and pip installs the ``virteng`` Python package which adds functionality required by the Jupyter Notebook workflow.  Once the Conda environment is successfully created, activate it from the command line with::
 
 	conda activate <env_name>
 
@@ -16,7 +16,7 @@ then, launch the Notebook by running::
 
 	jupyter notebook
 
-When the Notebook landing page opens, you'll be able to open the ``virtual_engineering_notebook.nd`` which will allow you to launch simulations and move on to the next step.
+When the Notebook landing page opens, you'll be able to navigate to ``applications/Bioconversion`` folder and open the ``virtual_engineering_notebook.ipynb`` which will allow you to launch simulations and move on to the next step.
 
 Running Notebook
 ----------------
