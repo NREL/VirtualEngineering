@@ -12,19 +12,20 @@ on:
 jobs:
   build:
     name: test_vebio - ${{ matrix.os }}
-    runs-on: ${{ matrix.os-version }}
+    # runs-on: ${{ matrix.os-version }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        os:
-          - linux
-          - macos
-        include:
-          - os: linux
-            os-version: ubuntu-latest
-          - os: macos
-            os-version: macos-latest
+        # os:
+        #   - linux
+        #   - macos
+        # include:
+        #   - os: linux
+        #     os-version: ubuntu-latest
+        #   - os: macos
+        #     os-version: macos-latest
     steps:
     - uses: actions/checkout@v3
     - uses: conda-incubator/setup-miniconda@v2
