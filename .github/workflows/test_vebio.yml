@@ -16,8 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version:
-          - '3.12'
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         os:
           - linux
           - macos
@@ -27,8 +26,8 @@ jobs:
           - os: macos
             os-version: macos-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: actions/checkout@v3
+    - uses: conda-incubator/setup-miniconda@v4
       with:
         miniconda-version: "latest"
         channels: conda-forge
