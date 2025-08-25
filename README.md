@@ -8,7 +8,7 @@ The Virtual Engineering (VE) project provides a set of Python modules to enable 
 
 ## Getting Started
 
-New users are encouraged to review the [Getting Started](https://virtualengineering.readthedocs.io/en/latest/how_to_guides/getting_started.html#getting-started) guide which describes how to create the Conda environment and run the Jupyter Notebook.
+New users are encouraged to review the [Getting Started](https://virtualengineering.readthedocs.io/en/latest/how_to_guides/getting_started.html#getting-started) guide, which describes how to create the Conda environment and run the Jupyter Notebook.
 
 ## Developer Quick Start
 
@@ -24,11 +24,11 @@ and launch the Notebook by running
 
 `jupyter notebook`
 
-When the Notebook landing page opens, you'll be able to navigate to the ``application/Template_aplication`` directory and open the ``virtual_engineering_notebook_template.ipynb`` which will guide you through the next steps.
+When the Notebook landing page opens, you'll be able to navigate to the ``application/Template_application`` directory and open the ``virtual_engineering_notebook_template.ipynb`` which will guide you through the next steps.
 
 ## Git Submodules
 
-Some applications (e.g. Bioconversion application) might depend on code in another Git repositories. The dependency is known as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). Submodules are specified in `.gitmodules` (a hidden file on some systems) and are located in subfolders of `submodules/` of application repository. Initiate the submodule system with
+Some applications (e.g., Bioconversion application) might depend on code in other Git repositories. The dependency is known as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). Submodules are specified in `.gitmodules` (a hidden file on some systems) and are located in subfolders of `submodules/` of the application repository. Initiate the submodule system with
 
 `git submodule init`
 
@@ -36,5 +36,7 @@ Then update specific modules with
 
 `git submodule update submodules/[name of submodule]`
 
-This command will perform a git clone or pull for that module. For example, in Bioconversion application, to run the enzymatic hydrolysis CFD model, update `Nek5000`. To run the well-mixed "Ligncellulose" model (no CFD), update`CEH_EmpiricalModel`. To run bioreactor CFD simulation, update `OpenFOAM-dev` and `ThirdParty-dev`. For example, see [README_OpenFOAM](https://virtualengineering.readthedocs.io/en/latest/applications/bioconversion/build_openfoam.html).
+This command will perform a git clone or pull for that module. For example, in the Bioconversion application, to run the enzymatic hydrolysis CFD model, update `Nek5000`. To run the well-mixed "Ligncellulose" model (no CFD), update `CEH_EmpiricalModel`. To run a bioreactor CFD simulation, update `OpenFOAM-dev` and `ThirdParty-dev`. For example, see [README_OpenFOAM](https://virtualengineering.readthedocs.io/en/latest/applications/bioconversion/build_openfoam.html).
 
+## Contributing
+Contributions are always welcome! See [contribution guidelines](CONTRIBUTING.md) for ways to get started.
