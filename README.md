@@ -38,7 +38,7 @@ python setup.py install
 
 Installing via `conda-forge`
 ```bash
-conda install -c conda-forge virteng
+conda install -c conda-forge virtualengineering
 ```
 
 ## Git Submodules
