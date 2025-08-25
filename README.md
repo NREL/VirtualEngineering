@@ -26,6 +26,21 @@ and launch the Notebook by running
 
 When the Notebook landing page opens, you'll be able to navigate to the ``application/Template_application`` directory and open the ``virtual_engineering_notebook_template.ipynb`` which will guide you through the next steps.
 
+## Installation
+
+Install `G2Aero` from sources with Python3.x:
+
+```bash
+git clone https://github.com/NREL/VirtualEngineering.git
+cd VirtualEngineering
+python setup.py install
+```
+
+Installing via `conda-forge`
+```bash
+conda install -c conda-forge virteng
+```
+
 ## Git Submodules
 
 Some applications (e.g., Bioconversion application) might depend on code in other Git repositories. The dependency is known as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). Submodules are specified in `.gitmodules` (a hidden file on some systems) and are located in subfolders of `submodules/` of the application repository. Initiate the submodule system with
