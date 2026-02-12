@@ -200,19 +200,39 @@ class Pretreatment:
     @acetylfrac.setter
     def acetylfrac(self,a):
         if not 0 < a < 1:
-            raise ValueError(f"Value {a} is outside allowed interval (0, 1)")
+            raise ValueError(f"Value {a} is outside allowed interval (0, 0.025)")
         self.ve.pt_in['acetylfrac'] = float(a)
     
     @property
-    def DAtemp(self):
+    def DACtemp(self):
         return self.ve.pt_in['deacetylation_temperature']
     
-    @DAtemp.setter
-    def DAtemp(self,a):
-        if not 200 < a < 600:
-            raise ValueError(f"Value {a} is outside allowed interval (200, 600)")
-        self.ve.pt_in['deacetylation_temperature'] = float(a)
+    @DACtemp.setter
+    def DACtemp(self,a):
+        if not 277.15 < a < 373.15:
+            raise ValueError(f"Value {a} is outside allowed interval (277.15, 373.15) degrees K")
+        self.ve.pt_in['acetylfrac'] = float(a)
+
+    @property
+    def DACretention(self):
+        return self.ve.pt_in['deacetylation_retention_time']
     
+    @property
+    def DACvolume(self):
+        return self.ve.pt_in['deacetylation_volume']
+    
+    @property
+    def DACpH(self):
+        return self.ve.pt_in['deacetylation_inital_pH']
+    
+    @property
+    def DACbm(self):
+        return self.ve.pt_in['deacetylation_biomass_loading']
+
+    @property
+    def DACNaOH(self):
+        return self.ve.pt_in['deacetylation_NaOH_loading']   
+
     @property
     def model_type(self):
         return self.ve.pt_in['model_type']

@@ -94,58 +94,7 @@ Acy_P = 0.023 #0.023 #0.0223 # weight percentage of acetate in biomass
 Lig_P = 0.153 # weight percentage of lignin in biomass
 # Xylan Groups
 Xy_P = 0.213 # corn stover
-# Acetyl Groups
-C_acy = W_BM*Acy_P/V_DA # acetyl groups -g/L-2
-Molar_acy = C_acy/M_acy
-C_ace_max = C_acy*(M_ace/M_acy)
-# Lignin Groups
-C_lig = W_BM*Lig_P/V_DA # -g/L-
-C_lig_max = C_lig
-Molar_lig = C_lig/M_Lig
-# Xylan Groups
-C_xy = W_BM*Xy_P/V_DA # acetyl groups -g/L-2
-C_xyo_max = C_xy*(M_X/M_Hem)
-Molar_xy = C_xy/M_X
 
-#######################################
-# Set UP Matrices
-#######################################
-# Calculation Matrix -row 0 g/L- -row 1 mol/L-
-loops=(1,12)
-DAC = np.zeros(loops)
-M_DAC = np.zeros(loops)
-dM_DAC = np.zeros(loops)
-DAC[0,0] = 0                                               # Acetate
-DAC[0,1] = 0                                               # Acetic Acid
-DAC[0,2] = 0                                               # Sodium Acetate
-DAC[0,3] = 0                                               # Cellulose
-DAC[0,4] = C_xy                                            # Hemicellulose
-DAC[0,5] = C_lig                                           # Lignin
-DAC[0,6] = C_acy                                           # Acetyl Groups
-DAC[0,7] = 0                                               # Deacetylated Xylan
-DAC[0,8] = C_NaOH                                          # Sodium Hydroxide
-DAC[0,9] = 0                                               # Sodium
-DAC[0,10] = 10**(-pOHi_DA)*M_OH                            # Hydroxide
-DAC[0,11] = 10**(-pHi_DA)*M_H                              # Hydrogen
-# Convert
-M_DAC[0,:] = DAC[0,:]/const[0,:] # -mol/L-
-# NaOH Dissociates Completely
-M_DAC[0,9] = M_DAC[0,9] + (1*M_DAC[0,8]) # Sodium
-M_DAC[0,10] = M_DAC[0,10] + (1*M_DAC[0,8]) # Hydroxide
-M_DAC[0,8] =M_DAC[0,8] - M_DAC[0,8] # Sodium Hydroxide
-# Convert
-DAC[0,:] = M_DAC[0,:]*const[0,:] # -g/L-
-
-# Free Acids
-M_DAC[0,10] = M_DAC[0,10] - 0.02
-
-# Arrehnius Rate Kinetics
-# Lignin
-kT_arh_L = Arc_L*np.exp(-Ea_L/(R*Tf)) # -L/(mol-s)-
-# Acetate
-kT_arh = Arc*np.exp(-Ea/(R*Tf)) # -L/(mol-s)-
-# Xylan
-kT_arh_X = Arc_X*np.exp(-Ea_X/(R*Tf)) # -L/(mol-s)-
 
 ###############################################
 ### DEFINE FUNCTION
@@ -160,6 +109,64 @@ def deacetylate(ve_params,verbose=True,show_plots=True):
     Acy_P = ve_params.pt_in['acetylfrac']
     fis_in = float(ve_params.pt_in['initial_solid_fraction'])
     fis_dac = float(ve_params.pt_in.get('deacetylation_solid_fraction', fis_in))
+    t_final = ve_params.pt_in['deacetylation_retention_time']
+    V_DA = ve_params.pt_in['deacetylation_volume']
+    pHi_DA = ve_params.pt_in['deacetylation inital pH']
+    W_BM = ve_params.pt_in['deacetylation_biomass_loading']
+    C_NaOH = float(ve_params.pt_in['deacetylation_NaOH_loading'])
+
+    # Acetyl Groups
+    C_acy = W_BM*Acy_P/V_DA # acetyl groups -g/L-2
+    Molar_acy = C_acy/M_acy
+    C_ace_max = C_acy*(M_ace/M_acy)
+    # Lignin Groups
+    C_lig = W_BM*Lig_P/V_DA # -g/L-
+    C_lig_max = C_lig
+    Molar_lig = C_lig/M_Lig
+    # Xylan Groups
+    C_xy = W_BM*Xy_P/V_DA # acetyl groups -g/L-2
+    C_xyo_max = C_xy*(M_X/M_Hem)
+    Molar_xy = C_xy/M_X
+
+    #######################################
+    # Set UP Matrices
+    #######################################
+    # Calculation Matrix -row 0 g/L- -row 1 mol/L-
+    loops=(1,12)
+    DAC = np.zeros(loops)
+    M_DAC = np.zeros(loops)
+    dM_DAC = np.zeros(loops)
+    DAC[0,0] = 0                                               # Acetate
+    DAC[0,1] = 0                                               # Acetic Acid
+    DAC[0,2] = 0                                               # Sodium Acetate
+    DAC[0,3] = 0                                               # Cellulose
+    DAC[0,4] = C_xy                                            # Hemicellulose
+    DAC[0,5] = C_lig                                           # Lignin
+    DAC[0,6] = C_acy                                           # Acetyl Groups
+    DAC[0,7] = 0                                               # Deacetylated Xylan
+    DAC[0,8] = C_NaOH                                          # Sodium Hydroxide
+    DAC[0,9] = 0                                               # Sodium
+    DAC[0,10] = 10**(-pOHi_DA)*M_OH                            # Hydroxide
+    DAC[0,11] = 10**(-pHi_DA)*M_H                              # Hydrogen
+    # Convert
+    M_DAC[0,:] = DAC[0,:]/const[0,:] # -mol/L-
+    # NaOH Dissociates Completely
+    M_DAC[0,9] = M_DAC[0,9] + (1*M_DAC[0,8]) # Sodium
+    M_DAC[0,10] = M_DAC[0,10] + (1*M_DAC[0,8]) # Hydroxide
+    M_DAC[0,8] =M_DAC[0,8] - M_DAC[0,8] # Sodium Hydroxide
+    # Convert
+    DAC[0,:] = M_DAC[0,:]*const[0,:] # -g/L-
+
+    # Free Acids
+    M_DAC[0,10] = M_DAC[0,10] - 0.02
+
+    # Arrehnius Rate Kinetics
+    # Lignin
+    kT_arh_L = Arc_L*np.exp(-Ea_L/(R*Tf)) # -L/(mol-s)-
+    # Acetate
+    kT_arh = Arc*np.exp(-Ea/(R*Tf)) # -L/(mol-s)-
+    # Xylan
+    kT_arh_X = Arc_X*np.exp(-Ea_X/(R*Tf)) # -L/(mol-s)-
 
     # Initial Conditions
     Cacetyl = M_DAC[0,6]
